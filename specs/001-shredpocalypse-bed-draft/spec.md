@@ -13,6 +13,7 @@
 ### Session 2026-09-01
 
 - Q: What should happen when someone opens the link whose name is not on the roster — a late addition to the trip, or a friend who got forwarded the link? → A: Option C — anyone holding the player link can create a new name themselves. Self-serve, no organizer step.
+- Q: What stops a player from skiing as slowly as possible to guarantee a clean finish? → A: A minimum downhill speed enforced by the physics, not a timer or a scoring rule. Established alongside the game's form: a 2D side-on platformer with jump, airborne rotation, crouch-to-duck, and an attack verb, built on a crisp momentum-based physics model.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -199,12 +200,25 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **FR-067**: The warm-up course MUST be identical and identically seeded for every player, and MUST use the same physics, control response, and scoring rules as the official course, so that practice is a faithful rehearsal of everything except the terrain.
 - **FR-068**: The official course MUST NOT be reachable in practice or in free play before that player's official run has committed. Free play after commit MAY use the official course.
 
+#### Gameplay model and physics
+
+- **FR-076**: The game MUST present as a 2D side-on platformer: the player skis left-to-right across a vertically varying slope, with the terrain profile, obstacles, and the skier's silhouette all readable from the side.
+- **FR-077**: The skier MUST be under constant downhill acceleration from slope and gravity, and MUST NOT be able to slow below a minimum downhill speed defined in tuning data. There is no brake that brings the skier to a crawl or a stop on a descending slope.
+- **FR-078**: The player MUST be able to jump, leaving the ground with a vertical impulse that composes with current momentum rather than replacing it.
+- **FR-079**: The player MUST be able to rotate while airborne. Rotation MUST feed the trick bonus in FR-033, and landing orientation relative to the slope MUST determine whether a landing is clean or a wipeout.
+- **FR-080**: The player MUST be able to crouch, reducing the skier's profile enough to pass under low obstacles and tucking for additional speed.
+- **FR-081**: The player MUST be able to attack, destroying destructible barriers placed on the course.
+- **FR-082**: Simulation MUST be continuous and momentum-preserving: position, velocity, and angular orientation evolve under slope, gravity, and player input rather than snapping between discrete states. Terrain contact MUST resolve against the slope angle, so landing on a downslope differs from landing on a flat.
+- **FR-083**: Every feel parameter governing the above — minimum and maximum downhill speed, slope acceleration, jump impulse, rotation rate, air control, crouch profile and tuck bonus, landing angle tolerance, attack reach and cooldown — MUST have a named value and an acceptance tolerance in versioned tuning data, per FR-036 and constitution Principle III.
+- **FR-084**: Where physical realism and input crispness conflict, crispness MUST win. No realism treatment may push input-to-visible-response past the 2-frame limit in FR-031 or introduce simulation behaviour that cannot be reproduced under FR-026.
+
 #### Controls
 
 - **FR-029**: Touch and keyboard control schemes MUST each expose every action available in the other with equivalent precision and timing capability.
 - **FR-030**: Keyboard controls MUST be fully remappable.
 - **FR-031**: Input-to-visible-response latency MUST NOT exceed 2 simulation frames under normal load.
-- **FR-032**: Shared control verbs — turn, carve, tuck, jump, grab, crash, recover — MUST behave identically regardless of input device and MUST NOT invert or remap between devices.
+- **FR-032**: Shared control verbs — jump, rotate, crouch/tuck, attack, crash, recover — MUST behave identically regardless of input device and MUST NOT invert or remap between devices.
+- **FR-085**: Touch controls MUST express all four active verbs (jump, rotate, crouch, attack) without requiring simultaneous multi-finger gestures that a player cannot perform one-handed on a phone.
 
 #### Scoring
 
@@ -288,6 +302,8 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 
 - **One draft per deployment.** Multi-trip support is out of scope, so the product manages exactly one roster, one deadline, and one leaderboard. A second trip means a second deployment or a full reset.
 - **Skiing only.** Snowboarding appears in the project constitution as a second discipline but is not in this feature. Control verbs are named and specified so that snowboarding can adopt them unchanged rather than introducing a parallel vocabulary later.
+- **"Realistic" is bounded by determinism and by crispness.** The physics model is momentum-based and slope-aware, not a rigid-body or soft-body simulation. It runs on a fixed timestep with no unbounded integration, because FR-026 requires an identical score from identical inputs. Where a more realistic treatment would cost response time, FR-084 settles it in favour of response.
+- **A speed floor bounds crawling; it does not by itself reward speed.** FR-077 stops a player from creeping down the mountain, but a player can still ride the floor for a guaranteed clean finish, which under FR-034 beats every wipeout. Whether speed additionally pays is a separate decision and is not yet settled.
 - **The honor system is the security model.** Eight friends with one link. Anyone holding the link can create an entry or claim any unclaimed one, and nothing prevents a player from claiming someone else's. This is accepted; FR-064 captures the separate and more serious question of forged scores.
 - **The roster is open, and the organizer is the cleanup.** Self-serve creation means the roster is not a guest list — it is whoever showed up with the link. The controls against that are a hard cap of 16, a visible self-created marker, and an organizer who can remove entries including committed ones. This is the one place where a committed result can be undone, and it exists because an open roster requires it.
 - **The organizer link is secrecy, not authentication.** A distinct URL keeps players from casually stumbling into roster and reset controls. Anyone who obtains that URL has full organizer power.
