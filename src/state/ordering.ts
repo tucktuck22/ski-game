@@ -74,9 +74,16 @@ export function computeStandings(entries: readonly EntryView[], final: boolean):
   return { ranked, forfeits, final };
 }
 
-/** Human-readable placement for the leaderboard, including the bed-pick framing. */
-export function pickLabel(entry: RankedEntry): string {
-  if (entry.forfeit) return 'FORFEIT — coin flip at the cabin';
+/**
+ * Human-readable placement for the leaderboard.
+ *
+ * Forfeit only means something once the draft is FINAL. Before the deadline an
+ * entry without a score has not forfeited anything - he simply has not played
+ * yet, and telling seven people they have forfeited on a board they check daily
+ * is both wrong and needlessly alarming.
+ */
+export function pickLabel(entry: RankedEntry, final: boolean): string {
+  if (entry.forfeit) return final ? 'FORFEIT — coin flip at the cabin' : 'NO SCORE YET';
   if (entry.rank === 1) return 'PICKS FIRST';
   return `PICK ${entry.rank}`;
 }

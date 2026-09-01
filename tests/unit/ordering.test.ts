@@ -78,8 +78,16 @@ describe('bed-pick ordering', () => {
       entry({ id: 'b', name: 'Dave', score: 50000, commitAt: '2026-09-01T10:00:00Z', outcome: 'finished' }),
       entry({ id: 'c', name: 'Al' }),
     ], true);
-    expect(pickLabel(s.ranked[0]!)).toBe('PICKS FIRST');
-    expect(pickLabel(s.ranked[1]!)).toBe('PICK 2');
-    expect(pickLabel(s.forfeits[0]!)).toContain('coin flip');
+    expect(pickLabel(s.ranked[0]!, true)).toBe('PICKS FIRST');
+    expect(pickLabel(s.ranked[1]!, true)).toBe('PICK 2');
+    expect(pickLabel(s.forfeits[0]!, true)).toContain('coin flip');
+  });
+
+  it('does not call anyone a forfeit before the deadline', () => {
+    // Seven people who simply have not played yet are not forfeits, and a board
+    // they check daily should not say they are.
+    const s = computeStandings([entry({ id: 'a', name: 'Zach' })], false);
+    expect(pickLabel(s.forfeits[0]!, false)).toBe('NO SCORE YET');
+    expect(pickLabel(s.forfeits[0]!, true)).toContain('FORFEIT');
   });
 });

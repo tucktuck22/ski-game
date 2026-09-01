@@ -16,7 +16,7 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
-    "types": ["vitest/globals", "node"]
+    "types": ["vitest/globals", "node", "vite/client"]
   },
   "include": ["src", "tests", "tools", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]
 }

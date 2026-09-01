@@ -102,11 +102,11 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 ### Rendering and input base
 
-- [ ] T040 Implement the fixed 320×180 buffer with integer nearest-neighbour upscaling in `src/render/stage.ts`
-- [ ] T041 Implement the fixed-timestep accumulator loop with render interpolation in `src/render/loop.ts`
-- [ ] T042 [P] Implement keyboard input with full remapping per FR-030 in `src/input/keyboard.ts`
-- [ ] T043 [P] Implement one-handed touch input for crouch/launch, rotate, and attack per contracts/controls.md in `src/input/touch.ts`
-- [ ] T044 Sample input once per simulation tick, not per animation frame, in `src/input/sample.ts`
+- [X] T040 Implement the fixed 320×180 buffer with integer nearest-neighbour upscaling in `src/render/stage.ts`
+- [X] T041 Implement the fixed-timestep accumulator loop with render interpolation in `src/render/loop.ts`
+- [X] T042 [P] Implement keyboard input with full remapping per FR-030 in `src/input/keyboard.ts`
+- [X] T043 [P] Implement one-handed touch input for crouch/launch, rotate, and attack per contracts/controls.md in `src/input/touch.ts`
+- [X] T044 Sample input once per simulation tick, not per animation frame, in `src/input/sample.ts`
 - [ ] T045 [P] Assert input-to-visible-response within 2 simulation frames per FR-031 in `tests/e2e/latency.spec.ts`
 
 **Checkpoint**: A run is simulable and renderable end to end from a seed and an input trace. Determinism, monkey, course, and storage-contract suites all pass. No user-facing flow exists yet.
@@ -119,18 +119,18 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 **Independent test**: With a roster provisioned by any means, open the link on a phone, claim a name, use three practice runs, commit an official run, and confirm the score appears on a leaderboard ranked with rank 1 labelled first bed pick — and that no path exists to run officially again.
 
-- [ ] T046 [P] [US1] Implement roster listing and claim state display in `src/ui/roster.ts`
-- [ ] T047 [US1] Implement name claiming with first-write-wins race handling per FR-012 in `src/state/claims.ts`
-- [ ] T048 [US1] Implement same-device identity resumption per FR-010 in `src/state/identity.ts`
-- [ ] T049 [US1] Implement the run economy — three practice, one official, skip-practice-forfeits-unused per FR-013 to FR-015 in `src/state/runEconomy.ts`
-- [ ] T050 [US1] Implement the official-run confirmation gate stating the run counts once and cannot be retaken per FR-016 in `src/ui/officialConfirm.ts`
-- [ ] T051 [US1] Wire the warm-up course to practice runs and the official course to the official run, keeping the official course unreachable before commit per FR-068 in `src/ui/runFlow.ts`
-- [ ] T052 [US1] Implement irreversible commit on both finish and wipeout per FR-017 in `src/state/commit.ts`
-- [ ] T053 [P] [US1] Implement the leaderboard with rank, name, score, status, and the rank-1-picks-first label per FR-040, FR-041 in `src/ui/leaderboard.ts`
-- [ ] T054 [P] [US1] Implement free play after commit, visibly labelled as not counting, per FR-020 in `src/ui/freePlay.ts`
+- [X] T046 [P] [US1] Implement roster listing and claim state display in `src/ui/roster.ts`
+- [X] T047 [US1] Implement name claiming with first-write-wins race handling per FR-012 in `src/state/claims.ts`
+- [X] T048 [US1] Implement same-device identity resumption per FR-010 in `src/state/identity.ts`
+- [X] T049 [US1] Implement the run economy — three practice, one official, skip-practice-forfeits-unused per FR-013 to FR-015 in `src/state/runEconomy.ts`
+- [X] T050 [US1] Implement the official-run confirmation gate stating the run counts once and cannot be retaken per FR-016 in `src/ui/officialConfirm.ts`
+- [X] T051 [US1] Wire the warm-up course to practice runs and the official course to the official run, keeping the official course unreachable before commit per FR-068 in `src/ui/runFlow.ts`
+- [X] T052 [US1] Implement irreversible commit on both finish and wipeout per FR-017 in `src/state/commit.ts`
+- [X] T053 [P] [US1] Implement the leaderboard with rank, name, score, status, and the rank-1-picks-first label per FR-040, FR-041 in `src/ui/leaderboard.ts`
+- [X] T054 [P] [US1] Implement free play after commit, visibly labelled as not counting, per FR-020 in `src/ui/freePlay.ts`
 - [ ] T055 [P] [US1] Author skier, terrain, obstacle, and barrier sprites to the style bible, each citing the rule it satisfies per FR-052, in `assets/sprites/`
-- [ ] T056 [P] [US1] Implement the run HUD showing score, run type, and runs remaining in `src/ui/hud.ts`
-- [ ] T057 [US1] Assert the full claim-to-commit journey and that no retake path exists, per US1 acceptance scenarios 1–8, in `tests/e2e/us1-claim-and-commit.spec.ts`
+- [X] T056 [P] [US1] Implement the run HUD showing score, run type, and runs remaining in `src/ui/hud.ts`
+- [X] T057 [US1] Assert the full claim-to-commit journey and that no retake path exists, per US1 acceptance scenarios 1–8, in `tests/e2e/us1-claim-and-commit.spec.ts`
 - [ ] T058 [P] [US1] Assert a first-time player finishes using only base speed and crouch-to-duck with no tricks per SC-015 in `tests/e2e/us1-cautious-run.spec.ts`
 
 **Checkpoint**: The draft is playable and decides a bed order. This is the MVP.
@@ -164,7 +164,7 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 - [ ] T067 [US3] Implement organizer draft creation with initial roster and deadline per FR-001, FR-004 in `src/ui/organizer/setup.ts`
 - [ ] T068 [US3] Implement player link generation and the separate organizer URL per FR-005, FR-006 in `src/state/links.ts`
-- [ ] T069 [US3] Implement self-serve entry creation, claimed in the same action, with cap and duplicate handling per FR-070, FR-072, FR-008 in `src/ui/roster.ts`
+- [X] T069 [US3] Implement self-serve entry creation, claimed in the same action, with cap and duplicate handling per FR-070, FR-072, FR-008 in `src/ui/roster.ts`
 - [ ] T070 [P] [US3] Display organizer-created versus self-created provenance per FR-073 in `src/ui/leaderboard.ts`
 - [ ] T071 [US3] Implement organizer removal of uncommitted entries and claim release per FR-007 in `src/ui/organizer/manage.ts`
 - [ ] T072 [US3] Implement organizer removal of committed entries behind confirmation naming the discarded score, recorded and left visible per FR-074 in `src/ui/organizer/manage.ts`
@@ -203,7 +203,7 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 - [X] T084 [US5] Implement the IndexedDB commit outbox as a write-only transport buffer per FR-046, FR-048 in `src/state/outbox.ts`
 - [X] T085 [US5] Implement exponential-backoff retry capped at 60s, halting on duplicate rejection, per contracts/storage-api.md in `src/state/outbox.ts`
-- [ ] T086 [US5] Implement the pending-versus-confirmed UI distinction that never claims a leaderboard place before confirmation per FR-047 in `src/ui/commitStatus.ts`
+- [X] T086 [US5] Implement the pending-versus-confirmed UI distinction that never claims a leaderboard place before confirmation per FR-047 in `src/ui/commitStatus.ts`
 - [ ] T087 [US5] Implement the service worker precaching app shell, course, tuning, and assets for fully offline runs per FR-049 in `src/sw.ts`
 - [X] T088 [P] [US5] Assert no run count, claim, or score is ever read back from the outbox per FR-021 in `tests/unit/outbox-not-authoritative.test.ts`
 - [ ] T089 [US5] Assert offline commit queues, survives reload and restart, and posts on reconnect, per US5 acceptance scenarios, in `tests/e2e/us5-offline-commit.spec.ts`
