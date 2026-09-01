@@ -109,6 +109,22 @@ Decisions with lasting consequences are recorded as ADRs in
 [`docs/adr/`](docs/adr/). Read [ADR-0001](docs/adr/0001-record-architecture-decisions.md)
 for when a decision earns one.
 
+### Running a real draft
+
+The shared state lives in a Supabase free-tier project. Set `VITE_SUPABASE_URL`
+and `VITE_SUPABASE_ANON_KEY` as **GitHub repository secrets** — the deploy
+workflow builds with them, and the keep-alive workflow uses them.
+
+Both values are public by design: there are no accounts, and Row Level Security
+is what enforces the rules. Without them the app runs in a clearly-labelled
+local session that is not a real draft.
+
+**The keep-alive workflow is not optional.** A free Supabase project pauses
+after 7 days without database activity and needs a manual restore, which would
+leave the link dead exactly when everyone finally gets round to playing. A daily
+scheduled query prevents it — see
+[ADR-0007](docs/adr/0007-keep-the-free-database-awake.md).
+
 `.gitattributes` pins `*.sh` to LF endings. This is deliberate: with
 `core.autocrlf=true` on Windows, the Spec Kit workflow scripts would otherwise be
 checked out with CRLF and fail under bash with `$'\r': command not found`. Do not

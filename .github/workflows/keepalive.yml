@@ -1,0 +1,62 @@
+name: Keep the draft database awake
+
+# Supabase pauses a free project after 7 days with no DATABASE activity, and
+# restoring it needs someone to click a button in the dashboard. The realistic
+# failure that guards against: the organiser sets the draft up three weeks
+# before the trip, nobody plays, and the link is dead the night everyone
+# finally gets round to it.
+#
+# One cheap query a day is enough to count as activity. See
+# docs/adr/0007-keep-the-free-database-awake.md.
+
+on:
+  schedule:
+    # 07:17 UTC. Deliberately not on the hour: GitHub delays scheduled runs
+    # under load, and :00 is the most congested minute of every hour.
+    - cron: '17 7 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Query the draft table
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping the database
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          set -uo pipefail
+
+          # Not configured yet is a normal state for this repo, and failing red
+          # every morning would train everyone to ignore this workflow - which
+          # is precisely what must not happen to the thing keeping the draft
+          # alive. Say so clearly and stop.
+          if [ -z "${SUPABASE_URL}" ] || [ -z "${SUPABASE_ANON_KEY}" ]; then
+            echo "::notice::VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY are not set."
+            echo "::notice::No database to keep awake. Set both repository secrets once a draft exists."
+            exit 0
+          fi
+
+          # A real SELECT. A request that only touches the API gateway or hits a
+          # cache does not count as database activity, so this reads a row.
+          status=$(curl --silent --show-error --location \
+            --max-time 30 --retry 3 --retry-delay 10 --retry-connrefused \
+            --output /tmp/keepalive.json --write-out '%{http_code}' \
+            --header "apikey: ${SUPABASE_ANON_KEY}" \
+            --header "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/rest/v1/draft?select=id&limit=1") || true
+
+          echo "HTTP ${status}"
+          head -c 400 /tmp/keepalive.json || true
+          echo
+
+          if [ "${status}" != "200" ]; then
+            echo "::error::Keep-alive query failed with HTTP ${status}."
+            echo "::error::If the project has already paused, restore it from the Supabase dashboard."
+            echo "::error::A dead database means the draft link is dead for everyone holding it."
+            exit 1
+          fi
+
+          echo "::notice::Database responded. Pause timer reset."
