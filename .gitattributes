@@ -1,0 +1,43 @@
+# Normalize text files in the repository to LF.
+* text=auto
+
+# Shell scripts MUST check out with LF, even on Windows. core.autocrlf=true is
+# set globally on this machine, and CRLF endings make bash fail with
+# "$'\r': command not found". Spec Kit's workflow scripts live in
+# .specify/scripts/bash/, so this rule is load-bearing, not cosmetic.
+*.sh text eol=lf
+
+# Windows-native scripts keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Explicit text formats.
+*.md   text
+*.json text
+*.yml  text
+*.yaml text
+
+# Binary assets: never apply line-ending or whitespace conversion.
+# The constitution requires large-file handling for binary assets; when Git LFS
+# is enabled, these patterns are the ones to migrate.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.psd  binary
+*.aseprite binary
+*.ase  binary
+*.wav  binary
+*.mp3  binary
+*.ogg  binary
+*.flac binary
+*.ttf  binary
+*.otf  binary
+*.woff binary
+*.woff2 binary
+*.fbx  binary
+*.blend binary
+*.glb  binary
+*.gltf binary

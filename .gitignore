@@ -1,0 +1,44 @@
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.idea/
+.vs/
+.vscode/
+*.user
+
+# --- Claude Code local state ---
+# Project skills and shared settings ARE tracked on purpose:
+#   .claude/skills/    - the Spec Kit workflow skills, needed by collaborators
+#   .claude/settings.json - shared project settings
+# Only per-machine files, which may carry credentials or auth tokens, are excluded.
+.claude/settings.local.json
+.claude/*.local.json
+.claude/.credentials*
+
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Build & dependency output ---
+# NOTE: the engine and target platform are not yet chosen -- see
+# TODO(TARGET_PLATFORM_BASELINE) in .specify/memory/constitution.md.
+# Add stack-specific ignores (Unity Library/ Temp/, Godot .godot/,
+# Unreal Binaries/ Intermediate/, node_modules/, etc.) during /speckit-plan.
+build/
+dist/
+bin/
+obj/
+*.log
+
+# --- Game-specific local state ---
+# Local playtest captures and profiles are per-machine, not shared.
+# Reference replays committed as competition fixtures belong in a tracked
+# folder and must be added explicitly with `git add -f`.
+/playtest-captures/
+/local-profiles/
