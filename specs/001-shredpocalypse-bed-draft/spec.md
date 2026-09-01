@@ -14,6 +14,7 @@
 
 - Q: What should happen when someone opens the link whose name is not on the roster — a late addition to the trip, or a friend who got forwarded the link? → A: Option C — anyone holding the player link can create a new name themselves. Self-serve, no organizer step.
 - Q: What stops a player from skiing as slowly as possible to guarantee a clean finish? → A: A minimum downhill speed enforced by the physics, not a timer or a scoring rule. Established alongside the game's form: a 2D side-on platformer with jump, airborne rotation, crouch-to-duck, and an attack verb, built on a crisp momentum-based physics model.
+- Q: How much of the zombie idea belongs in v1? → A: Option C — none. Attack acts on destructible barriers and terrain only, there are no enemies or pursuing hazards, and pacing is solved through scoring. Zombies are deferred to a later feature.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -207,7 +208,8 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **FR-078**: The player MUST be able to jump, leaving the ground with a vertical impulse that composes with current momentum rather than replacing it.
 - **FR-079**: The player MUST be able to rotate while airborne. Rotation MUST feed the trick bonus in FR-033, and landing orientation relative to the slope MUST determine whether a landing is clean or a wipeout.
 - **FR-080**: The player MUST be able to crouch, reducing the skier's profile enough to pass under low obstacles and tucking for additional speed.
-- **FR-081**: The player MUST be able to attack, destroying destructible barriers placed on the course.
+- **FR-081**: The player MUST be able to attack, destroying destructible barriers placed on the course. Destructible barriers MUST be positioned so that breaking through opens a faster or higher-scoring line than going around, giving the verb a reason to exist beyond obstacle removal.
+- **FR-086**: The course MUST contain no autonomous or pursuing entities in v1. Every hazard is static terrain, a static obstacle, or a destructible barrier, whose position derives from the shared seed. Nothing on the course chases, tracks, or reacts to the player.
 - **FR-082**: Simulation MUST be continuous and momentum-preserving: position, velocity, and angular orientation evolve under slope, gravity, and player input rather than snapping between discrete states. Terrain contact MUST resolve against the slope angle, so landing on a downslope differs from landing on a flat.
 - **FR-083**: Every feel parameter governing the above — minimum and maximum downhill speed, slope acceleration, jump impulse, rotation rate, air control, crouch profile and tuck bonus, landing angle tolerance, attack reach and cooldown — MUST have a named value and an acceptance tolerance in versioned tuning data, per FR-036 and constitution Principle III.
 - **FR-084**: Where physical realism and input crispness conflict, crispness MUST win. No realism treatment may push input-to-visible-response past the 2-frame limit in FR-031 or introduce simulation behaviour that cannot be reproduced under FR-026.
@@ -303,7 +305,8 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **One draft per deployment.** Multi-trip support is out of scope, so the product manages exactly one roster, one deadline, and one leaderboard. A second trip means a second deployment or a full reset.
 - **Skiing only.** Snowboarding appears in the project constitution as a second discipline but is not in this feature. Control verbs are named and specified so that snowboarding can adopt them unchanged rather than introducing a parallel vocabulary later.
 - **"Realistic" is bounded by determinism and by crispness.** The physics model is momentum-based and slope-aware, not a rigid-body or soft-body simulation. It runs on a fixed timestep with no unbounded integration, because FR-026 requires an identical score from identical inputs. Where a more realistic treatment would cost response time, FR-084 settles it in favour of response.
-- **A speed floor bounds crawling; it does not by itself reward speed.** FR-077 stops a player from creeping down the mountain, but a player can still ride the floor for a guaranteed clean finish, which under FR-034 beats every wipeout. Whether speed additionally pays is a separate decision and is not yet settled.
+- **Speed is rewarded through scoring, not through a pursuing hazard.** FR-077's floor stops a player creeping down the mountain, but a player can still ride that floor to a guaranteed clean finish, which under FR-034 beats every wipeout. A chasing horde was considered as the pacing mechanism and rejected with the zombies. Scoring therefore has to do the work; the exact mechanism is the remaining open item on this question.
+- **No enemies in v1.** Zombies and any other autonomous hazard are deferred. FR-086 keeps every course element static and seed-derived, which also keeps the simulation smaller and its determinism cheaper to prove — a pursuing entity would be live state that has to stay replay-identical.
 - **The honor system is the security model.** Eight friends with one link. Anyone holding the link can create an entry or claim any unclaimed one, and nothing prevents a player from claiming someone else's. This is accepted; FR-064 captures the separate and more serious question of forged scores.
 - **The roster is open, and the organizer is the cleanup.** Self-serve creation means the roster is not a guest list — it is whoever showed up with the link. The controls against that are a hard cap of 16, a visible self-created marker, and an organizer who can remove entries including committed ones. This is the one place where a committed result can be undone, and it exists because an open roster requires it.
 - **The organizer link is secrecy, not authentication.** A distinct URL keeps players from casually stumbling into roster and reset controls. Anyone who obtains that URL has full organizer power.
@@ -316,7 +319,7 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **Forfeit order is resolved offline.** The product deliberately does not break ties among forfeits; the coin flip happens at the cabin, as specified.
 - **Mid-range phone is the reference device.** The frame budget, latency, and parity criteria are stated against a mid-range phone because that is what most of the roster will actually play on. The specific reference hardware remains open as `TODO(TARGET_PLATFORM_BASELINE)` in the constitution and must be fixed during planning.
 - **R-rated means profane, not hateful.** The boys-weekend register — beer, joints, jorts, mustaches, pizza, steaks, boomboxes, koozies — is intended and specified. Slurs and content targeting protected characteristics are excluded by FR-059 and are not a matter of taste.
-- **No replays, no spectator mode, no accounts, no multi-trip.** Explicitly out of scope for v1 as stated. The consequence for score verification is accepted as a recorded constitutional deviation below.
+- **No replays, no spectator mode, no accounts, no multi-trip, no enemies.** Explicitly out of scope for v1. The consequence for score verification is accepted as a recorded constitutional deviation below.
 
 ## Accepted Consequences
 
