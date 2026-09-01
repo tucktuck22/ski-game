@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -39,15 +39,28 @@
 - **Missing tiebreak terminal case (fixed)**: FR-037 breaks ties by commit timestamp, but ties surviving that had no defined behavior. FR-038 added.
 - **Device clock trust (fixed)**: commit timestamps were unattributed; FR-037 now assigns them from shared storage, and the wrong-clock case is listed under Edge Cases.
 
-### Iteration 2 — remaining
+### Iteration 2 — clarifications resolved
 
-Three [NEEDS CLARIFICATION] markers remain, at the cap of three. All three were retained rather than defaulted because each has multiple defensible answers with materially different products:
+All three markers were answered and encoded into the spec. Zero markers remain.
 
-| Marker | Location | Why it cannot be defaulted |
-|--------|----------|----------------------------|
-| Abandoned official run | FR-019 | Every available answer either exposes the draft to trivial reroll abuse or punishes a genuine phone disconnect. There is no option that is merely conservative. |
-| Practice course identity | FR-028 | Same-course practice and cold-read practice produce different games and different fairness stories for non-gamers. |
-| Score verification vs. Principle V | FR-064 | Direct conflict with the ratified constitution. Governance requires an explicit documented deviation with an owner and remediation date, which cannot be invented on the author's behalf. |
+| Marker | Resolution | Requirements changed |
+|--------|-----------|----------------------|
+| Abandoned official run (FR-019) | Abandoned runs are discarded; the official run stays unused and may be restarted without limit | FR-019 rewritten; FR-065 (public abandonment counter) and FR-066 (practice symmetry) added |
+| Practice course identity (FR-028) | Practice uses a distinct warm-up course; the official run is a first look at the scored terrain | FR-028 rewritten; FR-067 (warm-up identical and identically seeded for all) and FR-068 (official course unreachable pre-commit) added |
+| Score verification (FR-064) | Documented deviation from constitution Principle V on honor-system grounds | FR-064 rewritten; FR-069 (no "verified standings" claims anywhere) added |
+
+### Iteration 3 — consequence review
+
+Re-reading the resolved spec surfaced two interactions that the individual answers did not create:
+
+- **FR-019 and FR-028 compound.** Free abandonment lets a player scout the unfamiliar official course by restarting until he knows it, which removes the cold read that FR-028 exists to create — but only for players who choose to do it. Recorded in the spec's **Accepted Consequences** section rather than engineered away, per the chosen honor-system model, with FR-065 as the visibility-based response.
+- **FR-019 weakens FR-017's wipeout clause.** "A face-plant is your score" binds only players who let the crash land. Also recorded under **Accepted Consequences**.
+
+Neither is a spec defect — both follow from decisions taken knowingly — but both are stated explicitly so that planning does not rediscover them as surprises or silently design around them.
+
+### Outstanding non-blocking item
+
+The Principle V deviation record carries `TODO(V_DEVIATION_REMEDIATION_DATE)`. Governance requires a calendar date for a documented deviation, and only a trigger condition is currently recorded. This does not block `/speckit-plan` but leaves the deviation record formally incomplete.
 
 ## Notes
 

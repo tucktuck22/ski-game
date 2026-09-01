@@ -12,7 +12,7 @@
 
 ### User Story 1 - Claim your name and commit the one run that counts (Priority: P1)
 
-A trip attendee taps the link in the group chat, sees the eight names on the roster, and taps his own. He gets three practice runs down the mountain to learn the course, then starts his official run behind a confirmation that leaves no doubt it counts. The run ends — at the finish line or face-first in a snowbank — and his score locks in on the spot. He immediately sees where he landed in the bed-pick order.
+A trip attendee taps the link in the group chat, sees the eight names on the roster, and taps his own. He gets three practice runs on a warm-up slope to learn the controls — not the course he will be scored on — then starts his official run behind a confirmation that leaves no doubt it counts. The run ends — at the finish line or face-first in a snowbank — and his score locks in on the spot. He immediately sees where he landed in the bed-pick order.
 
 **Why this priority**: This is the entire product. Everything else supports or protects this loop. With a roster provisioned by any means, this single story delivers a usable draft for eight friends.
 
@@ -25,8 +25,9 @@ A trip attendee taps the link in the group chat, sees the eight names on the ros
 3. **Given** a player with practice runs remaining, **When** he chooses to start his official run, **Then** the system requires an explicit confirmation stating the run counts once and cannot be retaken.
 4. **Given** an official run in progress, **When** the player crosses the finish line, **Then** the score commits immediately and irreversibly and his rank is displayed.
 5. **Given** an official run in progress, **When** the player wipes out, **Then** the run ends and the score accumulated to that point commits immediately and irreversibly.
-6. **Given** a player whose official score has committed, **When** he looks for any way to retake, edit, or delete it, **Then** no such path exists anywhere in the product.
-7. **Given** a player whose official score has committed, **When** he plays again, **Then** the run is labeled free play and its score is recorded nowhere and changes no standing.
+6. **Given** an official run in progress, **When** the player closes the tab, kills the app, or otherwise ends the session before the run reaches a finish or a wipeout, **Then** nothing commits, his official run remains unused, and his abandoned-run count increases by one and becomes visible to everyone.
+7. **Given** a player whose official score has committed, **When** he looks for any way to retake, edit, or delete it, **Then** no such path exists anywhere in the product.
+8. **Given** a player whose official score has committed, **When** he plays again, **Then** the run is labeled free play and its score is recorded nowhere and changes no standing.
 
 ---
 
@@ -117,7 +118,9 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 
 ### Edge Cases
 
-- **A player abandons his official run mid-descent** — closes the tab, kills the app, or pulls the plug when the run is going badly. This is the single largest integrity hole in the design and is unresolved; see [NEEDS CLARIFICATION] in FR-019.
+- **A player abandons his official run mid-descent** — closes the tab, kills the app, or pulls the plug when the run is going badly. Resolved in favor of the honor system: nothing commits and the official run stays unused (FR-019). The reroll path this opens is deliberately left open and made visible rather than blocked (FR-065). See **Accepted Consequences** below for what this costs.
+- **A player restarts his official run repeatedly to scout the course.** Permitted by FR-019 and unpreventable under the chosen model. Each restart increments a publicly visible counter (FR-065); the deterrent is social, not technical.
+- **A player abandons a practice run.** Same rule as official: nothing is consumed and the run may be retaken (FR-066).
 - **Two players claim the same name at nearly the same moment.** The first claim to reach shared storage wins; the second player is told the name is taken and returned to the roster.
 - **A player claims the wrong name.** Before any official commit, the organizer can release a claim from the organizer link. After an official commit, the claim is permanent and the organizer must reset the draft to undo it.
 - **The organizer deploys a change to physics, course, or scoring mid-draft.** Scores committed under different rules are not comparable, and the leaderboard is the bed order. The rules freeze at the first official commit (FR-023).
@@ -132,6 +135,8 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
+
+> Requirement numbers are stable identifiers, not an ordering. FR-065 through FR-069 were added when the clarification answers landed and are placed in the section they belong to rather than renumbered, so that anything tracing to an earlier number keeps tracing to it.
 
 #### Draft setup and roster
 
@@ -159,7 +164,9 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **FR-016**: System MUST require an explicit confirmation before an official run begins, stating unambiguously that the run counts once and cannot be retaken.
 - **FR-017**: System MUST commit the official run's score immediately and irreversibly at run end, including runs that end in a wipeout.
 - **FR-018**: System MUST NOT provide any player-accessible path to retake, edit, or delete a committed official score.
-- **FR-019**: System MUST define the outcome of an official run abandoned before it ends — tab closed, app killed, device powered off. [NEEDS CLARIFICATION: Does abandoning an official run mid-descent commit the score accumulated so far, commit a forfeit, allow a bounded number of resumes, or leave the official run unused? Without a decision here, any player having a bad official run can simply close the tab and start over, which voids FR-017 and the product's core promise.]
+- **FR-019**: An official run whose session ends before the run reaches a finish or a wipeout MUST be discarded in full. No score commits, and the name's official run remains unused and may be started again. There is no limit on how many times an official run may be restarted this way before the deadline.
+- **FR-065**: System MUST maintain, for each roster member, a count of official runs abandoned under FR-019, and MUST display that count on the leaderboard alongside his name and score. Abandonment is permitted; it MUST NOT be private.
+- **FR-066**: A practice run abandoned before it ends MUST likewise be discarded and MUST NOT consume one of the three practice runs.
 - **FR-020**: After committing, players MUST be able to take unlimited free-play runs whose scores are recorded nowhere and affect no standing, and which MUST be visibly labeled as not counting.
 - **FR-021**: Run counts, claims, and committed scores MUST be held in shared storage readable by all link holders. Switching devices, clearing browser data, or using a private window MUST NOT grant additional practice or official runs.
 
@@ -171,7 +178,9 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **FR-025**: The simulation MUST advance on a fixed timestep independent of display refresh rate and device performance, so that frame rate and hardware never confer a scoring advantage.
 - **FR-026**: Given an identical course, seed, input sequence, and rules version, the simulation MUST produce an identical score.
 - **FR-027**: The simulation MUST NOT advance unattended while the browser tab is backgrounded in any way that alters the run's outcome.
-- **FR-028**: Practice runs MUST use [NEEDS CLARIFICATION: the same course and seed as the official run, so that everyone gets three looks at the exact course they will be scored on — or a different course or seed, so the official run is a cold read? The first rewards memorization equally for all eight players and helps non-gamers; the second tests adaptability and makes practice less decisive.]
+- **FR-028**: Practice runs MUST use a warm-up course distinct from the official course, so that the official run is a first look at the scored terrain.
+- **FR-067**: The warm-up course MUST be identical and identically seeded for every player, and MUST use the same physics, control response, and scoring rules as the official course, so that practice is a faithful rehearsal of everything except the terrain.
+- **FR-068**: The official course MUST NOT be reachable in practice or in free play before that player's official run has committed. Free play after commit MAY use the official course.
 
 #### Controls
 
@@ -225,7 +234,8 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 
 - **FR-062**: No input sequence may crash, hang, or soft-lock the game. Randomized input testing MUST be part of the automated suite.
 - **FR-063**: Any defect that interrupts an official run in progress is a release blocker.
-- **FR-064**: Submitted official scores MUST be validated before publication rather than trusted as reported by the player's device. [NEEDS CLARIFICATION: v1 explicitly excludes replays and any authentication, which leaves scores fully forgeable by anyone willing to open developer tools — in direct conflict with constitution Principle V ("Client-reported scores MUST NEVER be trusted as authoritative"). Accept a documented deviation on honor-system grounds, capture an input trace for after-the-fact verification without building a verifier, or bring server-side validation into v1 scope?]
+- **FR-064**: Official scores are accepted as reported by the player's device. No verification is performed in v1.
+- **FR-069**: Because scores are unverified, the product MUST NOT claim in player-facing copy, in the README, or anywhere else that standings are verified, validated, or tamper-proof. Existing wording to that effect MUST be corrected.
 
 ### Key Entities
 
@@ -254,6 +264,8 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **SC-010**: The final leaderboard is unambiguous enough that eight friends can read the bed order off it and act on it without argument, including the placement and coin-flip handling of any forfeits.
 - **SC-011**: A full run is completable end to end with the reduced-motion option enabled and with audio muted, with no loss of information needed to score.
 - **SC-012**: At least 6 of 8 players report the game was fun enough that they would have played it even if it did not decide the beds.
+- **SC-013**: Every link holder can see, for every player, how many official runs that player abandoned — so that scouting the official course by restarting is possible but never invisible.
+- **SC-014**: No player-facing copy, README text, or documentation claims that standings are verified, validated, or tamper-proof.
 
 ## Assumptions
 
@@ -262,20 +274,56 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **The honor system is the security model.** Eight friends with one link. Anyone holding the link can claim any unclaimed name, and nothing prevents a player from claiming someone else's. This is accepted; FR-064 captures the separate and more serious question of forged scores.
 - **The organizer link is secrecy, not authentication.** A distinct URL keeps players from casually stumbling into roster and reset controls. Anyone who obtains that URL has full organizer power.
 - **Players may skip practice.** Nothing forces the use of all three practice runs; going straight to official simply forfeits the unused ones.
-- **A wipeout ends the run.** There is no recovery-and-continue after a crash on an official run; the crash is the run's end and its score commits.
+- **Practice teaches the controls, not the course.** Per FR-028, the three practice runs happen on a warm-up slope. The official descent is a first look at the scored terrain. This deliberately favors adaptability over memorization, at the cost of making the official run harder for players who are not used to games.
+- **The one-run rule is social, not enforced.** Per FR-019, an abandoned official run costs nothing and can be restarted without limit. The product does not prevent a player from bailing out of a bad run; it counts the bails and shows them to everyone (FR-065). This is the correct mechanism for eight friends and the wrong one for strangers.
+- **A wipeout ends the run.** There is no recovery-and-continue after a crash on an official run; the crash is the run's end and its score commits — provided the player lets the crash happen.
 - **Finishing beats wiping out, always.** FR-034 is an interpretation of "non-gamers can post a real score," implemented by making the completion bonus larger than the entire achievable bonus pool. It makes survival the dominant strategy and caps how much a skilled player can gain by trick-hunting. If the intent was for a spectacular trick run that ends in a crash to be able to beat a cautious clean run, FR-034 is wrong and should be overturned at clarification.
 - **Deadline handling is wall-clock, server-assigned.** Both the deadline comparison and commit timestamps come from shared storage rather than player devices, so a wrong device clock cannot alter ranking or the freeze.
 - **Forfeit order is resolved offline.** The product deliberately does not break ties among forfeits; the coin flip happens at the cabin, as specified.
 - **Mid-range phone is the reference device.** The frame budget, latency, and parity criteria are stated against a mid-range phone because that is what most of the roster will actually play on. The specific reference hardware remains open as `TODO(TARGET_PLATFORM_BASELINE)` in the constitution and must be fixed during planning.
 - **R-rated means profane, not hateful.** The boys-weekend register — beer, joints, jorts, mustaches, pizza, steaks, boomboxes, koozies — is intended and specified. Slurs and content targeting protected characteristics are excluded by FR-059 and are not a matter of taste.
-- **No replays, no spectator mode, no accounts, no multi-trip.** Explicitly out of scope for v1 as stated, with the consequence for score verification raised in FR-064.
+- **No replays, no spectator mode, no accounts, no multi-trip.** Explicitly out of scope for v1 as stated. The consequence for score verification is accepted as a recorded constitutional deviation below.
+
+## Accepted Consequences
+
+Three decisions were taken knowingly at clarification. Two of them compound, and the combination is worth stating plainly before planning starts.
+
+**FR-019 (abandonment is free) plus FR-028 (practice is a different course) cancel most of FR-028's purpose.** Individually each is coherent. Together, a player can start his official run, ski the first two hundred metres of the unfamiliar course, close the tab, and start over — as many times as he likes until the deadline. The official run therefore stops being a cold read for anyone willing to do this, while remaining a cold read for the players who take the rules at face value. The cost of the combination falls hardest on the honest and on the non-gamers, which is the opposite of the distribution FR-035 is trying to achieve.
+
+This is accepted rather than engineered away. FR-065 is the chosen response: abandonment is counted and published, so scouting is visible to the whole group and carries a social price instead of a technical one. Planning MUST NOT introduce a technical block on restarts without amending FR-019.
+
+**FR-019 also softens the wipeout rule.** "A face-plant on your official run is your score" holds only for players who let the face-plant land. A player with quick enough reflexes can bail before impact and lose nothing. The abandonment counter is the only thing distinguishing that from a clean restart.
+
+**FR-064 means the standings are unverified.** Any player willing to open developer tools can post any score. See the deviation record below.
 
 ## Constitutional Compliance Notes
 
-This spec is governed by `.specify/memory/constitution.md` v1.0.0. Three conflicts require an explicit decision before planning:
+This spec is governed by `.specify/memory/constitution.md` v1.0.0.
 
-1. **Principle V — replay verification.** The constitution requires that every scored run be reproducible from its record and validated by replay before publication, and that client scores never be authoritative. v1 excludes replays. FR-026 preserves the determinism that makes verification possible later, but no verifier exists in scope. Raised as FR-064. Per the Governance section, proceeding requires a documented deviation with a rationale, a named owner, and a remediation date.
+### Recorded deviation: Principle V — Fair and Verifiable Competition
 
-2. **Principle IV — style bible.** The constitution requires a style bible to exist as the single source of truth before assets are reviewed. None exists in this repository. FR-051 makes writing it part of this feature; it must be produced before the first asset lands, not alongside the last.
+Required by Governance ("all other deviations MUST be documented with rationale, an owner, and a remediation date, and MUST be reviewed at the next milestone").
 
-3. **Definition of Done, item 6.** A mechanic is not done until a human has played it and recorded findings. This is unaffected by anything in this spec and cannot be satisfied by automated work alone. Playtest findings must be recorded against this spec at feature completion.
+| Field | Value |
+|-------|-------|
+| **Principle** | V — Fair and Verifiable Competition |
+| **Clauses waived** | "Submitted scores MUST be validated by replay verification before publication" and "Client-reported scores MUST NEVER be trusted as authoritative" |
+| **Clauses retained** | Identical course conditions for all competitors; all randomness derived from the shared seed; leaderboards partitioned by rules version; no mechanic confers competitive advantage |
+| **Scope** | This feature only. The waiver does not extend to any later feature or release. |
+| **Rationale** | v1 serves one private draft among eight friends who know each other and will be sharing a cabin. Server-side simulation or replay verification costs more than it defends against an adversary who is a friend and socially accountable. The determinism requirements (FR-024 through FR-027) are retained in full, so verification remains buildable later without redesign. |
+| **Owner** | tucktuck22, repository owner |
+| **Remediation trigger** | Before any release that serves a draft among people who are not all personally known to one another, or before any release where the leaderboard governs a materially contested outcome. |
+| **Remediation date** | `TODO(V_DEVIATION_REMEDIATION_DATE)` — Governance requires a calendar date, not only a trigger condition. Needs to be set. |
+| **Review** | At the next project milestone. |
+
+**Consequence for existing documentation.** The README currently describes the project as delivering "leaderboards where the standings can actually be trusted." Under this deviation that claim is not true of v1, and FR-069 requires it be corrected rather than left standing.
+
+### Open constitutional gaps, to be closed during planning
+
+1. **Principle IV — style bible.** The constitution requires a style bible as the single source of truth before assets are reviewed. None exists in this repository. FR-051 makes writing it part of this feature; it must be produced before the first asset lands, not alongside the last.
+
+2. **`TODO(TARGET_PLATFORM_BASELINE)`.** Engine, target platforms, and reference hardware are undetermined in the constitution and must be fixed during `/speckit-plan` and recorded there as a MINOR amendment. This spec states its budgets against "a mid-range phone" precisely because that placeholder is still open.
+
+3. **Definition of Done, item 6.** A mechanic is not done until a human has played it and recorded findings. Nothing in this spec changes that, and no automated process can satisfy it. Playtest findings must be recorded against this spec at feature completion.
+
+4. **Governance — `CLAUDE.md`.** The constitution requires agent-facing runtime guidance in a project-root `CLAUDE.md`. The file does not exist. Unrelated to this feature's content, but it is an open compliance item against the same document that governs it.
