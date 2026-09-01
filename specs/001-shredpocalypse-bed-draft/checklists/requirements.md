@@ -64,6 +64,26 @@ The Principle V deviation record now carries a remediation date of 2026-09-01, c
 
 All decisions taken during clarification are recorded as ADRs in `docs/adr/`.
 
+### Iteration 5 — re-validated after clarification session 2026-09-01
+
+Five clarifications were asked and integrated. Checklist re-evaluated against the
+updated spec: **16/16 → 16/16 items passing**, no newly passing items, no
+regressions, none remaining unchecked.
+
+The spec grew from 69 to 89 functional requirements and from 14 to 16 success
+criteria. The additions are gameplay-model requirements (FR-076 to FR-089) and
+open-roster requirements (FR-070 to FR-075). Item 1 ("no implementation details")
+was re-checked with particular care because the new requirements describe physics
+and controls in detail: they specify player-observable behaviour — what the skier
+does, what the player presses, what ends a run — and name no engine, framework,
+language, or API. It still passes.
+
+One residual is tracked in the spec rather than here, because it is a
+constitutional matter and not a spec-quality defect: Principle III's feel
+parameters are now all named with required tolerances (FR-083) but do not yet
+carry target numbers. Recorded as gap 4 under the spec's Constitutional
+Compliance Notes.
+
 ## Notes
 
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.

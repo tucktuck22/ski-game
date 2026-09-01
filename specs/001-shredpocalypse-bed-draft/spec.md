@@ -16,6 +16,7 @@
 - Q: What stops a player from skiing as slowly as possible to guarantee a clean finish? → A: A minimum downhill speed enforced by the physics, not a timer or a scoring rule. Established alongside the game's form: a 2D side-on platformer with jump, airborne rotation, crouch-to-duck, and an attack verb, built on a crisp momentum-based physics model.
 - Q: How much of the zombie idea belongs in v1? → A: Option C — none. Attack acts on destructible barriers and terrain only, there are no enemies or pursuing hazards, and pacing is solved through scoring. Zombies are deferred to a later feature.
 - Q: How should the scoring reward a fast run over a slow one? → A: Through the controls rather than the scoring table. Fixed base speed; crouching accelerates above it; releasing the crouch produces the jump. Air is therefore only reachable by crouching, which gates every trick bonus behind the speed mechanic.
+- Q: If releasing the crouch always launches a jump, how does a player duck under a low obstacle and come back up without jumping into it? → A: Option D — he doesn't. Releasing under a low obstacle launches the skier into it and wipes out the run. The timing is the difficulty and learning it is the skill.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -209,6 +210,8 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **FR-078**: Crouching MUST accelerate the skier above the base speed, and releasing the crouch MUST produce the jump. Jump and crouch are a single input: hold to tuck and gain speed, release to launch. The launch impulse MUST compose with current momentum rather than replacing it, so a faster tuck produces a longer, faster jump.
 - **FR-079**: The player MUST be able to rotate while airborne. Rotation MUST feed the trick bonus in FR-033, and landing orientation relative to the slope MUST determine whether a landing is clean or a wipeout.
 - **FR-080**: Crouching MUST also reduce the skier's profile enough to pass under low obstacles, so the same input serves ducking, accelerating, and charging a jump.
+- **FR-088**: Releasing a crouch beneath a low obstacle MUST launch the skier into that obstacle and wipe out. There is no clearance check, no charge threshold, and no suppression of the launch. Ducking and jumping are the same input, and choosing when to release is the core skill of the game.
+- **FR-089**: Every low obstacle on the official and warm-up courses MUST be followed by a stretch of overhead clearance, of a minimum length set in tuning data, in which a player can release safely. A low obstacle MUST NOT be placed so that the only survivable release point is unreachable at base speed. The mechanic is meant to punish bad timing, not to make a section impossible.
 - **FR-087**: Airtime MUST be reachable only through FR-078's crouch-and-release. Because rotation requires air (FR-079) and trick bonuses require rotation (FR-033), the entire trick economy is gated behind the speed mechanic: a player who never crouches travels at base speed, never leaves the ground, and can earn only the completion base and ground-level pickups. This is the mechanism by which speed pays, in place of a time component in the scoring table.
 - **FR-081**: The player MUST be able to attack, destroying destructible barriers placed on the course. Destructible barriers MUST be positioned so that breaking through opens a faster or higher-scoring line than going around, giving the verb a reason to exist beyond obstacle removal.
 - **FR-086**: The course MUST contain no autonomous or pursuing entities in v1. Every hazard is static terrain, a static obstacle, or a destructible barrier, whose position derives from the shared seed. Nothing on the course chases, tracks, or reacts to the player.
@@ -301,6 +304,8 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **SC-012**: At least 6 of 8 players report the game was fun enough that they would have played it even if it did not decide the beds.
 - **SC-013**: Every link holder can see, for every player, how many official runs that player abandoned — so that scouting the official course by restarting is possible but never invisible.
 - **SC-014**: No player-facing copy, README text, or documentation claims that standings are verified, validated, or tamper-proof.
+- **SC-015**: A player who has never played the game can complete the official course using only base speed and crouch-to-duck, without attempting a single trick, and post a finishing score.
+- **SC-016**: Every low obstacle on both courses is followed by a safe release window, verified automatically against the course data rather than by eye.
 
 ## Assumptions
 
@@ -308,6 +313,7 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **Skiing only.** Snowboarding appears in the project constitution as a second discipline but is not in this feature. Control verbs are named and specified so that snowboarding can adopt them unchanged rather than introducing a parallel vocabulary later.
 - **"Realistic" is bounded by determinism and by crispness.** The physics model is momentum-based and slope-aware, not a rigid-body or soft-body simulation. It runs on a fixed timestep with no unbounded integration, because FR-026 requires an identical score from identical inputs. Where a more realistic treatment would cost response time, FR-084 settles it in favour of response.
 - **Speed is rewarded through the controls, not through the scoring table.** A chasing horde was considered as the pacing mechanism and went with the zombies; a time component in the base score was considered and rejected in favour of FR-087's structural gate. Because the jump is a released crouch, and the crouch is what makes you fast, every trick bonus in the game sits behind the speed mechanic. Nothing needed to be added to the scoring table to make speed pay.
+- **Low obstacles force every player through the timing mechanic.** Ducking requires crouching, and crouching arms the launch, so a cautious player cannot opt out of FR-088 the way he can opt out of tricks. FR-089 is what keeps that fair: the course must always give him somewhere safe to stand up. This is the requirement most likely to be violated by accident during course design, and the one whose violation would most directly damage FR-035.
 - **A base-speed finisher still beats a fast crasher.** FR-034 makes every finish outrank every wipeout, and FR-087 does not change that — it only caps what a cautious run can earn. A player who never crouches, finishes clean, and collects ground pickups will place above a player who was flying, went for a trick, and ate it at the last gate. That is a deliberate consequence of FR-034, not an oversight, and it is the single clause to revisit first if the game plays timid.
 - **No enemies in v1.** Zombies and any other autonomous hazard are deferred. FR-086 keeps every course element static and seed-derived, which also keeps the simulation smaller and its determinism cheaper to prove — a pursuing entity would be live state that has to stay replay-identical.
 - **The honor system is the security model.** Eight friends with one link. Anyone holding the link can create an entry or claim any unclaimed one, and nothing prevents a player from claiming someone else's. This is accepted; FR-064 captures the separate and more serious question of forged scores.
@@ -377,4 +383,15 @@ is overdue.
 
 3. **Definition of Done, item 6.** A mechanic is not done until a human has played it and recorded findings. Nothing in this spec changes that, and no automated process can satisfy it. Playtest findings must be recorded against this spec at feature completion.
 
-4. **Governance — `CLAUDE.md`.** The constitution requires agent-facing runtime guidance in a project-root `CLAUDE.md`. The file does not exist. Unrelated to this feature's content, but it is an open compliance item against the same document that governs it.
+4. **Principle III — feel parameters have names but not yet numbers.** The
+   constitution requires every mechanic spec to define its feel parameters *and*
+   measurable acceptance criteria. FR-083 now names every parameter the gameplay
+   model depends on and requires each to carry a value and an acceptance tolerance
+   in versioned tuning data, and FR-031 pins input latency at 2 frames. The
+   concrete target ranges for the rest — base speed, tuck acceleration, launch
+   impulse, rotation rate, landing angle tolerance, attack reach — do not exist
+   yet and cannot be invented honestly at a desk. They must be set during
+   planning and refined by the human playtest that Definition of Done item 6
+   requires. Until they carry numbers, this principle is partially satisfied.
+
+5. **Governance — `CLAUDE.md`.** The constitution requires agent-facing runtime guidance in a project-root `CLAUDE.md`. The file does not exist. Unrelated to this feature's content, but it is an open compliance item against the same document that governs it.
