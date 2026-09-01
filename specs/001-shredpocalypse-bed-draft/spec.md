@@ -288,6 +288,8 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 
 Three decisions were taken knowingly at clarification. Two of them compound, and the combination is worth stating plainly before planning starts.
 
+Decision records: [ADR-0002](../../docs/adr/0002-abandoned-official-runs-are-discarded.md) (abandonment), [ADR-0003](../../docs/adr/0003-practice-uses-a-separate-warm-up-course.md) (warm-up course), [ADR-0004](../../docs/adr/0004-accept-client-reported-scores.md) (unverified scores).
+
 **FR-019 (abandonment is free) plus FR-028 (practice is a different course) cancel most of FR-028's purpose.** Individually each is coherent. Together, a player can start his official run, ski the first two hundred metres of the unfamiliar course, close the tab, and start over — as many times as he likes until the deadline. The official run therefore stops being a cold read for anyone willing to do this, while remaining a cold read for the players who take the rules at face value. The cost of the combination falls hardest on the honest and on the non-gamers, which is the opposite of the distribution FR-035 is trying to achieve.
 
 This is accepted rather than engineered away. FR-065 is the chosen response: abandonment is counted and published, so scouting is visible to the whole group and carries a social price instead of a technical one. Planning MUST NOT introduce a technical block on restarts without amending FR-019.
@@ -313,8 +315,17 @@ Required by Governance ("all other deviations MUST be documented with rationale,
 | **Rationale** | v1 serves one private draft among eight friends who know each other and will be sharing a cabin. Server-side simulation or replay verification costs more than it defends against an adversary who is a friend and socially accountable. The determinism requirements (FR-024 through FR-027) are retained in full, so verification remains buildable later without redesign. |
 | **Owner** | tucktuck22, repository owner |
 | **Remediation trigger** | Before any release that serves a draft among people who are not all personally known to one another, or before any release where the leaderboard governs a materially contested outcome. |
-| **Remediation date** | `TODO(V_DEVIATION_REMEDIATION_DATE)` — Governance requires a calendar date, not only a trigger condition. Needs to be set. |
+| **Remediation date** | 2026-09-01 |
 | **Review** | At the next project milestone. |
+| **Decision record** | [ADR-0004](../../docs/adr/0004-accept-client-reported-scores.md) |
+
+**The remediation date is the date this record was written, and that is deliberate.**
+The deviation is due the moment it exists because the intent is to change the rule
+rather than to satisfy it. [ADR-0005](../../docs/adr/0005-trust-the-players.md)
+proposes amending Principle V so that required verification scales with who is
+competing, which would make FR-064 ordinary compliance and dissolve this record
+entirely. Until that amendment is approved and committed, this deviation stands and
+is overdue.
 
 **Consequence for existing documentation.** The README currently describes the project as delivering "leaderboards where the standings can actually be trusted." Under this deviation that claim is not true of v1, and FR-069 requires it be corrected rather than left standing.
 

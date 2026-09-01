@@ -58,9 +58,11 @@ Re-reading the resolved spec surfaced two interactions that the individual answe
 
 Neither is a spec defect — both follow from decisions taken knowingly — but both are stated explicitly so that planning does not rediscover them as surprises or silently design around them.
 
-### Outstanding non-blocking item
+### Iteration 4 — deviation record closed
 
-The Principle V deviation record carries `TODO(V_DEVIATION_REMEDIATION_DATE)`. Governance requires a calendar date for a documented deviation, and only a trigger condition is currently recorded. This does not block `/speckit-plan` but leaves the deviation record formally incomplete.
+The Principle V deviation record now carries a remediation date of 2026-09-01, completing the rationale / owner / date set that Governance requires. The record is therefore formally complete and immediately overdue, which is the intended state: [ADR-0005](../../../docs/adr/0005-trust-the-players.md) proposes amending Principle V so that FR-064 becomes ordinary compliance and the deviation dissolves. Nothing here blocks `/speckit-plan`.
+
+All decisions taken during clarification are recorded as ADRs in `docs/adr/`.
 
 ## Notes
 
