@@ -19,10 +19,18 @@ Added sections:
 
 Removed sections: none
 
+Version change: 1.0.0 → 1.1.0
+Rationale: TARGET_PLATFORM_BASELINE resolved during the first /speckit-plan, as
+this document instructed. Technical Standards & Constraints materially expanded
+with concrete platform, engine, reference hardware, and numeric budgets. No
+principle added, removed, or redefined, so MINOR per the versioning policy.
+Decision record: docs/adr/0006-platform-baseline-and-budgets.md
+
+Resolved TODOs:
+  TODO(TARGET_PLATFORM_BASELINE): resolved 2026-09-01. Evergreen mobile web, no
+    game engine, 2022-era mid-range phone as reference hardware, budgets fixed.
+
 Deferred TODOs:
-  TODO(TARGET_PLATFORM_BASELINE): Engine, target platforms, and the reference
-    hardware that defines the frame budget are not yet chosen. Resolve during the
-    first /speckit-plan and amend as a MINOR bump.
   TODO(PRODUCT_TITLE): "Ski Game" is a working name. Final product title is a
     deferred naming decision and does not block governance.
 -->
@@ -156,9 +164,29 @@ vision deficiencies.
 **Asset management.** Binary assets MUST be version-controlled with large-file
 handling configured. Source files for derived assets MUST be retained.
 
-TODO(TARGET_PLATFORM_BASELINE): Engine, target platforms, and reference hardware are
-undetermined. These MUST be fixed during the first `/speckit-plan` and recorded here
-via a MINOR amendment, at which point the numeric budgets above become concrete.
+**Platform baseline.** The target is the evergreen mobile web: Safari on iOS 16+,
+Chromium and Firefox on Android 10+, and the same engines on desktop. No install and
+no app store. No game engine is used; rendering runs on a thin WebGL layer and the
+simulation, physics, and game loop are written directly, because general-purpose
+engines are not built to produce bit-identical results across browser engines.
+
+**Reference hardware.** A 2022-era mid-range phone — Pixel 6a, Galaxy A54, or iPhone
+SE 3rd gen class. CI approximates it with headless Chromium under 4× CPU throttling
+and Fast 3G network emulation. This approximation is for catching regressions; it
+does not replace the human playtest required by Definition of Done item 6.
+
+**Budgets.** On reference hardware: simulation step MUST NOT exceed 2.0 ms per 60 Hz
+tick; frame time MUST NOT exceed 16.7 ms at the 95th percentile, sustaining at least
+50 fps through a full run; input-to-visible-response MUST NOT exceed 2 simulation
+frames; initial payload MUST NOT exceed 2 MB gzipped; time to interactive MUST NOT
+exceed 5 s on Fast 3G with a cold cache; peak heap MUST NOT exceed 150 MB.
+
+**Simulation arithmetic.** Simulation code MUST use IEEE-754 float64 restricted to
+addition, subtraction, multiplication, and division, all of which are correctly
+rounded and therefore identical across conforming engines. Implementation-
+approximated functions — trigonometric, exponential, logarithmic, and power
+operations — MUST NOT appear in simulation code. This restriction MUST be enforced
+by lint and proved by a determinism test asserted on three browser engines.
 
 ## Development Workflow & Quality Gates
 
@@ -217,4 +245,4 @@ reviewed at the next milestone.
 a project-root `CLAUDE.md` and MUST remain consistent with this constitution. Where
 the two disagree, this constitution governs and the guidance file MUST be corrected.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-01 | **Last Amended**: 2026-09-01
+**Version**: 1.1.0 | **Ratified**: 2026-09-01 | **Last Amended**: 2026-09-01

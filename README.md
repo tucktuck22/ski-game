@@ -8,17 +8,18 @@ glory.
 
 ## Status
 
-**Specified, not yet planned.** The project constitution is ratified at v1.0.0. No
-game code exists yet, and the engine and target platforms are deliberately not yet
-chosen — see `TODO(TARGET_PLATFORM_BASELINE)`.
+**Planned, not yet built.** The project constitution is at v1.1.0. No game code
+exists yet, but the platform baseline is now fixed: the evergreen mobile web, no
+game engine, with a 2022-era mid-range phone as reference hardware and binding
+performance budgets.
 
-The first feature is specified: **Shredpocalypse '86**, a web-based downhill run
-whose final leaderboard is the bed-selection draft order for an eight-person ski
-trip. See [`specs/001-shredpocalypse-bed-draft/`](specs/001-shredpocalypse-bed-draft/).
-All clarifications are resolved and its quality checklist passes.
+The first feature is specified and planned: **Shredpocalypse '86**, a web-based 2D
+side-on skiing platformer whose final leaderboard is the bed-selection draft order
+for an eight-person ski trip. See
+[`specs/001-shredpocalypse-bed-draft/`](specs/001-shredpocalypse-bed-draft/) for the
+spec, research, data model, contracts, and validation guide.
 
-The next step is `/speckit-plan`, which is also where `TODO(TARGET_PLATFORM_BASELINE)`
-must be resolved.
+The next step is `/speckit-tasks`.
 
 ## What this project is
 
@@ -41,6 +42,8 @@ All five principles are binding; the first is non-negotiable.
 | III | Fun Is a Testable Requirement | Every mechanic defines measurable feel criteria. Tuning lives in data files, never in code. |
 | IV | One Coherent 1980s Graphic Novel Voice | A style bible is the single source of truth. Legibility outranks style. |
 | V | Fair and Verifiable Competition | Every scored run is reproducible. Public leaderboards are replay-verified and never trust client scores. |
+
+The constitution is at **v1.1.0**; see its Sync Impact Report for what changed.
 
 ### A note on trust
 
