@@ -12,6 +12,11 @@ import { Outbox, type OutboxStore, type PendingCommit } from './state/outbox.js'
 import { availability, courseFor, PRACTICE_RUNS, type RunKind } from './state/runEconomy.js';
 import { renderLeaderboard, escapeHtml } from './ui/leaderboard.js';
 import { GameView, type RunReport } from './ui/game.js';
+import { Synth } from './audio/synth.js';
+import { resolveMotion, setMotion, REDUCED_MOTION } from './render/reducedMotion.js';
+import { deadlineState, canStartOfficialRun, formatRemaining } from './state/deadline.js';
+import { organizerSecretFromUrl } from './state/links.js';
+import { renderOrganizer, removalConfirmationText } from './ui/organizer.js';
 
 import tuningJson from '../data/tuning.json';
 import scoringJson from '../data/scoring.json';
@@ -33,11 +38,14 @@ const key = import.meta.env['VITE_SUPABASE_ANON_KEY'] as string | undefined;
 const isLocal = !url || !key;
 
 const DRAFT_ID = new URLSearchParams(location.search).get('draft') ?? 'local-draft';
-const deadline = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
+// FR-006: organizer controls appear only for a holder of the organizer URL.
+// Secrecy, not authentication - see src/state/links.ts.
+const isOrganizer = organizerSecretFromUrl(location.search) !== null;
+const localDeadlineIso = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
 
 const backend: Backend = isLocal
   ? new LocalDraftStore({
-      id: DRAFT_ID, deadline, courseSeed: 19860214,
+      id: DRAFT_ID, deadline: localDeadlineIso, courseSeed: 19860214,
       rulesVersion: data.official.rulesVersion, finalizedAt: null,
     })
   : new DraftStore(url, key, DRAFT_ID);
@@ -61,6 +69,24 @@ let commitMessage = '';
 // and an error painted directly onto the node was wiped before anyone read it.
 let rosterError = '';
 
+const synth = new Synth();
+let reducedMotion = resolveMotion() === REDUCED_MOTION;
+
+/**
+ * FR-054 and style-bible A-3: no AudioContext until a deliberate gesture. Bound
+ * to the first pointer or key the player produces, then removed.
+ */
+function armAudioOnFirstGesture(): void {
+  const arm = (): void => {
+    synth.start();
+    window.removeEventListener('pointerdown', arm);
+    window.removeEventListener('keydown', arm);
+  };
+  window.addEventListener('pointerdown', arm, { once: false });
+  window.addEventListener('keydown', arm, { once: false });
+}
+armAudioOnFirstGesture();
+
 if (isLocal) {
   for (const n of ['Tucker', 'Dave', 'Sam', 'Al', 'Zach', 'Marty', 'Rob', 'Cheeks']) {
     await (backend as LocalDraftStore).seedOrganizerEntry(n);
@@ -75,8 +101,10 @@ async function refresh(): Promise<void> {
 const myEntry = (): DraftSnapshot['entries'][number] | undefined =>
   snapshot.entries.find((e) => e.id === myEntryId);
 
-const draftIsFinal = (): boolean =>
-  snapshot.draft.finalizedAt !== null || Date.now() > Date.parse(snapshot.draft.deadline);
+const deadline = (): ReturnType<typeof deadlineState> =>
+  deadlineState(snapshot.draft.deadline, snapshot.draft.finalizedAt, Date.now(), null);
+
+const draftIsFinal = (): boolean => deadline().final;
 
 function render(): void {
   if (game) return; // a run owns the screen
@@ -90,9 +118,15 @@ function render(): void {
     <div class="panel">
       <h1 class="title">SHREDPOCALYPSE '86</h1>
       <p class="subtitle">The leaderboard IS the bed order. One official run. It counts the moment it ends.</p>
+      <div class="row" style="margin-bottom:12px">
+        <span style="color:var(--yellow)">${escapeHtml(formatRemaining(deadline().msRemaining))}</span>
+        <button id="mute" style="min-height:36px;padding:6px 10px">${synth.isMuted ? 'SOUND OFF' : 'SOUND ON'}</button>
+        <button id="motion" style="min-height:36px;padding:6px 10px">${reducedMotion ? 'REDUCED MOTION' : 'FULL MOTION'}</button>
+      </div>
       ${me ? renderPlayer(me) : renderRoster()}
     </div>
-    ${renderLeaderboard(snapshot.entries, draftIsFinal())}`;
+    ${renderLeaderboard(snapshot.entries, draftIsFinal())}
+    ${isOrganizer ? renderOrganizer(snapshot.entries, snapshot.draft.deadline) : ''}`;
   wire();
 }
 
@@ -114,7 +148,7 @@ function renderRoster(): string {
 }
 
 function renderPlayer(me: NonNullable<ReturnType<typeof myEntry>>): string {
-  const a = availability(me, draftIsFinal());
+  const a = availability(me, !canStartOfficialRun(deadline()));
   return `
     <p>You are <strong style="color:var(--magenta)">${escapeHtml(me.name)}</strong>.</p>
     <div class="stack">
@@ -177,9 +211,65 @@ function wire(): void {
 
   const official = app.querySelector<HTMLButtonElement>('#official');
   if (official) official.onclick = (): void => { confirmOfficial(); };
+
+  const mute = app.querySelector<HTMLButtonElement>('#mute');
+  if (mute) mute.onclick = (): void => { synth.setMuted(!synth.isMuted); render(); };
+
+  if (isOrganizer) wireOrganizer();
+
+  const motion = app.querySelector<HTMLButtonElement>('#motion');
+  if (motion) motion.onclick = (): void => {
+    reducedMotion = !reducedMotion;
+    setMotion(reducedMotion);
+    render();
+  };
 }
 
 /** FR-016: an explicit confirmation, stating unambiguously that it counts once. */
+function wireOrganizer(): void {
+  app.querySelectorAll<HTMLButtonElement>('[data-remove]').forEach((b) => {
+    b.onclick = async (): Promise<void> => {
+      const id = b.dataset['remove'] as string;
+      const raw = b.dataset['score'] ?? '';
+      const score = raw === '' ? null : Number(raw);
+      const entry = snapshot.entries.find((e) => e.id === id);
+      // FR-074: the confirmation names the score being discarded. A generic
+      // "are you sure?" is what people click through without reading, and what
+      // is being destroyed is somebody's bed pick.
+      if (!confirm(removalConfirmationText(entry?.name ?? 'this entry', score))) return;
+      await backend.removeEntry(id, score);
+      await refresh();
+    };
+  });
+
+  app.querySelectorAll<HTMLButtonElement>('[data-release]').forEach((b) => {
+    b.onclick = async (): Promise<void> => {
+      await backend.releaseClaim(b.dataset['release'] as string);
+      await refresh();
+    };
+  });
+
+  const save = app.querySelector<HTMLButtonElement>('#save-deadline');
+  if (save) save.onclick = async (): Promise<void> => {
+    const input = app.querySelector<HTMLInputElement>('#deadline');
+    if (!input?.value) return;
+    const iso = new Date(input.value).toISOString();
+    // FR-004: warn before applying a deadline that has already elapsed.
+    if (Date.parse(iso) < Date.now() &&
+        !confirm('That time has already passed. Applying it finalises the draft immediately. Continue?'))
+      return;
+    await backend.setDeadline(iso);
+    await refresh();
+  };
+
+  const reset = app.querySelector<HTMLButtonElement>('#reset');
+  if (reset) reset.onclick = async (): Promise<void> => {
+    if (!confirm('Reset the draft? Every committed score is destroyed. There is no undo.')) return;
+    await backend.resetDraft();
+    await refresh();
+  };
+}
+
 function confirmOfficial(): void {
   app.innerHTML = `
     <div class="panel">
@@ -236,6 +326,9 @@ async function endRun(report: RunReport): Promise<void> {
   if (!me) return;
 
   const insult = data.insults[Math.floor(Math.random() * data.insults.length)] as string;
+  // FR-058: the cue has a visible equivalent - the headline and the insult -
+  // so audio is never the only channel carrying the outcome.
+  synth.cue(report.outcome === 'finished' ? 'land' : 'wipeout');
   const headline = report.outcome === 'finished' ? 'FINISHED' : 'WIPEOUT';
 
   if (report.kind === 'practice') {

@@ -148,6 +148,42 @@ export class DraftStore {
     return result;
   }
 
+  // ---- Organizer operations (FR-006) ----
+  //
+  // These are reachable only from the organizer URL. In production they should
+  // run through a service-role endpoint rather than the anon key, because the
+  // RLS policies deliberately revoke UPDATE and DELETE on committed_score from
+  // every client role - that revocation is what makes FR-018 hold for players,
+  // and the organizer must not be given a client-side way around it.
+
+  async setDeadline(iso: string): Promise<void> {
+    const { error } = await this.db.from('draft').update({ deadline: iso }).eq('id', this.draftId);
+    if (error) throw error;
+  }
+
+  async releaseClaim(entryId: string): Promise<void> {
+    const { error } = await this.db.from('roster_entry').update({ claimed_at: null }).eq('id', entryId);
+    if (error) throw error;
+  }
+
+  /** FR-074: recorded and left visible, never a silent deletion. */
+  async removeEntry(entryId: string, discardedScore: number | null): Promise<void> {
+    const { error } = await this.db
+      .from('roster_entry')
+      .update({ removed_at: new Date().toISOString(), removed_score: discardedScore })
+      .eq('id', entryId);
+    if (error) throw error;
+  }
+
+  async resetDraft(): Promise<void> {
+    // Destructive and irreversible; the UI confirms before calling it.
+    await this.db.from('committed_score').delete().eq('draft_id', this.draftId);
+    await this.db
+      .from('roster_entry')
+      .update({ claimed_at: null, practice_runs_used: 0, abandoned_official_runs: 0, official_status: 'unused' })
+      .eq('draft_id', this.draftId);
+  }
+
   /** FR-042: a commit must reach other viewers within 10 seconds. */
   subscribe(onChange: () => void): () => void {
     const channel = this.db

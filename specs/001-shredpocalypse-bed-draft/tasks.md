@@ -128,10 +128,10 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 - [X] T052 [US1] Implement irreversible commit on both finish and wipeout per FR-017 in `src/state/commit.ts`
 - [X] T053 [P] [US1] Implement the leaderboard with rank, name, score, status, and the rank-1-picks-first label per FR-040, FR-041 in `src/ui/leaderboard.ts`
 - [X] T054 [P] [US1] Implement free play after commit, visibly labelled as not counting, per FR-020 in `src/ui/freePlay.ts`
-- [ ] T055 [P] [US1] Author skier, terrain, obstacle, and barrier sprites to the style bible, each citing the rule it satisfies per FR-052, in `assets/sprites/`
+- [X] T055 [P] [US1] Author skier, terrain, obstacle, and barrier sprites to the style bible, each citing the rule it satisfies per FR-052, in `assets/sprites/`
 - [X] T056 [P] [US1] Implement the run HUD showing score, run type, and runs remaining in `src/ui/hud.ts`
 - [X] T057 [US1] Assert the full claim-to-commit journey and that no retake path exists, per US1 acceptance scenarios 1–8, in `tests/e2e/us1-claim-and-commit.spec.ts`
-- [ ] T058 [P] [US1] Assert a first-time player finishes using only base speed and crouch-to-duck with no tricks per SC-015 in `tests/e2e/us1-cautious-run.spec.ts`
+- [X] T058 [P] [US1] Assert a first-time player finishes using only base speed and crouch-to-duck with no tricks per SC-015 in `tests/e2e/us1-cautious-run.spec.ts`
 
 **Checkpoint**: The draft is playable and decides a bed order. This is the MVP.
 
@@ -146,9 +146,9 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 - [ ] T059 [US2] Implement cross-device identity recovery by name re-selection per FR-011 in `src/state/identity.ts`
 - [ ] T060 [US2] Route all run counts and claims through shared storage, with no device-local read path, per FR-021 in `src/state/runEconomy.ts`
 - [ ] T061 [US2] Implement duplicate-commit rejection surfacing "already committed" without retry per contracts/storage-api.md in `src/state/commit.ts`
-- [ ] T062 [US2] Implement abandonment detection and the public abandoned-run counter per FR-019, FR-065 in `src/state/abandonment.ts`
-- [ ] T063 [P] [US2] Ensure abandoned practice runs do not consume a practice run per FR-066 in `src/state/runEconomy.ts`
-- [ ] T064 [P] [US2] Display the abandonment count on the leaderboard per FR-065, SC-013 in `src/ui/leaderboard.ts`
+- [X] T062 [US2] Implement abandonment detection and the public abandoned-run counter per FR-019, FR-065 in `src/state/abandonment.ts`
+- [X] T063 [P] [US2] Ensure abandoned practice runs do not consume a practice run per FR-066 in `src/state/runEconomy.ts`
+- [X] T064 [P] [US2] Display the abandonment count on the leaderboard per FR-065, SC-013 in `src/ui/leaderboard.ts`
 - [ ] T065 [US2] Assert device switching, private windows, and cleared storage grant no additional runs, per US2 acceptance scenarios, in `tests/e2e/us2-one-run-per-name.spec.ts`
 - [ ] T066 [P] [US2] Assert abandonment discards the run, leaves the official run unused, and increments the visible counter in `tests/e2e/us2-abandonment.spec.ts`
 
@@ -162,15 +162,15 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 **Independent test**: Create a roster and deadline through the organizer flow, open the player link in a clean browser, and confirm the roster and deadline appear exactly as entered.
 
-- [ ] T067 [US3] Implement organizer draft creation with initial roster and deadline per FR-001, FR-004 in `src/ui/organizer/setup.ts`
-- [ ] T068 [US3] Implement player link generation and the separate organizer URL per FR-005, FR-006 in `src/state/links.ts`
+- [X] T067 [US3] Implement organizer draft creation with initial roster and deadline per FR-001, FR-004 in `src/ui/organizer/setup.ts`
+- [X] T068 [US3] Implement player link generation and the separate organizer URL per FR-005, FR-006 in `src/state/links.ts`
 - [X] T069 [US3] Implement self-serve entry creation, claimed in the same action, with cap and duplicate handling per FR-070, FR-072, FR-008 in `src/ui/roster.ts`
-- [ ] T070 [P] [US3] Display organizer-created versus self-created provenance per FR-073 in `src/ui/leaderboard.ts`
-- [ ] T071 [US3] Implement organizer removal of uncommitted entries and claim release per FR-007 in `src/ui/organizer/manage.ts`
-- [ ] T072 [US3] Implement organizer removal of committed entries behind confirmation naming the discarded score, recorded and left visible per FR-074 in `src/ui/organizer/manage.ts`
-- [ ] T073 [P] [US3] Refuse renaming any entry with a committed score per FR-075 in `src/ui/organizer/manage.ts`
-- [ ] T074 [P] [US3] Implement draft reset destroying all committed scores in `src/ui/organizer/manage.ts`
-- [ ] T075 [US3] Assert organizer controls are unreachable from the player link and that self-serve creation works, per US3 acceptance scenarios 1–6, in `tests/e2e/us3-organizer.spec.ts`
+- [X] T070 [P] [US3] Display organizer-created versus self-created provenance per FR-073 in `src/ui/leaderboard.ts`
+- [X] T071 [US3] Implement organizer removal of uncommitted entries and claim release per FR-007 in `src/ui/organizer/manage.ts`
+- [X] T072 [US3] Implement organizer removal of committed entries behind confirmation naming the discarded score, recorded and left visible per FR-074 in `src/ui/organizer/manage.ts`
+- [X] T073 [P] [US3] Refuse renaming any entry with a committed score per FR-075 in `src/ui/organizer/manage.ts`
+- [X] T074 [P] [US3] Implement draft reset destroying all committed scores in `src/ui/organizer/manage.ts`
+- [X] T075 [US3] Assert organizer controls are unreachable from the player link and that self-serve creation works, per US3 acceptance scenarios 1–6, in `tests/e2e/us3-organizer.spec.ts`
 
 **Checkpoint**: A draft can be created, shared, and administered without developer intervention.
 
@@ -182,13 +182,13 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 **Independent test**: Set a near-future deadline with some entries uncommitted, wait past it, and confirm FINAL, refused commits, and forfeits grouped without an implied order.
 
-- [ ] T076 [US4] Implement server-side deadline enforcement rejecting commits after the deadline per FR-043 in `supabase/migrations/0003_deadline.sql`
-- [ ] T077 [US4] Allow a run started before the deadline to finish and commit after it per FR-044 in `src/state/commit.ts`
-- [ ] T078 [US4] Implement the FINAL leaderboard state per FR-043 in `src/ui/leaderboard.ts`
+- [X] T076 [US4] Implement server-side deadline enforcement rejecting commits after the deadline per FR-043 in `supabase/migrations/0003_deadline.sql`
+- [X] T077 [US4] Allow a run started before the deadline to finish and commit after it per FR-044 in `src/state/commit.ts`
+- [X] T078 [US4] Implement the FINAL leaderboard state per FR-043 in `src/ui/leaderboard.ts`
 - [X] T079 [US4] Implement tie-breaking by earlier server-assigned `commit_at` per FR-037 in `src/ui/ordering.ts`
 - [X] T080 [US4] Display surviving ties as unresolved and flagged for coin flip per FR-038 in `src/ui/ordering.ts`
 - [X] T081 [US4] Place uncommitted entries below all scores as an unordered FORFEIT group with the coin-flip instruction, assigning no order, per FR-045 in `src/ui/ordering.ts`
-- [ ] T082 [P] [US4] Warn the organizer before applying an already-elapsed deadline per FR-004 in `src/ui/organizer/setup.ts`
+- [X] T082 [P] [US4] Warn the organizer before applying an already-elapsed deadline per FR-004 in `src/ui/organizer/setup.ts`
 - [ ] T083 [US4] Assert FINAL state, tie-breaking, and that no order is implied among forfeits, per US4 acceptance scenarios, in `tests/e2e/us4-deadline.spec.ts`
 
 **Checkpoint**: The leaderboard is an authoritative bed order the group can act on.
@@ -218,17 +218,17 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 **Independent test**: Play a full run and confirm the style bible's rules are visibly followed, audio is silent until first interaction, and reduced motion leaves the run fully playable.
 
-- [ ] T090 [P] [US6] Implement the scanline and halftone post-process shaders in `src/render/filters/scanline.ts` and `src/render/filters/halftone.ts`
-- [ ] T091 [P] [US6] Implement neon bloom and chromatic fringing shaders in `src/render/filters/bloom.ts`
-- [ ] T092 [P] [US6] Implement chrome and neon title lettering in `src/ui/titles.ts`
-- [ ] T093 [P] [US6] Implement comic-idiom panels, gutters, and caption boxes for menus and transitions per FR-053 in `src/ui/panels.ts`
-- [ ] T094 [US6] Implement Web Audio chiptune and synthwave synthesis, original by construction, in `src/audio/synth.ts`
-- [ ] T095 [US6] Gate audio behind the first deliberate gesture with a persistent mute toggle per FR-054 in `src/audio/gate.ts`
-- [ ] T096 [P] [US6] Display randomised wipeout insults drawn from the data file per FR-059 in `src/ui/wipeout.ts`
-- [ ] T097 [US6] Implement the reduced-motion option disabling scanlines, shake, flashing, and parallax without changing timing per FR-056 in `src/render/reducedMotion.ts`
-- [ ] T098 [P] [US6] Assert no effect flashes more than three times per second across a large screen area per FR-057 in `tests/e2e/us6-flash-limit.spec.ts`
-- [ ] T099 [P] [US6] Assert every audio cue carrying gameplay information has a visible equivalent per FR-058 in `tests/e2e/us6-audio-parity.spec.ts`
-- [ ] T100 [US6] Assert style-bible conformance, gesture-gated audio, and reduced-motion playability, per US6 acceptance scenarios, in `tests/e2e/us6-presentation.spec.ts`
+- [X] T090 [P] [US6] Implement the scanline and halftone post-process shaders in `src/render/filters/scanline.ts` and `src/render/filters/halftone.ts`
+- [X] T091 [P] [US6] Implement neon bloom and chromatic fringing shaders in `src/render/filters/bloom.ts`
+- [X] T092 [P] [US6] Implement chrome and neon title lettering in `src/ui/titles.ts`
+- [X] T093 [P] [US6] Implement comic-idiom panels, gutters, and caption boxes for menus and transitions per FR-053 in `src/ui/panels.ts`
+- [X] T094 [US6] Implement Web Audio chiptune and synthwave synthesis, original by construction, in `src/audio/synth.ts`
+- [X] T095 [US6] Gate audio behind the first deliberate gesture with a persistent mute toggle per FR-054 in `src/audio/gate.ts`
+- [X] T096 [P] [US6] Display randomised wipeout insults drawn from the data file per FR-059 in `src/ui/wipeout.ts`
+- [X] T097 [US6] Implement the reduced-motion option disabling scanlines, shake, flashing, and parallax without changing timing per FR-056 in `src/render/reducedMotion.ts`
+- [X] T098 [P] [US6] Assert no effect flashes more than three times per second across a large screen area per FR-057 in `tests/e2e/us6-flash-limit.spec.ts`
+- [X] T099 [P] [US6] Assert every audio cue carrying gameplay information has a visible equivalent per FR-058 in `tests/e2e/us6-audio-parity.spec.ts`
+- [X] T100 [US6] Assert style-bible conformance, gesture-gated audio, and reduced-motion playability, per US6 acceptance scenarios, in `tests/e2e/us6-presentation.spec.ts`
 
 **Checkpoint**: The game reads as 1986 and remains legible and accessible.
 
@@ -239,7 +239,7 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 - [ ] T101 Measure and enforce the R1 budgets under 4× CPU throttle and Fast 3G in `tests/e2e/performance.spec.ts`
 - [ ] T102 [P] Assert median phone scores fall within 10% of desktop for comparable skill per SC-006 in `tests/e2e/parity.spec.ts`
 - [ ] T103 [P] Assert no information required to complete a run or read standings is conveyed by colour alone per FR-055 in `tests/e2e/color-independence.spec.ts`
-- [ ] T104 [P] Verify no player-facing copy or documentation claims standings are verified or tamper-proof per FR-069, SC-014 in `tests/unit/no-verified-claims.test.ts`
+- [X] T104 [P] Verify no player-facing copy or documentation claims standings are verified or tamper-proof per FR-069, SC-014 in `tests/unit/no-verified-claims.test.ts`
 - [ ] T105 [P] Enforce rules-version pinning so a mid-draft physics or scoring change is refused rather than silently accepted per FR-023 in `src/state/rulesVersion.ts`
 - [ ] T106 [P] Add empty, loading, and error states across roster, leaderboard, and run flows in `src/ui/states.ts`
 - [ ] T107 Run the full suite and confirm every scenario in `specs/001-shredpocalypse-bed-draft/quickstart.md` passes, recording results in `specs/001-shredpocalypse-bed-draft/quickstart.md`

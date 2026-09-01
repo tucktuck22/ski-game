@@ -103,6 +103,35 @@ export class LocalDraftStore {
     return { kind: 'confirmed' };
   }
 
+  // Organizer operations (FR-006, FR-007, FR-074). Present here so the flow can
+  // be exercised locally; in production these run through the service role,
+  // which the player bundle does not carry.
+  async setDeadline(iso: string): Promise<void> {
+    (this.draft as { deadline: string }).deadline = iso;
+    this.notify();
+  }
+
+  async releaseClaim(id: string): Promise<void> {
+    const e = this.entries.get(id);
+    if (e && !this.commits.has(id)) this.entries.set(id, { ...e, claimed: false });
+    this.notify();
+  }
+
+  /** FR-074: the entry stays visible as removed rather than disappearing. */
+  async removeEntry(id: string, _discardedScore: number | null): Promise<void> {
+    const e = this.entries.get(id);
+    if (e) this.entries.set(id, { ...e, removed: true });
+    this.notify();
+  }
+
+  async resetDraft(): Promise<void> {
+    this.commits.clear();
+    for (const [id, e] of this.entries) {
+      this.entries.set(id, { ...e, claimed: false, practiceRunsUsed: 0, abandonedOfficialRuns: 0 });
+    }
+    this.notify();
+  }
+
   subscribe(onChange: () => void): () => void {
     this.listeners.add(onChange);
     return () => this.listeners.delete(onChange);

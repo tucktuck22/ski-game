@@ -20,7 +20,10 @@ export interface Stage {
   destroy(): void;
 }
 
-export function createStage(display: HTMLCanvasElement): Stage {
+/** Applied to the buffer after drawing and before presenting. */
+export type PostProcess = (ctx: CanvasRenderingContext2D, buffer: HTMLCanvasElement) => void;
+
+export function createStage(display: HTMLCanvasElement, post?: PostProcess): Stage {
   const buffer = document.createElement('canvas');
   buffer.width = INTERNAL_WIDTH;
   buffer.height = INTERNAL_HEIGHT;
@@ -50,6 +53,9 @@ export function createStage(display: HTMLCanvasElement): Stage {
     ctx,
     buffer,
     present() {
+      // Post-processing runs on the 320x180 buffer, never on the upscaled
+      // output: a full-screen pass here is ~57,600 pixels instead of millions.
+      if (post) post(ctx, buffer);
       out.imageSmoothingEnabled = false;
       out.drawImage(buffer, 0, 0, display.width, display.height);
     },

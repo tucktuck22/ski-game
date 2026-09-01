@@ -9,6 +9,8 @@ import type { Course, RunInput, RunState, Scoring, Tuning } from '../sim/types.j
 import { derive, initialState, step, type DerivedTuning } from '../sim/step.js';
 import { finalScore } from '../sim/scoring.js';
 import { createStage, type Stage } from '../render/stage.js';
+import { applyCrt, resetCrt } from '../render/filters/crt.js';
+import { resolveMotion } from '../render/reducedMotion.js';
 import { drawRun } from '../render/draw.js';
 import { startLoop, type LoopHandle } from '../render/loop.js';
 import { InputSampler } from '../input/sample.js';
@@ -41,7 +43,9 @@ export class GameView {
     private readonly kind: RunKind,
     private readonly onEnd: (r: RunReport) => void,
   ) {
-    this.stage = createStage(canvas);
+    const motion = resolveMotion();
+    resetCrt();
+    this.stage = createStage(canvas, (ctx, buffer) => applyCrt(ctx, buffer, motion));
     this.sampler = new InputSampler([keyboardSource(), touchSource(canvas)]);
     this.derived = derive(tuning);
     this.state = initialState(course, tuning, seed);

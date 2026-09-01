@@ -18,6 +18,16 @@ export default tseslint.config(
   { ignores: ['dist/**', 'node_modules/**', 'coverage/**', '**/*.min.js', 'src/sim/trig.ts'] },
   ...tseslint.configs.recommended,
   {
+    rules: {
+      // A leading underscore marks a parameter kept for signature clarity even
+      // though this implementation does not need it.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+    },
+  },
+  {
     files: ['src/sim/**/*.ts'],
     rules: {
       'no-restricted-globals': [
