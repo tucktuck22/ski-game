@@ -19,7 +19,8 @@
     "test:determinism": "playwright test tests/e2e/determinism.spec.ts",
     "test:perf": "playwright test tests/e2e/performance.spec.ts",
     "db:migrate": "node tools/migrate.mjs",
-    "gen:trig": "node --experimental-strip-types tools/gen-trig.ts"
+    "gen:trig": "node --experimental-strip-types tools/gen-trig.ts",
+    "gen:courses": "node --experimental-strip-types tools/gen-courses.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

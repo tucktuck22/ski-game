@@ -82,8 +82,6 @@ function squareError(a: number, x: number): number {
   return err < 0 ? -err : err;
 }
 
-const absDiff = (a: number, b: number): number => (a > b ? a - b : b - a);
-
 /** Steps a positive finite double by `dir` units in the last place. */
 function neighbour(v: number, dir: 1 | -1): number {
   F64[0] = v;

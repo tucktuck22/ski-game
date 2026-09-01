@@ -35,17 +35,17 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 **Purpose**: Project initialization and toolchain
 
-- [ ] T001 Create the directory structure from plan.md in `src/`, `data/`, `assets/`, `tests/`, `supabase/`
-- [ ] T002 Initialize TypeScript strict-mode project with Vite in `package.json`, `tsconfig.json`, `vite.config.ts`
-- [ ] T003 [P] Add PixiJS v8 and the Supabase JS client as the only runtime dependencies in `package.json`
-- [ ] T004 [P] Configure ESLint and Prettier in `eslint.config.js`
-- [ ] T005 Add the simulation arithmetic lint rule banning `Math.*`, `Date.*`, and `performance.*` under `src/sim/**` in `eslint.config.js`
-- [ ] T006 [P] Configure Vitest in `vitest.config.ts`
-- [ ] T007 [P] Configure Playwright for Chromium, Firefox, and WebKit in `playwright.config.ts`, using the preinstalled browsers without calling `playwright install`
-- [ ] T008 [P] Configure Git LFS for binary sprite atlases in `.gitattributes`
-- [ ] T009 [P] Add the CI workflow running lint, unit, sim, course, and contract suites in `.github/workflows/ci.yml`
-- [ ] T010 [P] Add the GitHub Pages deploy workflow in `.github/workflows/deploy.yml`
-- [ ] T011 [P] Add Supabase environment configuration and `.env.example` documenting the public URL and anon key
+- [X] T001 Create the directory structure from plan.md in `src/`, `data/`, `assets/`, `tests/`, `supabase/`
+- [X] T002 Initialize TypeScript strict-mode project with Vite in `package.json`, `tsconfig.json`, `vite.config.ts`
+- [X] T003 [P] Add PixiJS v8 and the Supabase JS client as the only runtime dependencies in `package.json`
+- [X] T004 [P] Configure ESLint and Prettier in `eslint.config.js`
+- [X] T005 Add the simulation arithmetic lint rule banning `Math.*`, `Date.*`, and `performance.*` under `src/sim/**` in `eslint.config.js`
+- [X] T006 [P] Configure Vitest in `vitest.config.ts`
+- [X] T007 [P] Configure Playwright for Chromium, Firefox, and WebKit in `playwright.config.ts`, using the preinstalled browsers without calling `playwright install`
+- [X] T008 [P] Configure Git LFS for binary sprite atlases in `.gitattributes`
+- [X] T009 [P] Add the CI workflow running lint, unit, sim, course, and contract suites in `.github/workflows/ci.yml`
+- [X] T010 [P] Add the GitHub Pages deploy workflow in `.github/workflows/deploy.yml`
+- [X] T011 [P] Add Supabase environment configuration and `.env.example` documenting the public URL and anon key
 
 **Checkpoint**: `npm install && npm run lint && npm test` runs clean on an empty suite.
 
@@ -59,38 +59,38 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 ### Style authority — before any asset exists
 
-- [ ] T012 Write the style bible covering palette, linework weight, halftone and scanline treatment, chrome and neon lettering, panel framing, audio character, and the legibility-outranks-style rule in `assets/style-bible.md`
-- [ ] T013 [P] Validate the style bible palette against protanopia, deuteranopia, and tritanopia and record results in `assets/style-bible.md`, with an automated contrast check in `tests/unit/palette.test.ts`
+- [X] T012 Write the style bible covering palette, linework weight, halftone and scanline treatment, chrome and neon lettering, panel framing, audio character, and the legibility-outranks-style rule in `assets/style-bible.md`
+- [X] T013 [P] Validate the style bible palette against protanopia, deuteranopia, and tritanopia and record results in `assets/style-bible.md`, with an automated contrast check in `tests/unit/palette.test.ts`
 
 ### Deterministic simulation core
 
-- [ ] T014 [P] Implement the seeded PRNG in `src/sim/rng.ts`
-- [ ] T015 [P] Generate the trigonometry lookup table with `tools/gen-trig.ts`, output committed to `src/sim/trig.ts`
-- [ ] T016 [P] Define simulation state and input types from data-model.md in `src/sim/types.ts`
-- [ ] T017 Implement semi-implicit Euler integration with piecewise-linear slope contact in `src/sim/physics.ts`
-- [ ] T018 Implement crouch charge, launch impulse, and the release-under-low-obstacle wipeout per FR-088 in `src/sim/physics.ts`
-- [ ] T019 Implement airborne rotation, rotation accumulation, and landing angle tolerance in `src/sim/physics.ts`
-- [ ] T020 Implement the pure `step(state, input) → state` entry point in `src/sim/step.ts`
-- [ ] T021 [P] Implement base, trick, and pickup score accumulation in `src/sim/scoring.ts`
-- [ ] T022 Record a golden seed and input trace and assert exact score and end-state hash in `tests/sim/golden.test.ts`
-- [ ] T023 [P] Fuzz randomised input across thousands of seeds asserting no throw, no non-finite state, and a terminal state per FR-062 in `tests/sim/monkey.test.ts`
+- [X] T014 [P] Implement the seeded PRNG in `src/sim/rng.ts`
+- [X] T015 [P] Generate the trigonometry lookup table with `tools/gen-trig.ts`, output committed to `src/sim/trig.ts`
+- [X] T016 [P] Define simulation state and input types from data-model.md in `src/sim/types.ts`
+- [X] T017 Implement semi-implicit Euler integration with piecewise-linear slope contact in `src/sim/physics.ts`
+- [X] T018 Implement crouch charge, launch impulse, and the release-under-low-obstacle wipeout per FR-088 in `src/sim/physics.ts`
+- [X] T019 Implement airborne rotation, rotation accumulation, and landing angle tolerance in `src/sim/physics.ts`
+- [X] T020 Implement the pure `step(state, input) → state` entry point in `src/sim/step.ts`
+- [X] T021 [P] Implement base, trick, and pickup score accumulation in `src/sim/scoring.ts`
+- [X] T022 Record a golden seed and input trace and assert exact score and end-state hash in `tests/sim/golden.test.ts`
+- [X] T023 [P] Fuzz randomised input across thousands of seeds asserting no throw, no non-finite state, and a terminal state per FR-062 in `tests/sim/monkey.test.ts`
 
 ### Course pipeline — validator before content
 
-- [ ] T024 [P] Define the course schema types from contracts/course-data.md in `src/course/types.ts`
-- [ ] T025 Implement validator rules CV-1 through CV-9, with CV-4's safe-release-window check per FR-089, in `src/course/validate.ts`
-- [ ] T026 Cover every validator rule including deliberately invalid fixtures in `tests/course/validate.test.ts`
-- [ ] T027 Implement the course loader in `src/course/load.ts`
-- [ ] T028 Author the warm-up course, validator passing, in `data/courses/warmup.json`
-- [ ] T029 Author the official course, validator passing, in `data/courses/official.json`
+- [X] T024 [P] Define the course schema types from contracts/course-data.md in `src/course/types.ts`
+- [X] T025 Implement validator rules CV-1 through CV-9, with CV-4's safe-release-window check per FR-089, in `src/course/validate.ts`
+- [X] T026 Cover every validator rule including deliberately invalid fixtures in `tests/course/validate.test.ts`
+- [X] T027 Implement the course loader in `src/course/load.ts`
+- [X] T028 Author the warm-up course, validator passing, in `data/courses/warmup.json`
+- [X] T029 Author the official course, validator passing, in `data/courses/official.json`
 
 ### Tuning and scoring data
 
-- [ ] T030 [P] Transcribe every parameter and tolerance from contracts/tuning-data.md into `data/tuning.json`
-- [ ] T031 [P] Define base, trick, and pickup values in `data/scoring.json`
-- [ ] T032 [P] Assert the completion base exceeds the maximum achievable bonus total per FR-034 in `tests/unit/scoring-dominance.test.ts`
-- [ ] T033 [P] Write at least 30 wipeout lines, R-rated register, no slurs or protected-characteristic content, in `data/insults.json`
-- [ ] T034 Implement data-file loading with schema validation in `src/data/load.ts`
+- [X] T030 [P] Transcribe every parameter and tolerance from contracts/tuning-data.md into `data/tuning.json`
+- [X] T031 [P] Define base, trick, and pickup values in `data/scoring.json`
+- [X] T032 [P] Assert the completion base exceeds the maximum achievable bonus total per FR-034 in `tests/unit/scoring-dominance.test.ts`
+- [X] T033 [P] Write at least 30 wipeout lines, R-rated register, no slurs or protected-characteristic content, in `data/insults.json`
+- [X] T034 Implement data-file loading with schema validation in `src/data/load.ts`
 
 ### Shared storage
 

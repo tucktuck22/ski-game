@@ -1,0 +1,23 @@
+{
+  "$comment": "Values and tolerances from specs/001-shredpocalypse-bed-draft/contracts/tuning-data.md. Opening positions for playtest, not measurements. Changing a value outside its documented tolerance is a feel change: re-run the acceptance scenarios and bump rulesVersion.",
+  "baseSpeed": 2.6,
+  "tuckSpeedMax": 4.2,
+  "tuckAccel": 0.055,
+  "tuckDecel": 0.09,
+  "slopeAccelFactor": 0.04,
+  "gravity": 0.32,
+  "launchImpulseMin": 3.4,
+  "launchImpulseMax": 7.2,
+  "chargeTicksToMax": 45,
+  "rotationRateMax": 0.115,
+  "airControlFactor": 0.25,
+  "landingAngleTolerance": 0.42,
+  "landingAngleToleranceForgiving": 0.58,
+  "collisionSpeedThreshold": 1.8,
+  "standHeight": 16,
+  "crouchHeight": 9,
+  "crouchTransitionTicks": 4,
+  "attackReach": 22,
+  "attackCooldownTicks": 30,
+  "safeReleaseWindowMin": 140
+}
