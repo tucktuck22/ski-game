@@ -8,6 +8,12 @@
 
 **Input**: User description: "Build 'Shredpocalypse '86,' a web-based downhill skiing game that determines the bed-selection draft order for an 8-person boys ski trip. The final leaderboard IS the bed-pick order. Each player gets exactly 3 practice runs, then 1 official run that commits immediately and irreversibly when it ends, including wipeouts. Shared via a single link, no accounts; the organizer pre-defines a roster and sets a deadline, after which the leaderboard freezes as FINAL and unplayed members forfeit to the bottom by coin flip. Identical course and seed for every official run; touch and keyboard parity; hybrid scoring (base + trick and pickup bonuses); ties break by earlier commit timestamp. Shared storage, never device-local; commits queue and retry on connectivity loss. Full 1986 styling with original period art and audio. Out of scope for v1: multi-trip support, accounts, spectator mode, replays."
 
+## Clarifications
+
+### Session 2026-09-01
+
+- Q: What should happen when someone opens the link whose name is not on the roster — a late addition to the trip, or a friend who got forwarded the link? → A: Option C — anyone holding the player link can create a new name themselves. Self-serve, no organizer step.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Claim your name and commit the one run that counts (Priority: P1)
@@ -50,7 +56,7 @@ A player takes his three practice runs on his phone, has a rough official run, a
 
 ### User Story 3 - The organizer sets up the draft and shares one link (Priority: P2)
 
-The organizer enters the eight names going on the trip, sets a deadline of the Thursday before departure, and gets one link to drop in the group chat. He keeps a separate link for himself that lets him fix a typo in a name or push the deadline.
+The organizer enters the eight names going on the trip, sets a deadline of the Thursday before departure, and gets one link to drop in the group chat. Anyone who opens that link can add a name that is not there yet, so a late addition to the trip needs no organizer step. The organizer keeps a separate link that lets him fix a typo, push the deadline, or remove an entry that turned out to belong to somebody who is not coming.
 
 **Why this priority**: Needed before the draft can be shared, but the player loop can be demonstrated against a hand-provisioned roster, so it does not gate the P1 slice.
 
@@ -60,8 +66,10 @@ The organizer enters the eight names going on the trip, sets a deadline of the T
 
 1. **Given** the organizer flow, **When** the organizer enters a list of names and a deadline, **Then** a single player link is produced that grants any holder the ability to claim an unclaimed name.
 2. **Given** a roster being entered, **When** two identical names are submitted, **Then** the system rejects the duplicate and requires a distinguishing name.
-3. **Given** a player holding the player link, **When** he looks for roster or deadline controls, **Then** none are reachable — those actions exist only on the organizer link.
-4. **Given** a name whose official run has already committed, **When** the organizer attempts to remove or rename it, **Then** the system refuses and explains that the change would invalidate a committed result.
+3. **Given** a player holding the player link, **When** he enters a name that is not on the roster, **Then** the entry is created, claimed for him, and shown to everyone as self-created.
+4. **Given** a player holding the player link, **When** he looks for deadline, removal, or reset controls, **Then** none are reachable — those actions exist only on the organizer link.
+5. **Given** a roster already at 16 entries, **When** anyone tries to add another, **Then** the system refuses and names the cap.
+6. **Given** an entry with a committed score that belongs to someone not on the trip, **When** the organizer removes it, **Then** he must confirm against the score being discarded and the entry remains visible on the leaderboard as removed.
 
 ---
 
@@ -122,6 +130,9 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **A player restarts his official run repeatedly to scout the course.** Permitted by FR-019 and unpreventable under the chosen model. Each restart increments a publicly visible counter (FR-065); the deterrent is social, not technical.
 - **A player abandons a practice run.** Same rule as official: nothing is consumed and the run may be retaken (FR-066).
 - **Two players claim the same name at nearly the same moment.** The first claim to reach shared storage wins; the second player is told the name is taken and returned to the roster.
+- **Someone who is not on the trip creates an entry and commits a score.** Self-serve creation makes this reachable by anyone holding the link. The organizer removes the entry under FR-074; the removal is confirmed, recorded, and shown rather than silent.
+- **The roster fills up with entries nobody recognises.** The cap in FR-002 bounds the damage at 16, and FR-073 marks which entries were self-created so the group can tell them apart at a glance.
+- **Two people create near-identical names** ("Dave" and "Dave "). FR-003 rejects only exact matches, so near-duplicates are possible and are left to the organizer to clean up rather than blocked by a similarity rule that would also reject two genuine Daves.
 - **A player claims the wrong name.** Before any official commit, the organizer can release a claim from the organizer link. After an official commit, the claim is permanent and the organizer must reset the draft to undo it.
 - **The organizer deploys a change to physics, course, or scoring mid-draft.** Scores committed under different rules are not comparable, and the leaderboard is the bed order. The rules freeze at the first official commit (FR-023).
 - **Every roster member forfeits.** The leaderboard finalizes with no ranked entries and the entire roster in the coin-flip group.
@@ -140,17 +151,23 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 
 #### Draft setup and roster
 
-- **FR-001**: System MUST allow an organizer to define a roster of named attendees before the draft is shared with players.
-- **FR-002**: System MUST support rosters of at least 2 and at most 16 names, with 8 as the expected size.
-- **FR-003**: System MUST reject duplicate names within a roster and require a distinguishing name.
+- **FR-001**: System MUST allow an organizer to define an initial roster of named attendees before the draft is shared with players. The initial roster MAY be empty.
+- **FR-002**: System MUST support a total of at most 16 roster entries, however they were created, with 8 as the expected size. A draft MUST be playable from the first entry onward; no minimum is required before play begins.
+- **FR-003**: System MUST reject a new entry whose name exactly matches an existing entry and MUST require a distinguishing name.
+- **FR-070**: Any holder of the player link MUST be able to create a new roster entry by entering a name, without an organizer step and without any credential, at any time before the deadline and while the roster is below the cap in FR-002.
+- **FR-071**: A self-created entry MUST be indistinguishable in rights from an organizer-created one: 3 practice runs, 1 official run, and the same standing on the leaderboard.
+- **FR-072**: When the roster is at the cap, the system MUST refuse new entries with a message naming the cap and directing the player to the organizer.
+- **FR-073**: The leaderboard MUST show, for each entry, whether it was created by the organizer or self-created, so the group can see at a glance who was on the original list.
 - **FR-004**: System MUST allow the organizer to set and later change a deadline, and MUST warn before applying a deadline that has already elapsed.
-- **FR-005**: System MUST produce a single shareable player link that grants any holder the ability to claim an unclaimed roster name and play.
-- **FR-006**: System MUST expose organizer-only actions — roster editing, deadline changes, claim release, draft reset — only via a URL distinct from the player link, and MUST NOT expose them from the player link.
-- **FR-007**: System MUST refuse to remove or rename a roster name whose official run has already committed, and MUST explain that only a full draft reset can undo a committed result.
+- **FR-005**: System MUST produce a single shareable player link that grants any holder the ability to create a roster entry, claim an unclaimed one, and play.
+- **FR-006**: System MUST expose organizer-only actions — roster editing, entry removal, deadline changes, claim release, draft reset — only via a URL distinct from the player link, and MUST NOT expose them from the player link.
+- **FR-007**: The organizer MUST be able to remove any roster entry that has no committed official run, without restriction.
+- **FR-074**: The organizer MUST be able to remove a roster entry whose official run has already committed, because self-serve creation means an entry may belong to someone who is not on the trip. Such a removal MUST require an explicit confirmation naming the score being discarded, MUST be recorded, and MUST remain visible on the leaderboard as a removed entry rather than disappearing silently. Removal MUST NOT be available from the player link.
+- **FR-075**: System MUST NOT allow renaming an entry whose official run has already committed. A wrong name on a committed score is corrected by removal, not by editing the name attached to a result.
 
 #### Name claiming and identity
 
-- **FR-008**: Players MUST be able to claim exactly one unclaimed roster name, and claimed names MUST be shown as claimed to all link holders.
+- **FR-008**: Players MUST be able to claim exactly one unclaimed roster name, and claimed names MUST be shown as claimed to all link holders. Creating an entry MUST claim it for its creator in the same action.
 - **FR-009**: System MUST NOT require an account, password, PIN, or any other credential to claim a name or play.
 - **FR-010**: System MUST resume a player's claimed identity automatically when he returns on the same device.
 - **FR-011**: System MUST allow a player to resume his identity on any other device by re-selecting his name from the roster, carrying his run counts and committed score with him.
@@ -271,7 +288,8 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 
 - **One draft per deployment.** Multi-trip support is out of scope, so the product manages exactly one roster, one deadline, and one leaderboard. A second trip means a second deployment or a full reset.
 - **Skiing only.** Snowboarding appears in the project constitution as a second discipline but is not in this feature. Control verbs are named and specified so that snowboarding can adopt them unchanged rather than introducing a parallel vocabulary later.
-- **The honor system is the security model.** Eight friends with one link. Anyone holding the link can claim any unclaimed name, and nothing prevents a player from claiming someone else's. This is accepted; FR-064 captures the separate and more serious question of forged scores.
+- **The honor system is the security model.** Eight friends with one link. Anyone holding the link can create an entry or claim any unclaimed one, and nothing prevents a player from claiming someone else's. This is accepted; FR-064 captures the separate and more serious question of forged scores.
+- **The roster is open, and the organizer is the cleanup.** Self-serve creation means the roster is not a guest list — it is whoever showed up with the link. The controls against that are a hard cap of 16, a visible self-created marker, and an organizer who can remove entries including committed ones. This is the one place where a committed result can be undone, and it exists because an open roster requires it.
 - **The organizer link is secrecy, not authentication.** A distinct URL keeps players from casually stumbling into roster and reset controls. Anyone who obtains that URL has full organizer power.
 - **Players may skip practice.** Nothing forces the use of all three practice runs; going straight to official simply forfeits the unused ones.
 - **Practice teaches the controls, not the course.** Per FR-028, the three practice runs happen on a warm-up slope. The official descent is a first look at the scored terrain. This deliberately favors adaptability over memorization, at the cost of making the official run harder for players who are not used to games.
