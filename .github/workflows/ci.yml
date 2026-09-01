@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+env:
+  PLAYWRIGHT_BROWSERS_PATH: /opt/pw-browsers
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+jobs:
+  check:
+    name: Lint, typecheck, unit and simulation suites
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { lfs: true }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'npm' }
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Simulation determinism and monkey fuzz
+        run: npm run test:sim
+      - name: Course validator
+        run: npm run test:course
+
+  determinism:
+    name: Three-engine determinism
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'npm' }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - name: Golden run must match on Chromium, Firefox and WebKit
+        run: npm run test:determinism
