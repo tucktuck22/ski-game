@@ -94,10 +94,10 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 ### Shared storage
 
-- [ ] T035 Create tables for draft, roster entry, and committed score in `supabase/migrations/0001_init.sql`
-- [ ] T036 Add the unique constraints, roster cap trigger, server-assigned `commit_at`, and insert-only RLS policies from contracts/storage-api.md in `supabase/migrations/0002_policies.sql`
-- [ ] T037 Implement the storage client covering the player operations in contracts/storage-api.md in `src/state/supabase.ts`
-- [ ] T038 Assert every server-enforced invariant by attempting violations directly against the API in `tests/contract/storage.test.ts`
+- [X] T035 Create tables for draft, roster entry, and committed score in `supabase/migrations/0001_init.sql`
+- [X] T036 Add the unique constraints, roster cap trigger, server-assigned `commit_at`, and insert-only RLS policies from contracts/storage-api.md in `supabase/migrations/0002_policies.sql`
+- [X] T037 Implement the storage client covering the player operations in contracts/storage-api.md in `src/state/supabase.ts`
+- [X] T038 Assert every server-enforced invariant by attempting violations directly against the API in `tests/contract/storage.test.ts`
 - [ ] T039 [P] Assert schema migrations round-trip without corrupting committed scores per FR-050 in `tests/contract/migration.test.ts`
 
 ### Rendering and input base
@@ -185,9 +185,9 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 - [ ] T076 [US4] Implement server-side deadline enforcement rejecting commits after the deadline per FR-043 in `supabase/migrations/0003_deadline.sql`
 - [ ] T077 [US4] Allow a run started before the deadline to finish and commit after it per FR-044 in `src/state/commit.ts`
 - [ ] T078 [US4] Implement the FINAL leaderboard state per FR-043 in `src/ui/leaderboard.ts`
-- [ ] T079 [US4] Implement tie-breaking by earlier server-assigned `commit_at` per FR-037 in `src/ui/ordering.ts`
-- [ ] T080 [US4] Display surviving ties as unresolved and flagged for coin flip per FR-038 in `src/ui/ordering.ts`
-- [ ] T081 [US4] Place uncommitted entries below all scores as an unordered FORFEIT group with the coin-flip instruction, assigning no order, per FR-045 in `src/ui/ordering.ts`
+- [X] T079 [US4] Implement tie-breaking by earlier server-assigned `commit_at` per FR-037 in `src/ui/ordering.ts`
+- [X] T080 [US4] Display surviving ties as unresolved and flagged for coin flip per FR-038 in `src/ui/ordering.ts`
+- [X] T081 [US4] Place uncommitted entries below all scores as an unordered FORFEIT group with the coin-flip instruction, assigning no order, per FR-045 in `src/ui/ordering.ts`
 - [ ] T082 [P] [US4] Warn the organizer before applying an already-elapsed deadline per FR-004 in `src/ui/organizer/setup.ts`
 - [ ] T083 [US4] Assert FINAL state, tie-breaking, and that no order is implied among forfeits, per US4 acceptance scenarios, in `tests/e2e/us4-deadline.spec.ts`
 
@@ -201,11 +201,11 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 **Independent test**: Disable connectivity before a run ends; confirm pending state, survival across reload and browser restart, then posting on reconnect.
 
-- [ ] T084 [US5] Implement the IndexedDB commit outbox as a write-only transport buffer per FR-046, FR-048 in `src/state/outbox.ts`
-- [ ] T085 [US5] Implement exponential-backoff retry capped at 60s, halting on duplicate rejection, per contracts/storage-api.md in `src/state/outbox.ts`
+- [X] T084 [US5] Implement the IndexedDB commit outbox as a write-only transport buffer per FR-046, FR-048 in `src/state/outbox.ts`
+- [X] T085 [US5] Implement exponential-backoff retry capped at 60s, halting on duplicate rejection, per contracts/storage-api.md in `src/state/outbox.ts`
 - [ ] T086 [US5] Implement the pending-versus-confirmed UI distinction that never claims a leaderboard place before confirmation per FR-047 in `src/ui/commitStatus.ts`
 - [ ] T087 [US5] Implement the service worker precaching app shell, course, tuning, and assets for fully offline runs per FR-049 in `src/sw.ts`
-- [ ] T088 [P] [US5] Assert no run count, claim, or score is ever read back from the outbox per FR-021 in `tests/unit/outbox-not-authoritative.test.ts`
+- [X] T088 [P] [US5] Assert no run count, claim, or score is ever read back from the outbox per FR-021 in `tests/unit/outbox-not-authoritative.test.ts`
 - [ ] T089 [US5] Assert offline commit queues, survives reload and restart, and posts on reconnect, per US5 acceptance scenarios, in `tests/e2e/us5-offline-commit.spec.ts`
 
 **Checkpoint**: The one irreversible action is durable against the connectivity it will actually meet.
