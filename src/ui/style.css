@@ -10,14 +10,17 @@
   --snow: #f2f0ff;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
-html, body {
+html,
+body {
   margin: 0;
   height: 100%;
   background: var(--ink);
   color: var(--snow);
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   /* LT-5: minimum rendered text height. */
   font-size: 14px;
   overscroll-behavior: none;
@@ -25,7 +28,11 @@ html, body {
   user-select: none;
 }
 
-#app { height: 100%; display: flex; flex-direction: column; }
+#app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
 
 /* F-1: comic panels — purple border, ink fill, gutter. */
 .panel {
@@ -41,11 +48,18 @@ html, body {
   font-weight: 800;
   letter-spacing: 2px;
   color: var(--snow);
-  text-shadow: 0 -2px 0 var(--cyan), 0 2px 0 var(--magenta), 0 0 6px var(--ink);
+  text-shadow:
+    0 -2px 0 var(--cyan),
+    0 2px 0 var(--magenta),
+    0 0 6px var(--ink);
   margin: 0 0 4px;
 }
 
-.subtitle { color: var(--cyan); margin: 0 0 16px; font-size: 13px; }
+.subtitle {
+  color: var(--cyan);
+  margin: 0 0 16px;
+  font-size: 13px;
+}
 
 button {
   font: inherit;
@@ -56,43 +70,127 @@ button {
   cursor: pointer;
   min-height: 44px; /* touch target */
 }
-button:hover:not(:disabled) { background: var(--blue); }
-button:disabled { opacity: 0.45; cursor: not-allowed; }
-button.danger { border-color: var(--magenta); color: var(--yellow); }
+button:hover:not(:disabled) {
+  background: var(--blue);
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+button.danger {
+  border-color: var(--magenta);
+  color: var(--yellow);
+}
 
-.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.stack { display: flex; flex-direction: column; gap: 8px; }
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-table { border-collapse: collapse; width: 100%; font-size: 13px; }
-th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--purple); }
-th { color: var(--cyan); }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+th,
+td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--purple);
+}
+th {
+  color: var(--cyan);
+}
 
 /* P-5 / FR-055: never colour alone. Forfeit rows carry a text marker too. */
-.forfeit td { color: var(--yellow); }
-.forfeit .pick::before { content: "— "; }
-.self-created::after { content: " [added]"; color: var(--cyan); font-size: 11px; }
-.tie::after { content: " (TIED — COIN FLIP)"; color: var(--yellow); font-size: 11px; }
+.forfeit td {
+  color: var(--yellow);
+}
+.forfeit .pick::before {
+  content: '— ';
+}
+.self-created::after {
+  content: ' [added]';
+  color: var(--cyan);
+  font-size: 11px;
+}
+.tie::after {
+  content: ' (TIED — COIN FLIP)';
+  color: var(--yellow);
+  font-size: 11px;
+}
 
-#screen { flex: 1; display: block; width: 100%; height: 100%; touch-action: none; background: var(--ink); }
-.game-wrap { flex: 1; position: relative; display: flex; }
+#screen {
+  flex: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  background: var(--ink);
+}
+.game-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+}
 
 .hud {
-  position: absolute; top: 8px; left: 8px; right: 8px;
-  display: flex; justify-content: space-between; pointer-events: none;
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
   text-shadow: 1px 1px 0 var(--ink);
 }
-.hud .score { color: var(--yellow); font-weight: 700; }
-.hud .kind { color: var(--cyan); }
-.hud .kind.official { color: var(--magenta); }
+.hud .score {
+  color: var(--yellow);
+  font-weight: 700;
+}
+.hud .kind {
+  color: var(--cyan);
+}
+.hud .kind.official {
+  color: var(--magenta);
+}
 
 .banner {
-  position: absolute; inset: 0; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 12px;
-  background: color-mix(in srgb, var(--ink) 88%, transparent); text-align: center; padding: 20px;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: color-mix(in srgb, var(--ink) 88%, transparent);
+  text-align: center;
+  padding: 20px;
 }
 /* LT-3: sound-effect lettering — yellow on ink with a hard magenta drop. */
-.sfx { font-size: 26px; font-weight: 800; color: var(--yellow); text-shadow: 1px 1px 0 var(--magenta); }
-.pending { color: var(--yellow); }
-.confirmed { color: var(--cyan); }
+.sfx {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--yellow);
+  text-shadow: 1px 1px 0 var(--magenta);
+}
+.pending {
+  color: var(--yellow);
+}
+.confirmed {
+  color: var(--cyan);
+}
 
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

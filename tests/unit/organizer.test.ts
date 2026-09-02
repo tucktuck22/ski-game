@@ -1,11 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { renderOrganizer, removalConfirmationText, RENAME_REFUSAL } from '../../src/ui/organizer.js';
+import {
+  renderOrganizer,
+  removalConfirmationText,
+  RENAME_REFUSAL,
+} from '../../src/ui/organizer.js';
 import { buildLinks, playerLinkIsClean, organizerSecretFromUrl } from '../../src/state/links.js';
 import type { EntryView } from '../../src/state/ordering.js';
 
 const e = (o: Partial<EntryView> & { name: string; id: string }): EntryView => ({
-  origin: 'organizer', claimed: false, practiceRunsUsed: 0, abandonedOfficialRuns: 0,
-  removed: false, score: null, commitAt: null, outcome: null, ...o,
+  origin: 'organizer',
+  claimed: false,
+  practiceRunsUsed: 0,
+  abandonedOfficialRuns: 0,
+  removed: false,
+  score: null,
+  commitAt: null,
+  outcome: null,
+  ...o,
 });
 
 describe('organizer links (FR-006)', () => {
@@ -45,21 +56,30 @@ describe('organizer removal (FR-074, FR-075)', () => {
   });
 
   it('offers RELEASE only for a claimed but uncommitted entry', () => {
-    const html = renderOrganizer([
-      e({ id: '1', name: 'Claimed', claimed: true }),
-      e({ id: '2', name: 'Committed', claimed: true, score: 500, commitAt: '2026-09-01T00:00:00Z' }),
-      e({ id: '3', name: 'Unclaimed' }),
-    ], '2026-09-10T23:00:00Z');
+    const html = renderOrganizer(
+      [
+        e({ id: '1', name: 'Claimed', claimed: true }),
+        e({
+          id: '2',
+          name: 'Committed',
+          claimed: true,
+          score: 500,
+          commitAt: '2026-09-01T00:00:00Z',
+        }),
+        e({ id: '3', name: 'Unclaimed' }),
+      ],
+      '2026-09-10T23:00:00Z',
+    );
     expect(html).toContain('data-release="1"');
     expect(html).not.toContain('data-release="2"');
     expect(html).not.toContain('data-release="3"');
   });
 
   it('shows who added each entry, so a stranger stands out (FR-073)', () => {
-    const html = renderOrganizer([
-      e({ id: '1', name: 'Dave' }),
-      e({ id: '2', name: 'Rando', origin: 'self_created' }),
-    ], '2026-09-10T23:00:00Z');
+    const html = renderOrganizer(
+      [e({ id: '1', name: 'Dave' }), e({ id: '2', name: 'Rando', origin: 'self_created' })],
+      '2026-09-10T23:00:00Z',
+    );
     expect(html).toContain('themselves');
     expect(html).toContain('>you<');
   });

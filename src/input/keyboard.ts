@@ -44,7 +44,9 @@ export function keyboardSource(bindings: KeyBindings = loadBindings()): InputSou
     // Space and arrows scroll the page otherwise, which is fatal mid-run.
     if (Object.values(bindings).flat().includes(e.code)) e.preventDefault();
   };
-  const up = (e: KeyboardEvent): void => { held.delete(e.code); };
+  const up = (e: KeyboardEvent): void => {
+    held.delete(e.code);
+  };
   const blur = (): void => held.clear();
 
   window.addEventListener('keydown', down);

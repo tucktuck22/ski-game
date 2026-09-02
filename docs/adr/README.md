@@ -23,12 +23,12 @@ and is superseded by a later ADR rather than edited.
 
 ## Index
 
-| # | Title | Status | Date |
-|---|-------|--------|------|
-| [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted | 2026-09-01 |
-| [0002](0002-abandoned-official-runs-are-discarded.md) | Abandoned official runs are discarded, not committed | Accepted | 2026-09-01 |
-| [0003](0003-practice-uses-a-separate-warm-up-course.md) | Practice runs use a separate warm-up course | Accepted | 2026-09-01 |
-| [0004](0004-accept-client-reported-scores.md) | Accept client-reported scores without verification | Accepted | 2026-09-01 |
-| [0005](0005-trust-the-players.md) | Trust the players — amend Principle V | **Proposed** | 2026-09-01 |
-| [0006](0006-platform-baseline-and-budgets.md) | Evergreen mobile web, hand-written simulation, mid-range phone as reference | Accepted | 2026-09-01 |
-| [0007](0007-keep-the-free-database-awake.md) | Keep the free database awake with a scheduled Action | Accepted | 2026-09-01 |
+| #                                                       | Title                                                                       | Status       | Date       |
+| ------------------------------------------------------- | --------------------------------------------------------------------------- | ------------ | ---------- |
+| [0001](0001-record-architecture-decisions.md)           | Record architecture decisions                                               | Accepted     | 2026-09-01 |
+| [0002](0002-abandoned-official-runs-are-discarded.md)   | Abandoned official runs are discarded, not committed                        | Accepted     | 2026-09-01 |
+| [0003](0003-practice-uses-a-separate-warm-up-course.md) | Practice runs use a separate warm-up course                                 | Accepted     | 2026-09-01 |
+| [0004](0004-accept-client-reported-scores.md)           | Accept client-reported scores without verification                          | Accepted     | 2026-09-01 |
+| [0005](0005-trust-the-players.md)                       | Trust the players — amend Principle V                                       | **Proposed** | 2026-09-01 |
+| [0006](0006-platform-baseline-and-budgets.md)           | Evergreen mobile web, hand-written simulation, mid-range phone as reference | Accepted     | 2026-09-01 |
+| [0007](0007-keep-the-free-database-awake.md)            | Keep the free database awake with a scheduled Action                        | Accepted     | 2026-09-01 |

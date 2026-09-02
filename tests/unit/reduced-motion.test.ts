@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
-  FlashLimiter, FULL_MOTION, REDUCED_MOTION, MIN_FLASH_INTERVAL_MS,
+  FlashLimiter,
+  FULL_MOTION,
+  REDUCED_MOTION,
+  MIN_FLASH_INTERVAL_MS,
 } from '../../src/render/reducedMotion.js';
 
 describe('flash limiting (FR-057)', () => {
@@ -27,9 +30,13 @@ describe('reduced motion leaves the game playable (FR-056)', () => {
     // The settings object carries only presentation flags. If a timing or
     // scoring value ever appeared here, reduced motion would become a second
     // game - and the leaderboard decides where people sleep.
-    expect(Object.keys(REDUCED_MOTION).sort()).toEqual(
-      ['bloom', 'flashes', 'parallax', 'scanlines', 'shake'],
-    );
+    expect(Object.keys(REDUCED_MOTION).sort()).toEqual([
+      'bloom',
+      'flashes',
+      'parallax',
+      'scanlines',
+      'shake',
+    ]);
     expect(Object.values(REDUCED_MOTION).every((v) => v === false)).toBe(true);
     expect(Object.values(FULL_MOTION).every((v) => v === true)).toBe(true);
   });

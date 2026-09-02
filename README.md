@@ -35,13 +35,13 @@ on trust below.
 Development is governed by [the project constitution](.specify/memory/constitution.md).
 All five principles are binding; the first is non-negotiable.
 
-| # | Principle | In short |
-|---|---|---|
-| I | Spec-Driven Delivery **(NON-NEGOTIABLE)** | No production code merges without an approved spec. Every task traces to a numbered requirement. |
-| II | Stability Before Content | Deterministic simulation, no crashes on any input, frame budget held, saves never corrupted. |
-| III | Fun Is a Testable Requirement | Every mechanic defines measurable feel criteria. Tuning lives in data files, never in code. |
-| IV | One Coherent 1980s Graphic Novel Voice | A style bible is the single source of truth. Legibility outranks style. |
-| V | Fair and Verifiable Competition | Every scored run is reproducible. Public leaderboards are replay-verified and never trust client scores. |
+| #   | Principle                                 | In short                                                                                                 |
+| --- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| I   | Spec-Driven Delivery **(NON-NEGOTIABLE)** | No production code merges without an approved spec. Every task traces to a numbered requirement.         |
+| II  | Stability Before Content                  | Deterministic simulation, no crashes on any input, frame budget held, saves never corrupted.             |
+| III | Fun Is a Testable Requirement             | Every mechanic defines measurable feel criteria. Tuning lives in data files, never in code.              |
+| IV  | One Coherent 1980s Graphic Novel Voice    | A style bible is the single source of truth. Legibility outranks style.                                  |
+| V   | Fair and Verifiable Competition           | Every scored run is reproducible. Public leaderboards are replay-verified and never trust client scores. |
 
 The constitution is at **v1.1.0**; see its Sync Impact Report for what changed.
 

@@ -52,10 +52,7 @@ export function contrastRatio(a: Rgb, b: Rgb): number {
  * ask of it — rule P-5 requires a shape difference regardless, so this is a
  * second line of defence rather than the only one.
  */
-export function simulateCvd(
-  rgb: Rgb,
-  kind: 'protanopia' | 'deuteranopia' | 'tritanopia',
-): Rgb {
+export function simulateCvd(rgb: Rgb, kind: 'protanopia' | 'deuteranopia' | 'tritanopia'): Rgb {
   const [r, g, b] = rgb.map(srgbToLinear) as [number, number, number];
   let out: [number, number, number];
   switch (kind) {

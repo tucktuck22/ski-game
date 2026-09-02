@@ -23,14 +23,14 @@ build.
 iPhone SE 3rd gen class. CI approximates it with headless Chromium under **4× CPU
 throttling**, plus Fast 3G emulation for load measurements.
 
-| Budget | Value | Source |
-|---|---|---|
-| Simulation step | ≤ 2.0 ms per 60 Hz tick at 4× throttle | FR-025 |
-| Frame time | ≤ 16.7 ms p95; ≥ 50 fps sustained through a run | SC-009 |
-| Input to visible response | ≤ 2 simulation frames (33.4 ms) | FR-031 |
-| Initial payload | ≤ 2 MB gzipped, all assets | SC-001 |
-| Time to interactive | ≤ 5 s on Fast 3G, cold cache | SC-001 |
-| Peak JS heap | ≤ 150 MB | Principle II |
+| Budget                    | Value                                           | Source       |
+| ------------------------- | ----------------------------------------------- | ------------ |
+| Simulation step           | ≤ 2.0 ms per 60 Hz tick at 4× throttle          | FR-025       |
+| Frame time                | ≤ 16.7 ms p95; ≥ 50 fps sustained through a run | SC-009       |
+| Input to visible response | ≤ 2 simulation frames (33.4 ms)                 | FR-031       |
+| Initial payload           | ≤ 2 MB gzipped, all assets                      | SC-001       |
+| Time to interactive       | ≤ 5 s on Fast 3G, cold cache                    | SC-001       |
+| Peak JS heap              | ≤ 150 MB                                        | Principle II |
 
 ### Rationale
 
@@ -72,8 +72,8 @@ non-determinism people associate with floating point in JS comes from `Math.sin`
 implementation-approximated and **do** differ across V8, SpiderMonkey, and
 JavaScriptCore.
 
-Enforcement is three-layered, because a rule nobody *can* break beats a rule
-everybody *remembers*:
+Enforcement is three-layered, because a rule nobody _can_ break beats a rule
+everybody _remembers_:
 
 1. **Lint** — `no-restricted-properties` bans `Math.*`, `Date.*`, and
    `performance.*` inside `src/sim/**`. Rotation trigonometry comes from a
@@ -125,14 +125,14 @@ ground contact resolves against the local slope segment's angle.
 
 The control model collapses to one charge-and-release verb:
 
-| Player action | Simulation effect |
-|---|---|
-| Hold crouch, grounded | Accelerate above base speed toward a tuck maximum; reduce collision profile |
-| Release crouch, grounded, overhead clear | Launch impulse composed with current velocity — faster tuck throws a longer jump |
-| Release crouch, grounded, low obstacle overhead | Launch into the obstacle; wipeout (FR-088) |
-| Rotate, airborne | Angular velocity toward a tuning-capped rate; accumulates trick rotation |
-| Land | Compare orientation against slope angle; within tolerance is clean, outside is a wipeout |
-| Attack | Destroy a destructible barrier within reach; cooldown from tuning data |
+| Player action                                   | Simulation effect                                                                        |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Hold crouch, grounded                           | Accelerate above base speed toward a tuck maximum; reduce collision profile              |
+| Release crouch, grounded, overhead clear        | Launch impulse composed with current velocity — faster tuck throws a longer jump         |
+| Release crouch, grounded, low obstacle overhead | Launch into the obstacle; wipeout (FR-088)                                               |
+| Rotate, airborne                                | Angular velocity toward a tuning-capped rate; accumulates trick rotation                 |
+| Land                                            | Compare orientation against slope angle; within tolerance is clean, outside is a wipeout |
+| Attack                                          | Destroy a destructible barrier within reach; cooldown from tuning data                   |
 
 ### Rationale
 
@@ -216,20 +216,20 @@ physics constants, different points.
 **Supabase** — hosted Postgres with Row Level Security and Realtime. The rules that
 matter are database invariants, not client code:
 
-| Rule | Mechanism | Requirement |
-|---|---|---|
-| One official score per entry, ever | `UNIQUE (draft_id, entry_id)` on `official_score`; insert-only RLS, no UPDATE or DELETE grant | FR-017, FR-018 |
-| Name claimed by exactly one player | `UNIQUE (draft_id, lower(name))`; loser gets a constraint violation | FR-003, FR-012 |
-| Roster cap of 16 | Trigger rejecting inserts past the cap | FR-002, FR-072 |
-| Commit time not from the player's device | `commit_at timestamptz DEFAULT now()`, not client-writable | FR-037 |
-| Deadline enforced server-side | Policy rejects inserts when `now() > draft.deadline` | FR-043 |
-| Organizer-only actions | Separate policy keyed on an organizer secret, absent from the player bundle | FR-006, FR-074 |
+| Rule                                     | Mechanism                                                                                     | Requirement    |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------- | -------------- |
+| One official score per entry, ever       | `UNIQUE (draft_id, entry_id)` on `official_score`; insert-only RLS, no UPDATE or DELETE grant | FR-017, FR-018 |
+| Name claimed by exactly one player       | `UNIQUE (draft_id, lower(name))`; loser gets a constraint violation                           | FR-003, FR-012 |
+| Roster cap of 16                         | Trigger rejecting inserts past the cap                                                        | FR-002, FR-072 |
+| Commit time not from the player's device | `commit_at timestamptz DEFAULT now()`, not client-writable                                    | FR-037         |
+| Deadline enforced server-side            | Policy rejects inserts when `now() > draft.deadline`                                          | FR-043         |
+| Organizer-only actions                   | Separate policy keyed on an organizer secret, absent from the player bundle                   | FR-006, FR-074 |
 
 ### Rationale
 
 FR-018 forbids any player-accessible path to retake or edit a committed score. That
 does **not** dissolve under [ADR-0004](../../docs/adr/0004-accept-client-reported-scores.md):
-trusting players not to forge a *value* is a different thing from letting the client
+trusting players not to forge a _value_ is a different thing from letting the client
 issue an UPDATE. A unique constraint plus insert-only grants makes the one-run rule
 a property of the database that no client bug or curious player routes around.
 
@@ -270,7 +270,7 @@ layer, filter pipeline, and canvas fallback.
 ### Rationale
 
 The aesthetic and the frame budget point the same way, which is rare enough to
-exploit. A 1986 look *wants* a chunky pixel grid; a mid-range phone *wants* to
+exploit. A 1986 look _wants_ a chunky pixel grid; a mid-range phone _wants_ to
 shade 57,600 pixels rather than 2.3 million. Full-screen bloom is expensive at
 native resolution and nearly free here.
 
@@ -311,7 +311,7 @@ server confirms (FR-046, FR-048).
 The outbox is device-local storage, which FR-021 forbids for run state. The
 distinction is deliberate and must survive review: the outbox is a **transport
 buffer for a write already made**, never a source of truth for whether a run
-happened. Reading run counts or claims from it is a defect. The UI shows *pending*
+happened. Reading run counts or claims from it is a defect. The UI shows _pending_
 until the server confirms, and never claims a leaderboard place before then (FR-047).
 
 ### Audio

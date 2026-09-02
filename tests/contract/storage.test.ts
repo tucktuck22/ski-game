@@ -25,7 +25,9 @@ const policies = sql('0002_policies.sql');
  */
 describe('storage invariants are database constraints, not client code', () => {
   it('one committed score per entry, forever (FR-017, FR-018)', () => {
-    expect(init).toMatch(/create unique index committed_score_one_per_entry\s+on committed_score \(draft_id, entry_id\)/);
+    expect(init).toMatch(
+      /create unique index committed_score_one_per_entry\s+on committed_score \(draft_id, entry_id\)/,
+    );
   });
 
   it('grants no UPDATE or DELETE on committed_score to any client role', () => {
@@ -34,7 +36,9 @@ describe('storage invariants are database constraints, not client code', () => {
   });
 
   it('roster names are unique per draft, case-insensitively (FR-003)', () => {
-    expect(init).toMatch(/create unique index roster_entry_unique_name on roster_entry \(draft_id, lower\(name\)\)/);
+    expect(init).toMatch(
+      /create unique index roster_entry_unique_name on roster_entry \(draft_id, lower\(name\)\)/,
+    );
   });
 
   it('the roster cap is a trigger, not a UI check (FR-002, FR-072)', () => {
@@ -55,7 +59,9 @@ describe('storage invariants are database constraints, not client code', () => {
   it('the organizer secret is not readable by players (FR-006)', () => {
     // draft_read is `using (true)`, so without a column-level revoke any link
     // holder could read the secret and gain reset and removal powers.
-    expect(policies).toMatch(/revoke select \(organizer_secret\) on draft from anon, authenticated/);
+    expect(policies).toMatch(
+      /revoke select \(organizer_secret\) on draft from anon, authenticated/,
+    );
   });
 
   it('the client never selects * from draft, so a new column cannot leak by accident', () => {
@@ -73,16 +79,22 @@ describe('storage invariants are database constraints, not client code', () => {
 
 describe('error classification decides retry versus give up', () => {
   it('treats a unique violation as permanent, so a duplicate commit stops retrying', () => {
-    expect(classifyError({ code: '23505', message: 'duplicate key' })).toMatchObject({ kind: 'rejected' });
+    expect(classifyError({ code: '23505', message: 'duplicate key' })).toMatchObject({
+      kind: 'rejected',
+    });
   });
 
   it('treats a check violation (deadline, cap) as permanent', () => {
-    expect(classifyError({ code: '23514', message: 'deadline passed' })).toMatchObject({ kind: 'rejected' });
+    expect(classifyError({ code: '23514', message: 'deadline passed' })).toMatchObject({
+      kind: 'rejected',
+    });
   });
 
   it('treats an unknown or network error as transient, so the score is never lost', () => {
     expect(classifyError({ message: 'Failed to fetch' })).toMatchObject({ kind: 'retry' });
-    expect(classifyError({ code: '08006', message: 'connection failure' })).toMatchObject({ kind: 'retry' });
+    expect(classifyError({ code: '08006', message: 'connection failure' })).toMatchObject({
+      kind: 'retry',
+    });
   });
 
   it('treats no error as confirmed', () => {

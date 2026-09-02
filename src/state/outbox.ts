@@ -99,13 +99,17 @@ export function indexedDbStore(dbName = 'shredpocalypse-outbox'): OutboxStore {
       const req = indexedDB.open(dbName, 1);
       req.onupgradeneeded = () => {
         const db = req.result;
-        if (!db.objectStoreNames.contains('commits')) db.createObjectStore('commits', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('commits'))
+          db.createObjectStore('commits', { keyPath: 'id' });
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
 
-  const tx = async <T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRequest<T>): Promise<T> => {
+  const tx = async <T>(
+    mode: IDBTransactionMode,
+    fn: (s: IDBObjectStore) => IDBRequest<T>,
+  ): Promise<T> => {
     const db = await open();
     return new Promise<T>((resolve, reject) => {
       const request = fn(db.transaction('commits', mode).objectStore('commits'));
@@ -116,7 +120,11 @@ export function indexedDbStore(dbName = 'shredpocalypse-outbox'): OutboxStore {
 
   return {
     all: () => tx('readonly', (s) => s.getAll() as IDBRequest<PendingCommit[]>),
-    put: async (c) => { await tx('readwrite', (s) => s.put(c) as IDBRequest<IDBValidKey>); },
-    remove: async (id) => { await tx('readwrite', (s) => s.delete(id) as unknown as IDBRequest<undefined>); },
+    put: async (c) => {
+      await tx('readwrite', (s) => s.put(c) as IDBRequest<IDBValidKey>);
+    },
+    remove: async (id) => {
+      await tx('readwrite', (s) => s.delete(id) as unknown as IDBRequest<undefined>);
+    },
   };
 }

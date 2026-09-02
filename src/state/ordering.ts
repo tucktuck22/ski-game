@@ -46,10 +46,12 @@ export function computeStandings(entries: readonly EntryView[], final: boolean):
   const live = entries.filter((e) => !e.removed);
 
   const committed = live
-    .filter((e): e is EntryView & { score: number; commitAt: string } =>
-      e.score !== null && e.commitAt !== null)
+    .filter(
+      (e): e is EntryView & { score: number; commitAt: string } =>
+        e.score !== null && e.commitAt !== null,
+    )
     .slice()
-    .sort((a, b) => (b.score - a.score) || a.commitAt.localeCompare(b.commitAt));
+    .sort((a, b) => b.score - a.score || a.commitAt.localeCompare(b.commitAt));
 
   const ranked: RankedEntry[] = committed.map((e, i) => {
     const prev = committed[i - 1];

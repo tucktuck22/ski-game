@@ -4,7 +4,8 @@ import { validateCourse } from '../../src/course/validate.js';
 import { parseCourse, parseScoring, parseTuning } from '../../src/data/load.js';
 import type { Course, Obstacle } from '../../src/sim/types.js';
 
-const read = (p: string): unknown => JSON.parse(readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8'));
+const read = (p: string): unknown =>
+  JSON.parse(readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8'));
 const tuning = parseTuning(read('data/tuning.json'));
 const scoring = parseScoring(read('data/scoring.json'));
 const warmup = parseCourse(read('data/courses/warmup.json'));
@@ -28,7 +29,9 @@ describe('shipped courses', () => {
 // Each rule gets a fixture that violates it. A validator whose rules have never
 // fired is not evidence of anything.
 const clone = (c: Course): Course => JSON.parse(JSON.stringify(c)) as Course;
-const rulesFired = (c: Course): string[] => [...new Set(validateCourse(c, tuning, scoring).map((v) => v.rule))];
+const rulesFired = (c: Course): string[] => [
+  ...new Set(validateCourse(c, tuning, scoring).map((v) => v.rule)),
+];
 
 describe('validator rules fire on deliberately broken courses', () => {
   it('CV-1: non-increasing terrain x', () => {

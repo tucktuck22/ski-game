@@ -29,11 +29,7 @@ const MAX_GRADIENT = 1.732;
 /** Ceiling on rotations a single maximum-charge air could plausibly produce. */
 const TRICK_CEILING = 4;
 
-export function validateCourse(
-  course: Course,
-  tuning: Tuning,
-  scoring: Scoring,
-): Violation[] {
+export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring): Violation[] {
   const v: Violation[] = [];
   const t = course.terrain;
 
@@ -45,11 +41,17 @@ export function validateCourse(
     const a = t[i - 1] as TerrainPoint;
     const b = t[i] as TerrainPoint;
     if (b.x <= a.x)
-      v.push({ rule: 'CV-1', message: `terrain x must strictly increase (index ${i}: ${a.x} -> ${b.x})` });
+      v.push({
+        rule: 'CV-1',
+        message: `terrain x must strictly increase (index ${i}: ${a.x} -> ${b.x})`,
+      });
   }
   const last = t[t.length - 1] as TerrainPoint | undefined;
   if (last && last.x < course.length)
-    v.push({ rule: 'CV-1', message: `terrain ends at x=${last.x}, before the finish at ${course.length}` });
+    v.push({
+      rule: 'CV-1',
+      message: `terrain ends at x=${last.x}, before the finish at ${course.length}`,
+    });
 
   // CV-2: no segment too steep to resolve
   for (let i = 1; i < t.length; i++) {
@@ -59,7 +61,10 @@ export function validateCourse(
     if (dx <= 0) continue;
     const gradient = Math.abs((b.y - a.y) / dx);
     if (gradient > MAX_GRADIENT)
-      v.push({ rule: 'CV-2', message: `segment at x=${a.x} has gradient ${gradient.toFixed(2)}, over ${MAX_GRADIENT}` });
+      v.push({
+        rule: 'CV-2',
+        message: `segment at x=${a.x} has gradient ${gradient.toFixed(2)}, over ${MAX_GRADIENT}`,
+      });
   }
 
   // CV-10: adjacent segments must not differ in slope by more than the landing
@@ -96,9 +101,15 @@ export function validateCourse(
   // CV-3: a low obstacle must be passable crouched and impassable standing
   for (const o of lows) {
     if (o.clearance <= tuning.crouchHeight)
-      v.push({ rule: 'CV-3', message: `low obstacle at x=${o.x} has clearance ${o.clearance} <= crouchHeight ${tuning.crouchHeight}: impassable` });
+      v.push({
+        rule: 'CV-3',
+        message: `low obstacle at x=${o.x} has clearance ${o.clearance} <= crouchHeight ${tuning.crouchHeight}: impassable`,
+      });
     if (o.clearance >= tuning.standHeight)
-      v.push({ rule: 'CV-3', message: `low obstacle at x=${o.x} has clearance ${o.clearance} >= standHeight ${tuning.standHeight}: pointless, it never forces a crouch` });
+      v.push({
+        rule: 'CV-3',
+        message: `low obstacle at x=${o.x} has clearance ${o.clearance} >= standHeight ${tuning.standHeight}: pointless, it never forces a crouch`,
+      });
   }
 
   // CV-4: every low obstacle is followed by a safe release window
@@ -129,13 +140,19 @@ export function validateCourse(
     // Footprints are half-open, matching overheadClearanceAt and step.ts.
     const gap = cur.x - (prev.x + prev.width);
     if (gap < tuning.safeReleaseWindowMin)
-      v.push({ rule: 'CV-5', message: `low obstacles at x=${prev.x} and x=${cur.x} are ${gap} apart, under ${tuning.safeReleaseWindowMin}` });
+      v.push({
+        rule: 'CV-5',
+        message: `low obstacles at x=${prev.x} and x=${cur.x} are ${gap} apart, under ${tuning.safeReleaseWindowMin}`,
+      });
   }
 
   // CV-6: breaking a barrier must beat going around it
   for (const b of course.barriers) {
     if (b.bypassCostTicks <= 0)
-      v.push({ rule: 'CV-6', message: `barrier at x=${b.x} has bypassCostTicks ${b.bypassCostTicks}: bypassing costs nothing, so attack has no reason to exist (FR-081)` });
+      v.push({
+        rule: 'CV-6',
+        message: `barrier at x=${b.x} has bypassCostTicks ${b.bypassCostTicks}: bypassing costs nothing, so attack has no reason to exist (FR-081)`,
+      });
   }
 
   // CV-7: completable at base speed, crouching only where CV-3 demands it
@@ -143,7 +160,10 @@ export function validateCourse(
     if (o.kind !== 'solid') continue;
     const overlapping = lows.find((l) => o.x < l.x + l.width && l.x < o.x + o.width);
     if (overlapping)
-      v.push({ rule: 'CV-7', message: `solid obstacle at x=${o.x} overlaps a low obstacle: no survivable line` });
+      v.push({
+        rule: 'CV-7',
+        message: `solid obstacle at x=${o.x} overlaps a low obstacle: no survivable line`,
+      });
   }
 
   // CV-11: a solid obstacle must be jumpable by someone who is not already
@@ -182,9 +202,15 @@ export function validateCourse(
     if (p.x < 0 || p.x > course.length)
       v.push({ rule: 'CV-9', message: `pickup at x=${p.x} is outside the course` });
     if (p.y > 0)
-      v.push({ rule: 'CV-9', message: `pickup at x=${p.x} has y=${p.y}: below the surface, unreachable` });
+      v.push({
+        rule: 'CV-9',
+        message: `pickup at x=${p.x} has y=${p.y}: below the surface, unreachable`,
+      });
     if (p.y < -60)
-      v.push({ rule: 'CV-9', message: `pickup at x=${p.x} is ${-p.y} above the surface: beyond any launch` });
+      v.push({
+        rule: 'CV-9',
+        message: `pickup at x=${p.x} is ${-p.y} above the surface: beyond any launch`,
+      });
   }
 
   return v;

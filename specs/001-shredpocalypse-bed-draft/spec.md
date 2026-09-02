@@ -18,7 +18,7 @@
 - Q: How should the scoring reward a fast run over a slow one? → A: Through the controls rather than the scoring table. Fixed base speed; crouching accelerates above it; releasing the crouch produces the jump. Air is therefore only reachable by crouching, which gates every trick bonus behind the speed mechanic.
 - Q: If releasing the crouch always launches a jump, how does a player duck under a low obstacle and come back up without jumping into it? → A: Option D — he doesn't. Releasing under a low obstacle launches the skier into it and wipes out the run. The timing is the difficulty and learning it is the skill.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Claim your name and commit the one run that counts (Priority: P1)
 
@@ -147,7 +147,7 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **The browser tab is backgrounded mid-run.** The simulation must not advance unattended in a way that changes the outcome.
 - **A player's connection drops mid-run rather than at commit.** The run continues locally and commits on the same queue-and-retry path.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -286,7 +286,7 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **Insult Set**: The versioned collection of wipeout lines drawn from at random.
 - **Style Bible**: The written authority on visual and audio treatment, against which every asset is reviewed.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
@@ -352,18 +352,18 @@ This spec is governed by `.specify/memory/constitution.md` v1.0.0.
 
 Required by Governance ("all other deviations MUST be documented with rationale, an owner, and a remediation date, and MUST be reviewed at the next milestone").
 
-| Field | Value |
-|-------|-------|
-| **Principle** | V — Fair and Verifiable Competition |
-| **Clauses waived** | "Submitted scores MUST be validated by replay verification before publication" and "Client-reported scores MUST NEVER be trusted as authoritative" |
-| **Clauses retained** | Identical course conditions for all competitors; all randomness derived from the shared seed; leaderboards partitioned by rules version; no mechanic confers competitive advantage |
-| **Scope** | This feature only. The waiver does not extend to any later feature or release. |
-| **Rationale** | v1 serves one private draft among eight friends who know each other and will be sharing a cabin. Server-side simulation or replay verification costs more than it defends against an adversary who is a friend and socially accountable. The determinism requirements (FR-024 through FR-027) are retained in full, so verification remains buildable later without redesign. |
-| **Owner** | tucktuck22, repository owner |
-| **Remediation trigger** | Before any release that serves a draft among people who are not all personally known to one another, or before any release where the leaderboard governs a materially contested outcome. |
-| **Remediation date** | 2026-09-01 |
-| **Review** | At the next project milestone. |
-| **Decision record** | [ADR-0004](../../docs/adr/0004-accept-client-reported-scores.md) |
+| Field                   | Value                                                                                                                                                                                                                                                                                                                                                                         |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Principle**           | V — Fair and Verifiable Competition                                                                                                                                                                                                                                                                                                                                           |
+| **Clauses waived**      | "Submitted scores MUST be validated by replay verification before publication" and "Client-reported scores MUST NEVER be trusted as authoritative"                                                                                                                                                                                                                            |
+| **Clauses retained**    | Identical course conditions for all competitors; all randomness derived from the shared seed; leaderboards partitioned by rules version; no mechanic confers competitive advantage                                                                                                                                                                                            |
+| **Scope**               | This feature only. The waiver does not extend to any later feature or release.                                                                                                                                                                                                                                                                                                |
+| **Rationale**           | v1 serves one private draft among eight friends who know each other and will be sharing a cabin. Server-side simulation or replay verification costs more than it defends against an adversary who is a friend and socially accountable. The determinism requirements (FR-024 through FR-027) are retained in full, so verification remains buildable later without redesign. |
+| **Owner**               | tucktuck22, repository owner                                                                                                                                                                                                                                                                                                                                                  |
+| **Remediation trigger** | Before any release that serves a draft among people who are not all personally known to one another, or before any release where the leaderboard governs a materially contested outcome.                                                                                                                                                                                      |
+| **Remediation date**    | 2026-09-01                                                                                                                                                                                                                                                                                                                                                                    |
+| **Review**              | At the next project milestone.                                                                                                                                                                                                                                                                                                                                                |
+| **Decision record**     | [ADR-0004](../../docs/adr/0004-accept-client-reported-scores.md)                                                                                                                                                                                                                                                                                                              |
 
 **The remediation date is the date this record was written, and that is deliberate.**
 The deviation is due the moment it exists because the intent is to change the rule
@@ -384,7 +384,7 @@ is overdue.
 3. **Definition of Done, item 6.** A mechanic is not done until a human has played it and recorded findings. Nothing in this spec changes that, and no automated process can satisfy it. Playtest findings must be recorded against this spec at feature completion.
 
 4. **Principle III — feel parameters have names but not yet numbers.** The
-   constitution requires every mechanic spec to define its feel parameters *and*
+   constitution requires every mechanic spec to define its feel parameters _and_
    measurable acceptance criteria. FR-083 now names every parameter the gameplay
    model depends on and requires each to carry a value and an acceptance tolerance
    in versioned tuning data, and FR-031 pins input latency at 2 frames. The

@@ -16,7 +16,10 @@ import type { PendingCommit, SubmitResult } from './outbox.js';
 
 export class LocalDraftStore {
   private entries = new Map<string, EntryView>();
-  private commits = new Map<string, { score: number; outcome: 'finished' | 'wiped_out'; at: string }>();
+  private commits = new Map<
+    string,
+    { score: number; outcome: 'finished' | 'wiped_out'; at: string }
+  >();
   private listeners = new Set<() => void>();
   private seq = 0;
 
@@ -29,12 +32,19 @@ export class LocalDraftStore {
   async snapshot(): Promise<DraftSnapshot> {
     const entries = [...this.entries.values()].map((e) => {
       const c = this.commits.get(e.id);
-      return { ...e, score: c?.score ?? null, commitAt: c?.at ?? null, outcome: c?.outcome ?? null };
+      return {
+        ...e,
+        score: c?.score ?? null,
+        commitAt: c?.at ?? null,
+        outcome: c?.outcome ?? null,
+      };
     });
     return { draft: this.draft, entries };
   }
 
-  async createEntry(name: string): Promise<{ ok: true; id: string } | { ok: false; reason: string }> {
+  async createEntry(
+    name: string,
+  ): Promise<{ ok: true; id: string } | { ok: false; reason: string }> {
     const trimmed = name.trim();
     if (trimmed.length === 0) return { ok: false, reason: 'Enter a name.' };
     // Mirrors the unique index: case-insensitive exact match only (FR-003).
@@ -43,13 +53,21 @@ export class LocalDraftStore {
         return { ok: false, reason: 'That name is already on the roster.' };
     }
     // Mirrors the roster cap trigger (FR-002, FR-072).
-    if (this.entries.size >= 16) return { ok: false, reason: 'The roster is full (16). Ask the organizer.' };
+    if (this.entries.size >= 16)
+      return { ok: false, reason: 'The roster is full (16). Ask the organizer.' };
 
     const id = `local-${++this.seq}`;
     this.entries.set(id, {
-      id, name: trimmed, origin: 'self_created', claimed: true,
-      practiceRunsUsed: 0, abandonedOfficialRuns: 0, removed: false,
-      score: null, commitAt: null, outcome: null,
+      id,
+      name: trimmed,
+      origin: 'self_created',
+      claimed: true,
+      practiceRunsUsed: 0,
+      abandonedOfficialRuns: 0,
+      removed: false,
+      score: null,
+      commitAt: null,
+      outcome: null,
     });
     this.notify();
     return { ok: true, id };
@@ -58,9 +76,16 @@ export class LocalDraftStore {
   async seedOrganizerEntry(name: string): Promise<string> {
     const id = `local-${++this.seq}`;
     this.entries.set(id, {
-      id, name, origin: 'organizer', claimed: false,
-      practiceRunsUsed: 0, abandonedOfficialRuns: 0, removed: false,
-      score: null, commitAt: null, outcome: null,
+      id,
+      name,
+      origin: 'organizer',
+      claimed: false,
+      practiceRunsUsed: 0,
+      abandonedOfficialRuns: 0,
+      removed: false,
+      score: null,
+      commitAt: null,
+      outcome: null,
     });
     this.notify();
     return id;

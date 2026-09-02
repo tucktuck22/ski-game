@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
-  Outbox, backoffFor, type OutboxStore, type PendingCommit, type SubmitResult,
+  Outbox,
+  backoffFor,
+  type OutboxStore,
+  type PendingCommit,
+  type SubmitResult,
 } from '../../src/state/outbox.js';
 import * as outboxModule from '../../src/state/outbox.js';
 
@@ -9,12 +13,23 @@ function memoryStore(): OutboxStore & { items: Map<string, PendingCommit> } {
   return {
     items,
     all: async () => [...items.values()],
-    put: async (c) => { items.set(c.id, c); },
-    remove: async (id) => { items.delete(id); },
+    put: async (c) => {
+      items.set(c.id, c);
+    },
+    remove: async (id) => {
+      items.delete(id);
+    },
   };
 }
 
-const commit = { id: 'c1', draftId: 'd1', entryId: 'e1', score: 51234, outcome: 'finished' as const, rulesVersion: '1.0.0' };
+const commit = {
+  id: 'c1',
+  draftId: 'd1',
+  entryId: 'e1',
+  score: 51234,
+  outcome: 'finished' as const,
+  rulesVersion: '1.0.0',
+};
 
 describe('commit outbox (FR-046, FR-048)', () => {
   it('queues before the first network attempt, so a crash mid-request loses nothing', async () => {
@@ -29,7 +44,9 @@ describe('commit outbox (FR-046, FR-048)', () => {
   it('keeps retrying a transient failure and clears on confirmation', async () => {
     const store = memoryStore();
     let calls = 0;
-    const outbox = new Outbox(store, async () => (++calls < 3 ? { kind: 'retry' } : { kind: 'confirmed' }));
+    const outbox = new Outbox(store, async () =>
+      ++calls < 3 ? { kind: 'retry' } : { kind: 'confirmed' },
+    );
     await outbox.enqueue(commit);
 
     expect(await outbox.drain()).toMatchObject({ retrying: 1, confirmed: 0 });
@@ -44,7 +61,10 @@ describe('commit outbox (FR-046, FR-048)', () => {
     // A duplicate rejection is a CORRECT outcome - the score is already safely
     // recorded. Retrying would leave the player staring at "pending" forever.
     const store = memoryStore();
-    const outbox = new Outbox(store, async () => ({ kind: 'rejected', reason: 'already committed' }));
+    const outbox = new Outbox(store, async () => ({
+      kind: 'rejected',
+      reason: 'already committed',
+    }));
     await outbox.enqueue(commit);
     const result = await outbox.drain();
     expect(result.rejected).toEqual(['already committed']);
@@ -82,7 +102,9 @@ describe('the outbox is not authoritative (FR-021)', () => {
     // local state. That would hand a player a fresh run per device, which is
     // precisely what FR-021 forbids. The module must offer no such affordance.
     const surface = Object.keys(outboxModule);
-    const forbidden = surface.filter((k) => /runcount|claim|standing|leaderboard|hasCommitted/i.test(k));
+    const forbidden = surface.filter((k) =>
+      /runcount|claim|standing|leaderboard|hasCommitted/i.test(k),
+    );
     expect(forbidden).toEqual([]);
   });
 
@@ -93,9 +115,16 @@ describe('the outbox is not authoritative (FR-021)', () => {
     const [item] = await outbox.pending();
     // It records what was submitted. It does not record, and cannot answer,
     // whether the server accepted it - that answer only comes from the server.
-    expect(Object.keys(item!).sort()).toEqual(
-      ['attempts', 'draftId', 'entryId', 'id', 'outcome', 'queuedAt', 'rulesVersion', 'score'],
-    );
+    expect(Object.keys(item!).sort()).toEqual([
+      'attempts',
+      'draftId',
+      'entryId',
+      'id',
+      'outcome',
+      'queuedAt',
+      'rulesVersion',
+      'score',
+    ]);
     expect(item).not.toHaveProperty('confirmed');
   });
 });

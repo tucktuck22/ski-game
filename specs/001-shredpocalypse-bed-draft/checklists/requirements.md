@@ -43,11 +43,11 @@
 
 All three markers were answered and encoded into the spec. Zero markers remain.
 
-| Marker | Resolution | Requirements changed |
-|--------|-----------|----------------------|
-| Abandoned official run (FR-019) | Abandoned runs are discarded; the official run stays unused and may be restarted without limit | FR-019 rewritten; FR-065 (public abandonment counter) and FR-066 (practice symmetry) added |
+| Marker                            | Resolution                                                                                      | Requirements changed                                                                                                                  |
+| --------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Abandoned official run (FR-019)   | Abandoned runs are discarded; the official run stays unused and may be restarted without limit  | FR-019 rewritten; FR-065 (public abandonment counter) and FR-066 (practice symmetry) added                                            |
 | Practice course identity (FR-028) | Practice uses a distinct warm-up course; the official run is a first look at the scored terrain | FR-028 rewritten; FR-067 (warm-up identical and identically seeded for all) and FR-068 (official course unreachable pre-commit) added |
-| Score verification (FR-064) | Documented deviation from constitution Principle V on honor-system grounds | FR-064 rewritten; FR-069 (no "verified standings" claims anywhere) added |
+| Score verification (FR-064)       | Documented deviation from constitution Principle V on honor-system grounds                      | FR-064 rewritten; FR-069 (no "verified standings" claims anywhere) added                                                              |
 
 ### Iteration 3 — consequence review
 

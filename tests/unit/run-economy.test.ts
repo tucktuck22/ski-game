@@ -3,9 +3,17 @@ import { availability, courseFor, PRACTICE_RUNS } from '../../src/state/runEcono
 import type { EntryView } from '../../src/state/ordering.js';
 
 const entry = (over: Partial<EntryView> = {}): EntryView => ({
-  id: 'e', name: 'Dave', origin: 'organizer', claimed: true,
-  practiceRunsUsed: 0, abandonedOfficialRuns: 0, removed: false,
-  score: null, commitAt: null, outcome: null, ...over,
+  id: 'e',
+  name: 'Dave',
+  origin: 'organizer',
+  claimed: true,
+  practiceRunsUsed: 0,
+  abandonedOfficialRuns: 0,
+  removed: false,
+  score: null,
+  commitAt: null,
+  outcome: null,
+  ...over,
 });
 
 describe('run economy (FR-013 to FR-020)', () => {

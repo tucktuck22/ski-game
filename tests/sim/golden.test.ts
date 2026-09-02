@@ -54,7 +54,8 @@ function runCautious(course: typeof official, seed: number): ReturnType<typeof r
     const chargingJump = gap < CHARGE_FROM && gap > RELEASE_WITHIN;
 
     const barrierAhead = course.barriers.some(
-      (b, i) => state.barriersBroken[i] === 0 && b.x >= state.x && b.x <= state.x + tuning.attackReach,
+      (b, i) =>
+        state.barriersBroken[i] === 0 && b.x >= state.x && b.x <= state.x + tuning.attackReach,
     );
 
     const input: RunInput = {

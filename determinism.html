@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Determinism harness</title>
+  </head>
+  <body>
+    <!--
+      Test-only page. Runs a fixed seed and input trace through the real
+      simulation IN THE BROWSER and publishes the result, so Playwright can
+      assert that Chromium, Firefox and WebKit all produce the identical score
+      and end-state hash.
+
+      This is what actually proves FR-026. The Vitest golden test runs in Node
+      on V8 alone, which only shows the run is repeatable on one engine - it
+      cannot detect the cross-engine divergence the whole arithmetic
+      restriction exists to prevent.
+    -->
+    <pre id="result">running…</pre>
+    <script type="module" src="/src/determinism-harness.ts"></script>
+  </body>
+</html>

@@ -3,14 +3,28 @@ import { renderLeaderboard, escapeHtml } from '../../src/ui/leaderboard.js';
 import type { EntryView } from '../../src/state/ordering.js';
 
 const e = (o: Partial<EntryView> & { name: string }): EntryView => ({
-  id: o.name, origin: 'organizer', claimed: true, practiceRunsUsed: 3,
-  abandonedOfficialRuns: 0, removed: false, score: null, commitAt: null, outcome: null, ...o,
+  id: o.name,
+  origin: 'organizer',
+  claimed: true,
+  practiceRunsUsed: 3,
+  abandonedOfficialRuns: 0,
+  removed: false,
+  score: null,
+  commitAt: null,
+  outcome: null,
+  ...o,
 });
 
 describe('leaderboard view (SC-010)', () => {
   const entries = [
     e({ name: 'Sam', score: 62000, commitAt: '2026-09-01T09:00:00Z', outcome: 'finished' }),
-    e({ name: 'Dave', score: 1400, commitAt: '2026-09-01T10:00:00Z', outcome: 'wiped_out', abandonedOfficialRuns: 3 }),
+    e({
+      name: 'Dave',
+      score: 1400,
+      commitAt: '2026-09-01T10:00:00Z',
+      outcome: 'wiped_out',
+      abandonedOfficialRuns: 3,
+    }),
     e({ name: 'Zach', origin: 'self_created', claimed: false, practiceRunsUsed: 0 }),
     e({ name: 'Al', practiceRunsUsed: 1 }),
   ];

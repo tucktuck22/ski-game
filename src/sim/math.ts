@@ -102,8 +102,7 @@ function neighbour(v: number, dir: 1 | -1): number {
 /** Squared magnitude. Prefer this to a length comparison — it avoids sqrt entirely. */
 export const mag2 = (x: number, y: number): number => x * x + y * y;
 
-export const clamp = (v: number, lo: number, hi: number): number =>
-  v < lo ? lo : v > hi ? hi : v;
+export const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
 
 /** Move `from` toward `to` by at most `step`. */
 export function approach(from: number, to: number, step: number): number {

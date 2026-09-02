@@ -25,7 +25,7 @@ which principle wins when two principles disagree. A reviewer facing both would 
 to choose, which in practice means neither is binding and the document has quietly
 stopped governing the one question it was most specific about.
 
-The instinct is right. Trust *is* the position. It belongs inside Principle V,
+The instinct is right. Trust _is_ the position. It belongs inside Principle V,
 replacing the clause it contradicts, rather than beside it as a rival.
 
 There is also a real distinction worth keeping. "Never trust the client" is

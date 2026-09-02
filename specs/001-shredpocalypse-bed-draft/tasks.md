@@ -1,5 +1,4 @@
 ---
-
 description: "Task list for Shredpocalypse '86 — Bed-Pick Draft"
 ---
 
@@ -35,17 +34,17 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 **Purpose**: Project initialization and toolchain
 
-- [X] T001 Create the directory structure from plan.md in `src/`, `data/`, `assets/`, `tests/`, `supabase/`
-- [X] T002 Initialize TypeScript strict-mode project with Vite in `package.json`, `tsconfig.json`, `vite.config.ts`
-- [X] T003 [P] Add PixiJS v8 and the Supabase JS client as the only runtime dependencies in `package.json`
-- [X] T004 [P] Configure ESLint and Prettier in `eslint.config.js`
-- [X] T005 Add the simulation arithmetic lint rule banning `Math.*`, `Date.*`, and `performance.*` under `src/sim/**` in `eslint.config.js`
-- [X] T006 [P] Configure Vitest in `vitest.config.ts`
-- [X] T007 [P] Configure Playwright for Chromium, Firefox, and WebKit in `playwright.config.ts`, using the preinstalled browsers without calling `playwright install`
-- [X] T008 [P] Configure Git LFS for binary sprite atlases in `.gitattributes`
-- [X] T009 [P] Add the CI workflow running lint, unit, sim, course, and contract suites in `.github/workflows/ci.yml`
-- [X] T010 [P] Add the GitHub Pages deploy workflow in `.github/workflows/deploy.yml`
-- [X] T011 [P] Add Supabase environment configuration and `.env.example` documenting the public URL and anon key
+- [x] T001 Create the directory structure from plan.md in `src/`, `data/`, `assets/`, `tests/`, `supabase/`
+- [x] T002 Initialize TypeScript strict-mode project with Vite in `package.json`, `tsconfig.json`, `vite.config.ts`
+- [x] T003 [P] Add PixiJS v8 and the Supabase JS client as the only runtime dependencies in `package.json`
+- [x] T004 [P] Configure ESLint and Prettier in `eslint.config.js`
+- [x] T005 Add the simulation arithmetic lint rule banning `Math.*`, `Date.*`, and `performance.*` under `src/sim/**` in `eslint.config.js`
+- [x] T006 [P] Configure Vitest in `vitest.config.ts`
+- [x] T007 [P] Configure Playwright for Chromium, Firefox, and WebKit in `playwright.config.ts`, using the preinstalled browsers without calling `playwright install`
+- [x] T008 [P] Configure Git LFS for binary sprite atlases in `.gitattributes`
+- [x] T009 [P] Add the CI workflow running lint, unit, sim, course, and contract suites in `.github/workflows/ci.yml`
+- [x] T010 [P] Add the GitHub Pages deploy workflow in `.github/workflows/deploy.yml`
+- [x] T011 [P] Add Supabase environment configuration and `.env.example` documenting the public URL and anon key
 
 **Checkpoint**: `npm install && npm run lint && npm test` runs clean on an empty suite.
 
@@ -59,54 +58,60 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 ### Style authority — before any asset exists
 
-- [X] T012 Write the style bible covering palette, linework weight, halftone and scanline treatment, chrome and neon lettering, panel framing, audio character, and the legibility-outranks-style rule in `assets/style-bible.md`
-- [X] T013 [P] Validate the style bible palette against protanopia, deuteranopia, and tritanopia and record results in `assets/style-bible.md`, with an automated contrast check in `tests/unit/palette.test.ts`
+- [x] T012 Write the style bible covering palette, linework weight, halftone and scanline treatment, chrome and neon lettering, panel framing, audio character, and the legibility-outranks-style rule in `assets/style-bible.md`
+- [x] T013 [P] Validate the style bible palette against protanopia, deuteranopia, and tritanopia and record results in `assets/style-bible.md`, with an automated contrast check in `tests/unit/palette.test.ts`
 
 ### Deterministic simulation core
 
-- [X] T014 [P] Implement the seeded PRNG in `src/sim/rng.ts`
-- [X] T015 [P] Generate the trigonometry lookup table with `tools/gen-trig.ts`, output committed to `src/sim/trig.ts`
-- [X] T016 [P] Define simulation state and input types from data-model.md in `src/sim/types.ts`
-- [X] T017 Implement semi-implicit Euler integration with piecewise-linear slope contact in `src/sim/physics.ts`
-- [X] T018 Implement crouch charge, launch impulse, and the release-under-low-obstacle wipeout per FR-088 in `src/sim/physics.ts`
-- [X] T019 Implement airborne rotation, rotation accumulation, and landing angle tolerance in `src/sim/physics.ts`
-- [X] T020 Implement the pure `step(state, input) → state` entry point in `src/sim/step.ts`
-- [X] T021 [P] Implement base, trick, and pickup score accumulation in `src/sim/scoring.ts`
-- [X] T022 Record a golden seed and input trace and assert exact score and end-state hash in `tests/sim/golden.test.ts`
-- [X] T023 [P] Fuzz randomised input across thousands of seeds asserting no throw, no non-finite state, and a terminal state per FR-062 in `tests/sim/monkey.test.ts`
+- [x] T014 [P] Implement the seeded PRNG in `src/sim/rng.ts`
+- [x] T015 [P] Generate the trigonometry lookup table with `tools/gen-trig.ts`, output committed to `src/sim/trig.ts`
+- [x] T016 [P] Define simulation state and input types from data-model.md in `src/sim/types.ts`
+- [x] T017 Implement semi-implicit Euler integration with piecewise-linear slope contact in `src/sim/physics.ts`
+- [x] T018 Implement crouch charge, launch impulse, and the release-under-low-obstacle wipeout per FR-088 in `src/sim/physics.ts`
+- [x] T019 Implement airborne rotation, rotation accumulation, and landing angle tolerance in `src/sim/physics.ts`
+- [x] T020 Implement the pure `step(state, input) → state` entry point in `src/sim/step.ts`
+- [x] T021 [P] Implement base, trick, and pickup score accumulation in `src/sim/scoring.ts`
+- [x] T022 Record a golden seed and input trace and assert exact score and end-state hash in `tests/sim/golden.test.ts`
+- [x] T110 Assert the golden run reproduces identically in Chromium, Firefox and WebKit via `determinism.html` and `tests/e2e/determinism.spec.ts`
+  - Added after the fact. research.md R2 names three-engine agreement as the actual
+    proof of FR-026, `package.json` had a `test:determinism` script and CI had a job
+    for it — but no task ever captured the work, so the file was never written and
+    CI failed with "No tests found" on every run. The Vitest golden test (T022) runs
+    in Node on V8 alone and cannot detect cross-engine divergence.
+- [x] T023 [P] Fuzz randomised input across thousands of seeds asserting no throw, no non-finite state, and a terminal state per FR-062 in `tests/sim/monkey.test.ts`
 
 ### Course pipeline — validator before content
 
-- [X] T024 [P] Define the course schema types from contracts/course-data.md in `src/course/types.ts`
-- [X] T025 Implement validator rules CV-1 through CV-9, with CV-4's safe-release-window check per FR-089, in `src/course/validate.ts`
-- [X] T026 Cover every validator rule including deliberately invalid fixtures in `tests/course/validate.test.ts`
-- [X] T027 Implement the course loader in `src/course/load.ts`
-- [X] T028 Author the warm-up course, validator passing, in `data/courses/warmup.json`
-- [X] T029 Author the official course, validator passing, in `data/courses/official.json`
+- [x] T024 [P] Define the course schema types from contracts/course-data.md in `src/course/types.ts`
+- [x] T025 Implement validator rules CV-1 through CV-9, with CV-4's safe-release-window check per FR-089, in `src/course/validate.ts`
+- [x] T026 Cover every validator rule including deliberately invalid fixtures in `tests/course/validate.test.ts`
+- [x] T027 Implement the course loader in `src/course/load.ts`
+- [x] T028 Author the warm-up course, validator passing, in `data/courses/warmup.json`
+- [x] T029 Author the official course, validator passing, in `data/courses/official.json`
 
 ### Tuning and scoring data
 
-- [X] T030 [P] Transcribe every parameter and tolerance from contracts/tuning-data.md into `data/tuning.json`
-- [X] T031 [P] Define base, trick, and pickup values in `data/scoring.json`
-- [X] T032 [P] Assert the completion base exceeds the maximum achievable bonus total per FR-034 in `tests/unit/scoring-dominance.test.ts`
-- [X] T033 [P] Write at least 30 wipeout lines, R-rated register, no slurs or protected-characteristic content, in `data/insults.json`
-- [X] T034 Implement data-file loading with schema validation in `src/data/load.ts`
+- [x] T030 [P] Transcribe every parameter and tolerance from contracts/tuning-data.md into `data/tuning.json`
+- [x] T031 [P] Define base, trick, and pickup values in `data/scoring.json`
+- [x] T032 [P] Assert the completion base exceeds the maximum achievable bonus total per FR-034 in `tests/unit/scoring-dominance.test.ts`
+- [x] T033 [P] Write at least 30 wipeout lines, R-rated register, no slurs or protected-characteristic content, in `data/insults.json`
+- [x] T034 Implement data-file loading with schema validation in `src/data/load.ts`
 
 ### Shared storage
 
-- [X] T035 Create tables for draft, roster entry, and committed score in `supabase/migrations/0001_init.sql`
-- [X] T036 Add the unique constraints, roster cap trigger, server-assigned `commit_at`, and insert-only RLS policies from contracts/storage-api.md in `supabase/migrations/0002_policies.sql`
-- [X] T037 Implement the storage client covering the player operations in contracts/storage-api.md in `src/state/supabase.ts`
-- [X] T038 Assert every server-enforced invariant by attempting violations directly against the API in `tests/contract/storage.test.ts`
+- [x] T035 Create tables for draft, roster entry, and committed score in `supabase/migrations/0001_init.sql`
+- [x] T036 Add the unique constraints, roster cap trigger, server-assigned `commit_at`, and insert-only RLS policies from contracts/storage-api.md in `supabase/migrations/0002_policies.sql`
+- [x] T037 Implement the storage client covering the player operations in contracts/storage-api.md in `src/state/supabase.ts`
+- [x] T038 Assert every server-enforced invariant by attempting violations directly against the API in `tests/contract/storage.test.ts`
 - [ ] T039 [P] Assert schema migrations round-trip without corrupting committed scores per FR-050 in `tests/contract/migration.test.ts`
 
 ### Rendering and input base
 
-- [X] T040 Implement the fixed 320×180 buffer with integer nearest-neighbour upscaling in `src/render/stage.ts`
-- [X] T041 Implement the fixed-timestep accumulator loop with render interpolation in `src/render/loop.ts`
-- [X] T042 [P] Implement keyboard input with full remapping per FR-030 in `src/input/keyboard.ts`
-- [X] T043 [P] Implement one-handed touch input for crouch/launch, rotate, and attack per contracts/controls.md in `src/input/touch.ts`
-- [X] T044 Sample input once per simulation tick, not per animation frame, in `src/input/sample.ts`
+- [x] T040 Implement the fixed 320×180 buffer with integer nearest-neighbour upscaling in `src/render/stage.ts`
+- [x] T041 Implement the fixed-timestep accumulator loop with render interpolation in `src/render/loop.ts`
+- [x] T042 [P] Implement keyboard input with full remapping per FR-030 in `src/input/keyboard.ts`
+- [x] T043 [P] Implement one-handed touch input for crouch/launch, rotate, and attack per contracts/controls.md in `src/input/touch.ts`
+- [x] T044 Sample input once per simulation tick, not per animation frame, in `src/input/sample.ts`
 - [ ] T045 [P] Assert input-to-visible-response within 2 simulation frames per FR-031 in `tests/e2e/latency.spec.ts`
 
 **Checkpoint**: A run is simulable and renderable end to end from a seed and an input trace. Determinism, monkey, course, and storage-contract suites all pass. No user-facing flow exists yet.
@@ -119,19 +124,19 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 **Independent test**: With a roster provisioned by any means, open the link on a phone, claim a name, use three practice runs, commit an official run, and confirm the score appears on a leaderboard ranked with rank 1 labelled first bed pick — and that no path exists to run officially again.
 
-- [X] T046 [P] [US1] Implement roster listing and claim state display in `src/ui/roster.ts`
-- [X] T047 [US1] Implement name claiming with first-write-wins race handling per FR-012 in `src/state/claims.ts`
-- [X] T048 [US1] Implement same-device identity resumption per FR-010 in `src/state/identity.ts`
-- [X] T049 [US1] Implement the run economy — three practice, one official, skip-practice-forfeits-unused per FR-013 to FR-015 in `src/state/runEconomy.ts`
-- [X] T050 [US1] Implement the official-run confirmation gate stating the run counts once and cannot be retaken per FR-016 in `src/ui/officialConfirm.ts`
-- [X] T051 [US1] Wire the warm-up course to practice runs and the official course to the official run, keeping the official course unreachable before commit per FR-068 in `src/ui/runFlow.ts`
-- [X] T052 [US1] Implement irreversible commit on both finish and wipeout per FR-017 in `src/state/commit.ts`
-- [X] T053 [P] [US1] Implement the leaderboard with rank, name, score, status, and the rank-1-picks-first label per FR-040, FR-041 in `src/ui/leaderboard.ts`
-- [X] T054 [P] [US1] Implement free play after commit, visibly labelled as not counting, per FR-020 in `src/ui/freePlay.ts`
-- [X] T055 [P] [US1] Author skier, terrain, obstacle, and barrier sprites to the style bible, each citing the rule it satisfies per FR-052, in `assets/sprites/`
-- [X] T056 [P] [US1] Implement the run HUD showing score, run type, and runs remaining in `src/ui/hud.ts`
-- [X] T057 [US1] Assert the full claim-to-commit journey and that no retake path exists, per US1 acceptance scenarios 1–8, in `tests/e2e/us1-claim-and-commit.spec.ts`
-- [X] T058 [P] [US1] Assert a first-time player finishes using only base speed and crouch-to-duck with no tricks per SC-015 in `tests/e2e/us1-cautious-run.spec.ts`
+- [x] T046 [P] [US1] Implement roster listing and claim state display in `src/ui/roster.ts`
+- [x] T047 [US1] Implement name claiming with first-write-wins race handling per FR-012 in `src/state/claims.ts`
+- [x] T048 [US1] Implement same-device identity resumption per FR-010 in `src/state/identity.ts`
+- [x] T049 [US1] Implement the run economy — three practice, one official, skip-practice-forfeits-unused per FR-013 to FR-015 in `src/state/runEconomy.ts`
+- [x] T050 [US1] Implement the official-run confirmation gate stating the run counts once and cannot be retaken per FR-016 in `src/ui/officialConfirm.ts`
+- [x] T051 [US1] Wire the warm-up course to practice runs and the official course to the official run, keeping the official course unreachable before commit per FR-068 in `src/ui/runFlow.ts`
+- [x] T052 [US1] Implement irreversible commit on both finish and wipeout per FR-017 in `src/state/commit.ts`
+- [x] T053 [P] [US1] Implement the leaderboard with rank, name, score, status, and the rank-1-picks-first label per FR-040, FR-041 in `src/ui/leaderboard.ts`
+- [x] T054 [P] [US1] Implement free play after commit, visibly labelled as not counting, per FR-020 in `src/ui/freePlay.ts`
+- [x] T055 [P] [US1] Author skier, terrain, obstacle, and barrier sprites to the style bible, each citing the rule it satisfies per FR-052, in `assets/sprites/`
+- [x] T056 [P] [US1] Implement the run HUD showing score, run type, and runs remaining in `src/ui/hud.ts`
+- [x] T057 [US1] Assert the full claim-to-commit journey and that no retake path exists, per US1 acceptance scenarios 1–8, in `tests/e2e/us1-claim-and-commit.spec.ts`
+- [x] T058 [P] [US1] Assert a first-time player finishes using only base speed and crouch-to-duck with no tricks per SC-015 in `tests/e2e/us1-cautious-run.spec.ts`
 
 **Checkpoint**: The draft is playable and decides a bed order. This is the MVP.
 
@@ -146,9 +151,9 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 - [ ] T059 [US2] Implement cross-device identity recovery by name re-selection per FR-011 in `src/state/identity.ts`
 - [ ] T060 [US2] Route all run counts and claims through shared storage, with no device-local read path, per FR-021 in `src/state/runEconomy.ts`
 - [ ] T061 [US2] Implement duplicate-commit rejection surfacing "already committed" without retry per contracts/storage-api.md in `src/state/commit.ts`
-- [X] T062 [US2] Implement abandonment detection and the public abandoned-run counter per FR-019, FR-065 in `src/state/abandonment.ts`
-- [X] T063 [P] [US2] Ensure abandoned practice runs do not consume a practice run per FR-066 in `src/state/runEconomy.ts`
-- [X] T064 [P] [US2] Display the abandonment count on the leaderboard per FR-065, SC-013 in `src/ui/leaderboard.ts`
+- [x] T062 [US2] Implement abandonment detection and the public abandoned-run counter per FR-019, FR-065 in `src/state/abandonment.ts`
+- [x] T063 [P] [US2] Ensure abandoned practice runs do not consume a practice run per FR-066 in `src/state/runEconomy.ts`
+- [x] T064 [P] [US2] Display the abandonment count on the leaderboard per FR-065, SC-013 in `src/ui/leaderboard.ts`
 - [ ] T065 [US2] Assert device switching, private windows, and cleared storage grant no additional runs, per US2 acceptance scenarios, in `tests/e2e/us2-one-run-per-name.spec.ts`
 - [ ] T066 [P] [US2] Assert abandonment discards the run, leaves the official run unused, and increments the visible counter in `tests/e2e/us2-abandonment.spec.ts`
 
@@ -162,15 +167,15 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 **Independent test**: Create a roster and deadline through the organizer flow, open the player link in a clean browser, and confirm the roster and deadline appear exactly as entered.
 
-- [X] T067 [US3] Implement organizer draft creation with initial roster and deadline per FR-001, FR-004 in `src/ui/organizer/setup.ts`
-- [X] T068 [US3] Implement player link generation and the separate organizer URL per FR-005, FR-006 in `src/state/links.ts`
-- [X] T069 [US3] Implement self-serve entry creation, claimed in the same action, with cap and duplicate handling per FR-070, FR-072, FR-008 in `src/ui/roster.ts`
-- [X] T070 [P] [US3] Display organizer-created versus self-created provenance per FR-073 in `src/ui/leaderboard.ts`
-- [X] T071 [US3] Implement organizer removal of uncommitted entries and claim release per FR-007 in `src/ui/organizer/manage.ts`
-- [X] T072 [US3] Implement organizer removal of committed entries behind confirmation naming the discarded score, recorded and left visible per FR-074 in `src/ui/organizer/manage.ts`
-- [X] T073 [P] [US3] Refuse renaming any entry with a committed score per FR-075 in `src/ui/organizer/manage.ts`
-- [X] T074 [P] [US3] Implement draft reset destroying all committed scores in `src/ui/organizer/manage.ts`
-- [X] T075 [US3] Assert organizer controls are unreachable from the player link and that self-serve creation works, per US3 acceptance scenarios 1–6, in `tests/e2e/us3-organizer.spec.ts`
+- [x] T067 [US3] Implement organizer draft creation with initial roster and deadline per FR-001, FR-004 in `src/ui/organizer/setup.ts`
+- [x] T068 [US3] Implement player link generation and the separate organizer URL per FR-005, FR-006 in `src/state/links.ts`
+- [x] T069 [US3] Implement self-serve entry creation, claimed in the same action, with cap and duplicate handling per FR-070, FR-072, FR-008 in `src/ui/roster.ts`
+- [x] T070 [P] [US3] Display organizer-created versus self-created provenance per FR-073 in `src/ui/leaderboard.ts`
+- [x] T071 [US3] Implement organizer removal of uncommitted entries and claim release per FR-007 in `src/ui/organizer/manage.ts`
+- [x] T072 [US3] Implement organizer removal of committed entries behind confirmation naming the discarded score, recorded and left visible per FR-074 in `src/ui/organizer/manage.ts`
+- [x] T073 [P] [US3] Refuse renaming any entry with a committed score per FR-075 in `src/ui/organizer/manage.ts`
+- [x] T074 [P] [US3] Implement draft reset destroying all committed scores in `src/ui/organizer/manage.ts`
+- [x] T075 [US3] Assert organizer controls are unreachable from the player link and that self-serve creation works, per US3 acceptance scenarios 1–6, in `tests/e2e/us3-organizer.spec.ts`
 
 **Checkpoint**: A draft can be created, shared, and administered without developer intervention.
 
@@ -182,13 +187,13 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 **Independent test**: Set a near-future deadline with some entries uncommitted, wait past it, and confirm FINAL, refused commits, and forfeits grouped without an implied order.
 
-- [X] T076 [US4] Implement server-side deadline enforcement rejecting commits after the deadline per FR-043 in `supabase/migrations/0003_deadline.sql`
-- [X] T077 [US4] Allow a run started before the deadline to finish and commit after it per FR-044 in `src/state/commit.ts`
-- [X] T078 [US4] Implement the FINAL leaderboard state per FR-043 in `src/ui/leaderboard.ts`
-- [X] T079 [US4] Implement tie-breaking by earlier server-assigned `commit_at` per FR-037 in `src/ui/ordering.ts`
-- [X] T080 [US4] Display surviving ties as unresolved and flagged for coin flip per FR-038 in `src/ui/ordering.ts`
-- [X] T081 [US4] Place uncommitted entries below all scores as an unordered FORFEIT group with the coin-flip instruction, assigning no order, per FR-045 in `src/ui/ordering.ts`
-- [X] T082 [P] [US4] Warn the organizer before applying an already-elapsed deadline per FR-004 in `src/ui/organizer/setup.ts`
+- [x] T076 [US4] Implement server-side deadline enforcement rejecting commits after the deadline per FR-043 in `supabase/migrations/0003_deadline.sql`
+- [x] T077 [US4] Allow a run started before the deadline to finish and commit after it per FR-044 in `src/state/commit.ts`
+- [x] T078 [US4] Implement the FINAL leaderboard state per FR-043 in `src/ui/leaderboard.ts`
+- [x] T079 [US4] Implement tie-breaking by earlier server-assigned `commit_at` per FR-037 in `src/ui/ordering.ts`
+- [x] T080 [US4] Display surviving ties as unresolved and flagged for coin flip per FR-038 in `src/ui/ordering.ts`
+- [x] T081 [US4] Place uncommitted entries below all scores as an unordered FORFEIT group with the coin-flip instruction, assigning no order, per FR-045 in `src/ui/ordering.ts`
+- [x] T082 [P] [US4] Warn the organizer before applying an already-elapsed deadline per FR-004 in `src/ui/organizer/setup.ts`
 - [ ] T083 [US4] Assert FINAL state, tie-breaking, and that no order is implied among forfeits, per US4 acceptance scenarios, in `tests/e2e/us4-deadline.spec.ts`
 
 **Checkpoint**: The leaderboard is an authoritative bed order the group can act on.
@@ -201,11 +206,11 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 **Independent test**: Disable connectivity before a run ends; confirm pending state, survival across reload and browser restart, then posting on reconnect.
 
-- [X] T084 [US5] Implement the IndexedDB commit outbox as a write-only transport buffer per FR-046, FR-048 in `src/state/outbox.ts`
-- [X] T085 [US5] Implement exponential-backoff retry capped at 60s, halting on duplicate rejection, per contracts/storage-api.md in `src/state/outbox.ts`
-- [X] T086 [US5] Implement the pending-versus-confirmed UI distinction that never claims a leaderboard place before confirmation per FR-047 in `src/ui/commitStatus.ts`
+- [x] T084 [US5] Implement the IndexedDB commit outbox as a write-only transport buffer per FR-046, FR-048 in `src/state/outbox.ts`
+- [x] T085 [US5] Implement exponential-backoff retry capped at 60s, halting on duplicate rejection, per contracts/storage-api.md in `src/state/outbox.ts`
+- [x] T086 [US5] Implement the pending-versus-confirmed UI distinction that never claims a leaderboard place before confirmation per FR-047 in `src/ui/commitStatus.ts`
 - [ ] T087 [US5] Implement the service worker precaching app shell, course, tuning, and assets for fully offline runs per FR-049 in `src/sw.ts`
-- [X] T088 [P] [US5] Assert no run count, claim, or score is ever read back from the outbox per FR-021 in `tests/unit/outbox-not-authoritative.test.ts`
+- [x] T088 [P] [US5] Assert no run count, claim, or score is ever read back from the outbox per FR-021 in `tests/unit/outbox-not-authoritative.test.ts`
 - [ ] T089 [US5] Assert offline commit queues, survives reload and restart, and posts on reconnect, per US5 acceptance scenarios, in `tests/e2e/us5-offline-commit.spec.ts`
 
 **Checkpoint**: The one irreversible action is durable against the connectivity it will actually meet.
@@ -218,17 +223,17 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 
 **Independent test**: Play a full run and confirm the style bible's rules are visibly followed, audio is silent until first interaction, and reduced motion leaves the run fully playable.
 
-- [X] T090 [P] [US6] Implement the scanline and halftone post-process shaders in `src/render/filters/scanline.ts` and `src/render/filters/halftone.ts`
-- [X] T091 [P] [US6] Implement neon bloom and chromatic fringing shaders in `src/render/filters/bloom.ts`
-- [X] T092 [P] [US6] Implement chrome and neon title lettering in `src/ui/titles.ts`
-- [X] T093 [P] [US6] Implement comic-idiom panels, gutters, and caption boxes for menus and transitions per FR-053 in `src/ui/panels.ts`
-- [X] T094 [US6] Implement Web Audio chiptune and synthwave synthesis, original by construction, in `src/audio/synth.ts`
-- [X] T095 [US6] Gate audio behind the first deliberate gesture with a persistent mute toggle per FR-054 in `src/audio/gate.ts`
-- [X] T096 [P] [US6] Display randomised wipeout insults drawn from the data file per FR-059 in `src/ui/wipeout.ts`
-- [X] T097 [US6] Implement the reduced-motion option disabling scanlines, shake, flashing, and parallax without changing timing per FR-056 in `src/render/reducedMotion.ts`
-- [X] T098 [P] [US6] Assert no effect flashes more than three times per second across a large screen area per FR-057 in `tests/e2e/us6-flash-limit.spec.ts`
-- [X] T099 [P] [US6] Assert every audio cue carrying gameplay information has a visible equivalent per FR-058 in `tests/e2e/us6-audio-parity.spec.ts`
-- [X] T100 [US6] Assert style-bible conformance, gesture-gated audio, and reduced-motion playability, per US6 acceptance scenarios, in `tests/e2e/us6-presentation.spec.ts`
+- [x] T090 [P] [US6] Implement the scanline and halftone post-process shaders in `src/render/filters/scanline.ts` and `src/render/filters/halftone.ts`
+- [x] T091 [P] [US6] Implement neon bloom and chromatic fringing shaders in `src/render/filters/bloom.ts`
+- [x] T092 [P] [US6] Implement chrome and neon title lettering in `src/ui/titles.ts`
+- [x] T093 [P] [US6] Implement comic-idiom panels, gutters, and caption boxes for menus and transitions per FR-053 in `src/ui/panels.ts`
+- [x] T094 [US6] Implement Web Audio chiptune and synthwave synthesis, original by construction, in `src/audio/synth.ts`
+- [x] T095 [US6] Gate audio behind the first deliberate gesture with a persistent mute toggle per FR-054 in `src/audio/gate.ts`
+- [x] T096 [P] [US6] Display randomised wipeout insults drawn from the data file per FR-059 in `src/ui/wipeout.ts`
+- [x] T097 [US6] Implement the reduced-motion option disabling scanlines, shake, flashing, and parallax without changing timing per FR-056 in `src/render/reducedMotion.ts`
+- [x] T098 [P] [US6] Assert no effect flashes more than three times per second across a large screen area per FR-057 in `tests/e2e/us6-flash-limit.spec.ts`
+- [x] T099 [P] [US6] Assert every audio cue carrying gameplay information has a visible equivalent per FR-058 in `tests/e2e/us6-audio-parity.spec.ts`
+- [x] T100 [US6] Assert style-bible conformance, gesture-gated audio, and reduced-motion playability, per US6 acceptance scenarios, in `tests/e2e/us6-presentation.spec.ts`
 
 **Checkpoint**: The game reads as 1986 and remains legible and accessible.
 
@@ -239,7 +244,7 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 - [ ] T101 Measure and enforce the R1 budgets under 4× CPU throttle and Fast 3G in `tests/e2e/performance.spec.ts`
 - [ ] T102 [P] Assert median phone scores fall within 10% of desktop for comparable skill per SC-006 in `tests/e2e/parity.spec.ts`
 - [ ] T103 [P] Assert no information required to complete a run or read standings is conveyed by colour alone per FR-055 in `tests/e2e/color-independence.spec.ts`
-- [X] T104 [P] Verify no player-facing copy or documentation claims standings are verified or tamper-proof per FR-069, SC-014 in `tests/unit/no-verified-claims.test.ts`
+- [x] T104 [P] Verify no player-facing copy or documentation claims standings are verified or tamper-proof per FR-069, SC-014 in `tests/unit/no-verified-claims.test.ts`
 - [ ] T105 [P] Enforce rules-version pinning so a mid-draft physics or scoring change is refused rather than silently accepted per FR-023 in `src/state/rulesVersion.ts`
 - [ ] T106 [P] Add empty, loading, and error states across roster, leaderboard, and run flows in `src/ui/states.ts`
 - [ ] T107 Run the full suite and confirm every scenario in `specs/001-shredpocalypse-bed-draft/quickstart.md` passes, recording results in `specs/001-shredpocalypse-bed-draft/quickstart.md`

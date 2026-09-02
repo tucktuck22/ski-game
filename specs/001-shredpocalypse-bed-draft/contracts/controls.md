@@ -8,11 +8,11 @@ skill (FR-088).
 
 ## The verbs
 
-| Verb | Keyboard (default) | Touch | Simulation effect |
-|---|---|---|---|
+| Verb                | Keyboard (default)  | Touch                                 | Simulation effect                                                                                                                                                                        |
+| ------------------- | ------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Crouch / launch** | Space or Down, held | Hold anywhere on the lower two-thirds | Held + grounded: accelerate toward `tuckSpeedMax`, lower profile. Released + grounded: launch scaled by charge (FR-078). Released under a low obstacle: launch into it, wipeout (FR-088) |
-| **Rotate** | Left / Right, held | Drag left or right, or tilt zones | Airborne only: angular velocity toward ±`rotationRateMax` (FR-079) |
-| **Attack** | Shift or Up, tapped | Tap the upper third | Destroys a barrier within `attackReach`; cooldown applies (FR-081) |
+| **Rotate**          | Left / Right, held  | Drag left or right, or tilt zones     | Airborne only: angular velocity toward ±`rotationRateMax` (FR-079)                                                                                                                       |
+| **Attack**          | Shift or Up, tapped | Tap the upper third                   | Destroys a barrier within `attackReach`; cooldown applies (FR-081)                                                                                                                       |
 
 ## Parity requirements
 

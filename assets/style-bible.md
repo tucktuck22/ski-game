@@ -19,16 +19,16 @@ asset that cannot cite a rule is rejected, not merged with a promise to fix late
 
 Eight colours. Nothing outside this set appears in any asset.
 
-| Token | Hex | Role |
-|---|---|---|
-| `ink` | `#0B0616` | Ground. Backdrop, panel fill, gutter |
-| `purple` | `#2B1055` | Secondary ground. Sky gradient base, panel border |
-| `magenta` | `#FF2D95` | Primary accent. Player, active state, title lettering |
-| `cyan` | `#22E8F5` | Secondary accent. Terrain edge, pickups, confirmations |
-| `blue` | `#4361FF` | Tertiary. Sky gradient top, inactive UI |
-| `orange` | `#FC6008` | Warning. Obstacles, barriers, hazard edges |
-| `yellow` | `#FFD23F` | Alert and score. Wipeout lettering, HUD score |
-| `snow` | `#F2F0FF` | Body text, snow surface, high-contrast marks |
+| Token     | Hex       | Role                                                   |
+| --------- | --------- | ------------------------------------------------------ |
+| `ink`     | `#0B0616` | Ground. Backdrop, panel fill, gutter                   |
+| `purple`  | `#2B1055` | Secondary ground. Sky gradient base, panel border      |
+| `magenta` | `#FF2D95` | Primary accent. Player, active state, title lettering  |
+| `cyan`    | `#22E8F5` | Secondary accent. Terrain edge, pickups, confirmations |
+| `blue`    | `#4361FF` | Tertiary. Sky gradient top, inactive UI                |
+| `orange`  | `#FC6008` | Warning. Obstacles, barriers, hazard edges             |
+| `yellow`  | `#FFD23F` | Alert and score. Wipeout lettering, HUD score          |
+| `snow`    | `#F2F0FF` | Body text, snow surface, high-contrast marks           |
 
 - **P-1** — Grounds are `ink` and `purple` only. Accents never fill a full background.
 - **P-2** — Body text is `snow` on `ink` or `purple`. Never accent-on-accent.
@@ -121,4 +121,4 @@ Eight colours. Nothing outside this set appears in any asset.
 
 - **O-1** — All art and audio are original works in period style. No third-party
   characters, logos, trademarks, wordmarks, or musical material appears, and no
-  existing artist's work is reproduced. Period-*style*, never period-*property*.
+  existing artist's work is reproduced. Period-_style_, never period-_property_.

@@ -113,7 +113,12 @@ export function drawRun(
     } else {
       ctx.fillRect(px, groundY - tuning.standHeight, o.width, tuning.standHeight);
       ctx.strokeStyle = css('ink');
-      ctx.strokeRect(px + 0.5, groundY - tuning.standHeight + 0.5, o.width - 1, tuning.standHeight - 1);
+      ctx.strokeRect(
+        px + 0.5,
+        groundY - tuning.standHeight + 0.5,
+        o.width - 1,
+        tuning.standHeight - 1,
+      );
     }
   }
 
@@ -128,7 +133,8 @@ function drawSkier(
 ): void {
   const px = state.x - cam.x;
   const py = state.y - cam.y;
-  const height = tuning.standHeight - (tuning.standHeight - tuning.crouchHeight) * state.crouchProfile;
+  const height =
+    tuning.standHeight - (tuning.standHeight - tuning.crouchHeight) * state.crouchProfile;
 
   ctx.save();
   ctx.translate(px, py);
