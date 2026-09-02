@@ -109,6 +109,19 @@ Decisions with lasting consequences are recorded as ADRs in
 [`docs/adr/`](docs/adr/). Read [ADR-0001](docs/adr/0001-record-architecture-decisions.md)
 for when a decision earns one.
 
+### Deploying
+
+**Before the first deploy, enable Pages once by hand:**
+**Settings → Pages → Build and deployment → Source: `GitHub Actions`.**
+
+This cannot be automated. `actions/configure-pages` has an `enablement` option,
+but creating a Pages site needs repo-admin permission that `GITHUB_TOKEN` does
+not have, so it fails with "Resource not accessible by integration". Until the
+toggle is set, every deploy fails with "Get Pages site failed".
+
+Once set, every push to `main` publishes to
+`https://<owner>.github.io/ski-game`.
+
 ### Running a real draft
 
 The shared state lives in a Supabase free-tier project. Set `VITE_SUPABASE_URL`
