@@ -32,6 +32,46 @@ create policy score_insert on committed_score for insert with check (true);
 -- feature. Organizer removal (FR-074) goes through the service role, which the
 -- player bundle does not carry.
 
+-- ---------------------------------------------------------------------------
+-- Explicit grants.
+--
+-- Supabase grants broadly to anon by default, and the revokes below assume it.
+-- But a revoke against a grant that is not there is a silent no-op, so relying
+-- on it alone would mean this schema's security posture depends on somebody
+-- else's defaults not changing. The grants are therefore stated positively:
+-- anon gets exactly these columns and operations, and nothing else.
+-- ---------------------------------------------------------------------------
+
+-- organizer_secret is deliberately absent from this list. It gates roster
+-- removal, deadline changes and draft reset, so a player who could read it
+-- would have every organizer power (FR-006).
+grant select (id, deadline, course_seed, rules_version, finalized_at, created_at)
+  on draft to anon, authenticated;
+
+grant select on roster_entry to anon, authenticated;
+grant insert on roster_entry to anon, authenticated;
+
+-- Players may move only their own run counters. Name, origin and removal are
+-- organizer territory; claimed_at is how a claim is taken (FR-012).
+grant update (claimed_at, practice_runs_used, abandoned_official_runs,
+              official_status, official_run_started_at)
+  on roster_entry to anon, authenticated;
+
+grant select on committed_score to anon, authenticated;
+grant insert on committed_score to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Revokes. Belt and braces against Supabase's broad defaults.
+-- ---------------------------------------------------------------------------
+
+-- FR-017, FR-018: a committed score is immutable from outside. There is no
+-- update policy and no delete policy, and now no grant either.
 revoke update, delete on committed_score from anon, authenticated;
 revoke delete on roster_entry from anon, authenticated;
-revoke update (name, origin, removed_at, removed_score, draft_id) on roster_entry from anon, authenticated;
+revoke update (name, origin, removed_at, removed_score, draft_id)
+  on roster_entry from anon, authenticated;
+
+-- The organizer secret must not be readable by players. Without this, a broad
+-- default grant plus `draft_read` (using true) hands the secret to anyone
+-- holding the player link and FR-006 is defeated completely.
+revoke select (organizer_secret) on draft from anon, authenticated;

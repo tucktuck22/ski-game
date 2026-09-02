@@ -44,7 +44,15 @@ export class DraftStore {
   /** Reads the whole draft. The leaderboard is public to link holders (FR-040). */
   async snapshot(): Promise<DraftSnapshot> {
     const [draftRes, entryRes, scoreRes] = await Promise.all([
-      this.db.from('draft').select('*').eq('id', this.draftId).single(),
+      // Explicit column list, never select('*'). organizer_secret is revoked
+      // from anon (0002_policies.sql) and a wildcard select would fail against
+      // it - but more importantly, naming the columns is what stops a future
+      // column being exposed to players by accident. See FR-006.
+      this.db
+        .from('draft')
+        .select('id, deadline, course_seed, rules_version, finalized_at')
+        .eq('id', this.draftId)
+        .single(),
       this.db.from('roster_entry').select('*').eq('draft_id', this.draftId),
       this.db.from('committed_score').select('*').eq('draft_id', this.draftId),
     ]);

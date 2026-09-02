@@ -9,12 +9,19 @@ const init = sql('0001_init.sql');
 const policies = sql('0002_policies.sql');
 
 /**
- * These assert the SCHEMA carries the invariants, by reading the migrations.
+ * A FAST PRE-CHECK, not the proof.
  *
- * A live-server round trip needs a provisioned Supabase project and is covered
- * by tests/e2e once credentials exist. What can be checked without one — and
- * what actually matters — is that the rules live in the database rather than in
- * client code that a curious player can step around.
+ * These read the migrations and assert the rules are declared there rather than
+ * in client code a curious player can step around. They run in milliseconds and
+ * catch a rule being deleted.
+ *
+ * The actual proof is the `storage` job in .github/workflows/ci.yml, which
+ * applies supabase/setup.sql to a real Postgres 16 and runs
+ * supabase/tests/invariants.sql — deliberately violating each invariant and
+ * requiring the violation to be rejected. Grepping SQL text can only tell you a
+ * statement is present; only executing it tells you it works. Three defects
+ * here were found that way, including a grant referencing a column that did not
+ * exist yet, which made setup.sql fail outright.
  */
 describe('storage invariants are database constraints, not client code', () => {
   it('one committed score per entry, forever (FR-017, FR-018)', () => {
@@ -45,8 +52,22 @@ describe('storage invariants are database constraints, not client code', () => {
     expect(init).toMatch(/rules version mismatch/);
   });
 
+  it('the organizer secret is not readable by players (FR-006)', () => {
+    // draft_read is `using (true)`, so without a column-level revoke any link
+    // holder could read the secret and gain reset and removal powers.
+    expect(policies).toMatch(/revoke select \(organizer_secret\) on draft from anon, authenticated/);
+  });
+
+  it('the client never selects * from draft, so a new column cannot leak by accident', () => {
+    const client = readFileSync(new URL('../../src/state/supabase.ts', import.meta.url), 'utf8');
+    expect(client).not.toMatch(/from\('draft'\)\s*\.?\s*\n?\s*\.select\('\*'\)/);
+    expect(client).toMatch(/select\('id, deadline, course_seed, rules_version, finalized_at'\)/);
+  });
+
   it('players cannot rewrite a name, origin, or removal (FR-075)', () => {
-    expect(policies).toMatch(/revoke update \(name, origin, removed_at, removed_score, draft_id\) on roster_entry/);
+    expect(policies).toMatch(
+      /revoke update \(name, origin, removed_at, removed_score, draft_id\)\s+on roster_entry/,
+    );
   });
 });
 

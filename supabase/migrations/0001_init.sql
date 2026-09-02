@@ -24,6 +24,15 @@ create table roster_entry (
   official_status          text not null default 'unused' check (official_status in ('unused', 'committed')),
   -- FR-065: abandonment is permitted, but it is never private.
   abandoned_official_runs  int  not null default 0 check (abandoned_official_runs >= 0),
+  -- Set when an official run begins, cleared on commit. Non-null with no
+  -- committed_score row means the run was abandoned (FR-019).
+  --
+  -- Abandonment has to be detectable when the tab is killed, the phone dies or
+  -- the browser is force-quit - which is exactly when it happens and exactly
+  -- when an unload handler does not fire. So the state is inverted: mark the
+  -- run as started, and treat a start with no commit as an abandonment,
+  -- discovered on the next load from any device.
+  official_run_started_at  timestamptz,
   -- FR-074: a removed entry stays visible rather than disappearing silently.
   removed_at               timestamptz,
   removed_score            int,
