@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+env:
+  PLAYWRIGHT_BROWSERS_PATH: /opt/pw-browsers
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+jobs:
+  check:
+    name: Lint, typecheck, unit and simulation suites
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { lfs: true }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'npm' }
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Simulation determinism and monkey fuzz
+        run: npm run test:sim
+      - name: Course validator
+        run: npm run test:course
+
+  determinism:
+    name: Three-engine determinism
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'npm' }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - name: Golden run must match on Chromium, Firefox and WebKit
+        run: npm run test:determinism
+
+  storage:
+    name: Storage invariants against real Postgres
+    runs-on: ubuntu-latest
+    # The rules that decide where eight people sleep are enforced by constraints
+    # and policies rather than by game code. A constraint nobody has ever
+    # tripped is not evidence of anything, so this job trips all of them.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      PGPASSWORD: postgres
+      PSQL: psql -h localhost -U postgres -v ON_ERROR_STOP=1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create the Supabase roles the schema grants to
+        run: |
+          $PSQL -d postgres -c 'create database shred;'
+          $PSQL -d shred -c 'create role anon;' -c 'create role authenticated;'
+
+      - name: Apply the schema exactly as an organizer would paste it
+        run: $PSQL -d shred -f supabase/setup.sql
+
+      - name: Assert every storage invariant
+        # Each block violates an invariant on purpose and requires the
+        # violation to be rejected. A block that does not raise fails the build.
+        run: $PSQL -d shred -f supabase/tests/invariants.sql
+
+      - name: Assert the seed script produces a usable draft
+        run: |
+          $PSQL -d postgres -c 'create database seedtest;'
+          $PSQL -d seedtest -c 'create role anon2;' >/dev/null 2>&1 || true
+          $PSQL -d seedtest -c "create role anon;" -c "create role authenticated;"
+          $PSQL -d seedtest -f supabase/setup.sql
+          $PSQL -d seedtest -f supabase/seed-draft.sql
+          $PSQL -d seedtest -tAc 'select count(*) from roster_entry;' | grep -qx 8
+          echo 'Seed produced a draft with 8 roster entries.'

@@ -41,3 +41,8 @@
 *.blend binary
 *.glb  binary
 *.gltf binary
+
+# Binary sprite atlases are version-controlled via LFS (constitution: Asset management).
+# Audio is synthesised at runtime, so there are no audio binaries to track.
+*.png filter=lfs diff=lfs merge=lfs -text
+*.aseprite filter=lfs diff=lfs merge=lfs -text

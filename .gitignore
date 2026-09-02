@@ -42,3 +42,16 @@ obj/
 # folder and must be added explicitly with `git add -f`.
 /playtest-captures/
 /local-profiles/
+
+# --- Shredpocalypse '86 ---
+node_modules/
+dist/
+build/
+coverage/
+*.log
+.env
+.env.local
+.env.*.local
+test-results/
+playwright-report/
+.vite/

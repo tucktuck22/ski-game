@@ -8,18 +8,27 @@ glory.
 
 ## Status
 
-**Pre-implementation.** The project constitution is ratified at v1.0.0. No game code
-exists yet, and the engine and target platforms are deliberately not yet chosen —
-see `TODO(TARGET_PLATFORM_BASELINE)`.
+**Planned, not yet built.** The project constitution is at v1.1.0. No game code
+exists yet, but the platform baseline is now fixed: the evergreen mobile web, no
+game engine, with a 2022-era mid-range phone as reference hardware and binding
+performance budgets.
 
-The next step is `/speckit-specify` to define the first playable slice.
+The first feature is specified and planned: **Shredpocalypse '86**, a web-based 2D
+side-on skiing platformer whose final leaderboard is the bed-selection draft order
+for an eight-person ski trip. See
+[`specs/001-shredpocalypse-bed-draft/`](specs/001-shredpocalypse-bed-draft/) for the
+spec, research, data model, contracts, and validation guide.
+
+The next step is `/speckit-tasks`.
 
 ## What this project is
 
 Two disciplines — skiing and snowboarding — in one coherent world rendered in the
 visual language of 1980s graphic novels: limited palette, heavy linework, halftone
 screen tone, panel framing, and sound-effect lettering. Players race, trick, and
-post scores to leaderboards where the standings can actually be trusted.
+post scores to leaderboards whose runs are reproducible from their seed and inputs.
+How far that reproducibility is enforced depends on who is competing — see the note
+on trust below.
 
 ## Governing principles
 
@@ -32,7 +41,24 @@ All five principles are binding; the first is non-negotiable.
 | II | Stability Before Content | Deterministic simulation, no crashes on any input, frame budget held, saves never corrupted. |
 | III | Fun Is a Testable Requirement | Every mechanic defines measurable feel criteria. Tuning lives in data files, never in code. |
 | IV | One Coherent 1980s Graphic Novel Voice | A style bible is the single source of truth. Legibility outranks style. |
-| V | Fair and Verifiable Competition | Every scored run is reproducible and replay-verified. Client scores are never trusted. |
+| V | Fair and Verifiable Competition | Every scored run is reproducible. Public leaderboards are replay-verified and never trust client scores. |
+
+The constitution is at **v1.1.0**; see its Sync Impact Report for what changed.
+
+### A note on trust
+
+The first feature is a private draft among eight friends, and it accepts scores as
+reported by the player's device — no replay verification, no accounts, nothing
+stopping anyone who opens developer tools. That is a deliberate choice, recorded in
+[ADR-0004](docs/adr/0004-accept-client-reported-scores.md), and it is currently a
+documented deviation from Principle V as ratified.
+[ADR-0005](docs/adr/0005-trust-the-players.md) proposes amending Principle V so that
+verification scales with who is competing: trust among people who know each other,
+replay verification on anything public. Until that amendment is approved, the summary
+row above describes the ratified rule and the shipped product will not follow it.
+
+Determinism is preserved either way, so verification remains buildable later without
+redesigning the simulation.
 
 Two of these are load-bearing on each other: **determinism** (II) is what makes
 replay verification (V) and reproducible feel-tuning (III) possible at all. It cannot
@@ -66,6 +92,8 @@ The constitution itself is amended with `/speckit-constitution`.
   scripts/bash/            workflow scripts (LF endings enforced)
   workflows/               Spec Kit workflow definitions
 .claude/skills/            the speckit-* commands, tracked for collaborators
+specs/                     feature specifications and their quality checklists
+docs/adr/                  architecture decision records
 ```
 
 ## Working in this repo
@@ -76,6 +104,26 @@ and the Spec Kit CLI:
 ```bash
 uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
 ```
+
+Decisions with lasting consequences are recorded as ADRs in
+[`docs/adr/`](docs/adr/). Read [ADR-0001](docs/adr/0001-record-architecture-decisions.md)
+for when a decision earns one.
+
+### Running a real draft
+
+The shared state lives in a Supabase free-tier project. Set `VITE_SUPABASE_URL`
+and `VITE_SUPABASE_ANON_KEY` as **GitHub repository secrets** — the deploy
+workflow builds with them, and the keep-alive workflow uses them.
+
+Both values are public by design: there are no accounts, and Row Level Security
+is what enforces the rules. Without them the app runs in a clearly-labelled
+local session that is not a real draft.
+
+**The keep-alive workflow is not optional.** A free Supabase project pauses
+after 7 days without database activity and needs a manual restore, which would
+leave the link dead exactly when everyone finally gets round to playing. A daily
+scheduled query prevents it — see
+[ADR-0007](docs/adr/0007-keep-the-free-database-awake.md).
 
 `.gitattributes` pins `*.sh` to LF endings. This is deliberate: with
 `core.autocrlf=true` on Windows, the Spec Kit workflow scripts would otherwise be
