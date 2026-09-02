@@ -51,16 +51,55 @@ fixed; the rest passed as drafted.
    name the player-facing consequence — reaction time — so the criterion can be
    argued about by someone who has not read the constitution.
 
+### Second validation pass — after the crouch-release, landing-effect and doubled-accrual amendments
+
+Three requirements were added or changed on request. Validating them against the
+spec as it already stood surfaced two contradictions, both fixed:
+
+1. **FR-108 forbade the landing effect outright.** As originally written it said
+   presentation "MUST NOT be derived from anything about the run beyond the
+   camera position and elapsed run time" — and a flash triggered by landing on
+   the upper track is derived from run state by definition. The new requirement
+   would have been unsatisfiable without violating an existing one. FR-108 is
+   now scoped to scenery, with feedback carved out explicitly and the reasoning
+   for the line recorded: scenery must never become a second channel of gameplay
+   information, whereas feedback confirms something the player just did and can
+   already see.
+2. **The doubled accrual rate reopened a hole feature 001 had deliberately
+   closed.** Feature 001 computes progress from the furthest point reached, so
+   that skiing back and forth cannot farm points. A naive rate multiplier
+   applied per unit travelled would have undone that silently, in a feature that
+   never mentions farming. FR-094 now constrains the doubled rate to newly
+   covered ground, and SC-027 tests it.
+
+Also checked and found consistent, not changed: the flash and shake fall under
+feature 001's FR-056 (reduced motion) and FR-057 (flash ceiling, which exists
+for photosensitivity), both of which this spec now cites explicitly in FR-113
+rather than leaving to inference.
+
 ### Open items, deliberately not blocking
 
-- **One design question is recorded in Assumptions rather than as a
-  [NEEDS CLARIFICATION] marker**: whether the upper track should carry a cost as
-  well as a reward. A defensible default exists and is specified (FR-094
-  specifies reward only), so the spec is complete and buildable as written — but
-  the assumption entry states plainly that a path which is both safer and better
-  scoring is strictly dominant, and that this is worth settling before approval.
-  Resolving it would amend FR-094 and add an acceptance scenario to User Story 1;
-  it would not restructure the spec.
+- **Whether the upper track should carry a cost as well as a reward.** Recorded
+  in Assumptions rather than as a [NEEDS CLARIFICATION] marker, because a
+  defensible default exists and is specified. The doubled accrual rate of FR-094
+  widens the gap this item is about: the high line is now better per unit of
+  ground as well as carrying the valuable pickups, and is still the safer of the
+  two. Resolving it would amend FR-094 and add an acceptance scenario to User
+  Story 1; it would not restructure the spec.
+- **Whether releasing the crouch at the lip is required or merely sufficient.**
+  Acceptance scenario 2 names it as the technique; FR-091 still admits a player
+  who only holds a tuck. Making the timed release mandatory would tighten the
+  skill gate and is a plausible reading of the request, so it is recorded in
+  Assumptions rather than silently decided in either direction.
+
+### Requirements not yet implemented
+
+The Content Quality and Requirement Completeness sections above assess the
+document. They do not assess whether the code matches it, and for FR-094,
+FR-111, FR-112 and FR-113 it does not. The spec's Context section carries the
+table. Under Principle I a spec that disagrees with shipped behavior is a
+defect, so this checklist is not evidence that the feature is done — only that
+the specification is fit to plan against.
 
 ### Process deviation
 

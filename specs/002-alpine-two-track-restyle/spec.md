@@ -20,13 +20,26 @@ than restarting at 001. Source comments, validator rules and contracts across
 this repository cite bare requirement numbers with no feature prefix, so a
 second `FR-001` would be ambiguous wherever it appeared.
 
-**Process note (Principle I deviation)**: the implementation of this feature was
-written before this specification, inverting the spec → plan → tasks → implement
-order that Principle I requires. This spec is therefore written against shipped
-behavior rather than ahead of it. It is offered for approval on the same terms
-as any other spec — but reviewers should know that approving it ratifies a
-decision already taken in code, and that the usual protection of catching a bad
-requirement before it is expensive was not available here.
+**Process note (Principle I deviation)**: most of this feature was implemented
+before it was specified, inverting the spec → plan → tasks → implement order
+that Principle I requires. Reviewers should know that approving those parts
+ratifies a decision already taken in code, without the usual protection of
+catching a bad requirement while it is still cheap.
+
+**Implementation status**: the spec and the code do not currently agree, and the
+disagreement is a defect under Principle I until one of them moves. The
+following are specified here and **not built**:
+
+| Requirement            | Status                                                                        |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| FR-094                 | Not built. Distance points accrue at a single rate regardless of track        |
+| FR-111, FR-112, FR-113 | Not built. Landing on the upper track is currently unmarked                   |
+| FR-108                 | Built as originally drafted; the narrowing to scenery only is not yet in code |
+
+Everything else in this document describes behavior that exists. The gap is
+deliberate — these requirements were added to the spec first, which is the
+order Principle I asks for — and closing it is the work of `/speckit-plan`
+onward.
 
 ## Clarifications
 
@@ -41,41 +54,57 @@ is flagged there as open.
 
 A player who has learned the controls discovers that the mountain is not one
 path but two. Ramps built into the piste throw him up onto a shelf of snow
-running above it — but only if he is carrying speed when he hits one. Up there
-the hazards on the piste pass harmlessly beneath him and the pickups are worth
-far more. The shelf runs out, he drops back to the piste, and the next ramp
-offers the same bargain again. A player who never carries speed never sees the
-upper track at all, and gets down the mountain regardless.
+running above it — but only if he comes in carrying speed, tucked, and pops the
+crouch at the top of the ramp. The screen flashes and kicks when he lands up
+there, so he knows the gamble paid before he has read anything. Up there the
+hazards on the piste pass harmlessly beneath him, the pickups are worth far
+more, and the ground itself scores at double rate. The shelf runs out, he drops
+back to the piste, and the next ramp offers the same bargain again. A player who
+never carries speed never sees the upper track at all, and gets down the
+mountain regardless.
 
 **Why this priority**: This is the feature. It converts a single memorised line
 into a run-long sequence of decisions, which is what makes one player's official
 run differ from another's by more than execution. Everything else here supports
 or dresses it.
 
-**Independent Test**: Play the official course twice — once holding a tuck on
-the open piste, once never tucking. Confirm the first run reaches every upper
-segment and finishes, the second finishes without ever reaching one, and the
-first scores materially higher.
+**Independent Test**: Play the official course twice — once tucked into every
+ramp and released at the lip, once never tucking. Confirm the first run reaches
+every upper segment and finishes, the second finishes without ever reaching one,
+and the first scores materially higher. Then confirm the doubled accrual by
+comparing distance-based points earned over one identical stretch of course
+ridden high and ridden low.
 
 **Acceptance Scenarios**:
 
 1. **Given** a player approaching a ramp at base speed, **When** he crosses it,
    **Then** he is launched, lands back on the piste, and continues — he does not
    reach the upper track.
-2. **Given** a player approaching a ramp carrying speed, **When** he crosses it,
-   **Then** he is launched high enough to land on the upper track above.
-3. **Given** a player riding the upper track, **When** he passes over a hazard
+2. **Given** a player who approaches a ramp crouched, **When** he releases the
+   crouch at the top of the ramp, **Then** he is launched high enough to land on
+   the upper track above.
+3. **Given** a player who has just landed on the upper track, **When** the
+   landing resolves, **Then** the screen flashes and shakes once to mark it, and
+   the run continues unaffected.
+4. **Given** a player riding the upper track, **When** distance-based points
+   accrue, **Then** they accrue at twice the rate they would on the piste
+   beneath him.
+5. **Given** a player riding the upper track, **When** he passes over a hazard
    that sits on the piste below, **Then** it does not touch him.
-4. **Given** a player riding the upper track, **When** he reaches the end of the
+6. **Given** a player riding the upper track, **When** he reaches the end of the
    segment, **Then** he drops to the piste and continues the run without an
    unavoidable wipeout.
-5. **Given** a player on the piste passing beneath an upper segment, **When** he
+7. **Given** a player on the piste passing beneath an upper segment, **When** he
    travels under it, **Then** it does not obstruct or touch him.
-6. **Given** a player who never carries speed, **When** he plays the official
+8. **Given** a player who never carries speed, **When** he plays the official
    course start to finish, **Then** he completes it and is never placed on the
    upper track by anything other than his own choice.
-7. **Given** a player anywhere in a run, **When** he looks at the screen,
-   **Then** he can tell which of the two tracks he is on.
+9. **Given** a player anywhere in a run, **When** he looks at the screen,
+   **Then** he can tell which of the two tracks he is on — whether or not he saw
+   the landing effect that put him there.
+10. **Given** a player with reduced motion enabled, **When** he lands on the
+    upper track, **Then** neither the flash nor the shake occurs, he is still
+    told which track he is on, and his points still accrue at the doubled rate.
 
 ---
 
@@ -167,6 +196,18 @@ that every hazard and both tracks remain readable in each.
   warning and no input given. The landing must be survivable.
 - **Being underneath an upper segment.** A player on the piste must not collide
   with the shelf above him, and must be able to launch up through it.
+- **A player who crosses on and off the upper track repeatedly.** Distance-based
+  points accrue at double rate up there. If the doubling applied to every unit
+  travelled rather than to newly covered ground, riding back and forth across
+  one shelf would print points, and feature 001's protection against exactly
+  that would have been undone by a feature that never mentioned it.
+- **The landing effect firing repeatedly.** A player can reach the upper track
+  eight or more times in a run, and a bad line could put him on and off a shelf
+  in quick succession. A flash that fires each time must still respect feature
+  001's flash ceiling, which exists for photosensitivity and is not negotiable
+  against feel.
+- **A player who cannot see the landing effect at all**, because he has reduced
+  motion on or looked away. He must still know which track he is on.
 - **Scores committed before this change.** The mountain and its physics have
   changed, so a score set on the old course is not comparable to one set on the
   new one.
@@ -190,8 +231,13 @@ that every hazard and both tracks remain readable in each.
   only where feature 001's FR-080 requires it.
 - **FR-093**: Reaching the end of an upper track segment MUST return the player
   to the piste without an unavoidable wipeout.
-- **FR-094**: The upper track MUST carry materially greater scoring reward than
-  the piste beneath it over the same stretch of course.
+- **FR-094**: Distance-based points MUST accrue at twice the rate while the
+  player is riding the upper track as they do on the piste beneath it, and the
+  doubled rate MUST apply only to ground he has not already covered — so that no
+  amount of moving back and forth over one stretch of upper track earns more
+  than crossing it once. Feature 001 computes progress from the furthest point
+  reached precisely so that it cannot be farmed, and a rate multiplier MUST NOT
+  reopen that.
 - **FR-095**: A player positioned beneath an upper track segment MUST NOT
   collide with it, and MUST be able to pass upward through it.
 - **FR-096**: Hazards placed on the piste MUST NOT affect a player riding the
@@ -231,9 +277,23 @@ that every hazard and both tracks remain readable in each.
   fully playable and scoreable with them all disabled.
 - **FR-107**: No information added by this feature — which track, which obstacle
   kind, where a ramp launches — may be carried by colour alone.
-- **FR-108**: Presentation MUST NOT be derived from anything about the run
-  beyond the camera position and elapsed run time. It MUST NOT vary with score,
-  outcome, or standing.
+- **FR-108**: Scenery — everything behind the skiable surface — MUST NOT be
+  derived from anything about the run beyond the camera position and elapsed run
+  time, and MUST NOT vary with score, outcome, or standing. Feedback marking a
+  specific player action is exempt and is governed by FR-111 to FR-113; the
+  distinction is that scenery must never become a second, unverifiable channel
+  of gameplay information, whereas feedback exists to confirm something the
+  player just did and can already see.
+- **FR-111**: Landing on the upper track MUST be marked by a brief screen flash
+  and screen shake, so the player knows the ramp paid off without having to
+  read the score.
+- **FR-112**: That flash and shake MUST be redundant. The player MUST still be
+  able to tell which track he is on with both suppressed, as FR-097 requires
+  independently — they confirm a transition, they never carry it alone.
+- **FR-113**: The flash MUST respect feature 001's FR-057 flash ceiling, and
+  both the flash and the shake MUST be disabled by the reduced-motion setting
+  as feature 001's FR-056 requires. Suppressing them MUST NOT change the score,
+  the doubled accrual rate of FR-094, or anything else about the run.
 
 #### Validation and versioning
 
@@ -280,21 +340,53 @@ that every hazard and both tracks remain readable in each.
 - **SC-025**: The run holds the frame rate the constitution fixes for the
   reference device with the full presentation enabled, so nothing added here
   costs a player a reaction he would otherwise have had.
+- **SC-026**: Over any stretch of course covered on the upper track, the player
+  earns exactly twice the distance-based points he would have earned covering
+  the same stretch on the piste.
+- **SC-027**: A player crossing the same stretch of upper track repeatedly earns
+  no more distance-based points than a player who crosses it once.
+- **SC-028**: Two runs with identical input score identically whether or not the
+  landing flash and shake were shown.
 
 ## Assumptions
 
-- **The upper track is a reward, not a gamble.** The description asked for
-  multiple paths and did not say what the upper path should cost. The default
-  taken is that it costs the skill of carrying speed into a ramp and nothing
-  else: it is safer than the piste (the hazards below pass beneath the player)
-  as well as better scoring. **This is the one design decision here worth
-  revisiting before approval.** A path that is both safer and more valuable is
-  strictly dominant for any player able to reach it, which makes it a skill gate
-  rather than a decision. Giving the upper track a real downside — a harder
-  landing, a shorter run-out, fewer chances to recover — would turn it into the
-  choice the feature description asks for. FR-094 deliberately specifies only
-  the reward, so that adding a cost later amends this spec rather than
-  contradicting it.
+- **The upper track is a reward, not a gamble — and the gap has widened.** The
+  description asked for multiple paths and did not say what the upper path
+  should cost. The default taken is that it costs the skill of getting onto it
+  and nothing else: it is safer than the piste (the hazards below pass beneath
+  the player) as well as better scoring. **This remains the one design decision
+  here worth revisiting before approval**, and FR-094's doubled accrual rate
+  makes it sharper than it was: the high line now pays more per unit of ground
+  as well as carrying the valuable pickups, while still being the safer of the
+  two. A path that is both safer and more valuable is strictly dominant for any
+  player able to reach it, which makes it a skill gate rather than a decision.
+  Giving the upper track a real downside — a harder landing, a shorter run-out,
+  fewer chances to recover — would turn it into the choice the feature
+  description asks for, and the doubled rate would then be the premium paid for
+  taking a risk rather than a bonus for taking the better option. FR-094
+  deliberately specifies only the reward, so that adding a cost later amends
+  this spec rather than contradicting it.
+- **Entry is by crouch-and-release at the lip, and tucking alone also suffices.**
+  Acceptance scenario 2 names the technique the feature description asks for:
+  approach crouched, release at the top. Because feature 001's crouch both
+  accelerates and charges the launch, a player doing this is by definition
+  carrying speed, so the scenario is consistent with FR-091 rather than a second
+  rule. What the spec does NOT do is make the release _mandatory_ — a player who
+  merely holds a tuck through a ramp still gets up. If the intent is that the
+  timed release be the only way onto the upper track, FR-091 needs to say so and
+  scenario 2 becomes the sole route; that is a real tightening of the skill gate
+  and is left open deliberately rather than assumed either way.
+- **"Rumble" is read as screen shake, not device haptics.** Feature 001 already
+  defines a screen-shake effect and a reduced-motion setting that disables it,
+  so the effect has somewhere to live and something to turn it off. Device
+  vibration would be a new output channel with its own permission and
+  accessibility questions and is out of scope here.
+- **"Points accrue twice as fast" is read as the distance-based component
+  doubling, not the whole score.** Pickups and trick bonuses are discrete awards
+  rather than a rate, and the upper track already carries the valuable pickups;
+  doubling those as well would compound one advantage on another. If the intent
+  was that everything earned while high scores double, FR-094 understates it and
+  the dominance concern above becomes considerably more acute.
 - **The upper track never carries obstacles of its own.** Everything a player
   must duck, jump or break sits on the piste. This keeps the two lines legible
   and keeps the recovery rules of feature 001 applying to exactly one surface.
