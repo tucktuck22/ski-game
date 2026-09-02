@@ -29,11 +29,16 @@ interface Result {
  * If a deliberate physics or tuning change moves these, that is a rules change:
  * bump rulesVersion, because scores under different rules are not comparable
  * (FR-023). Do not "just update the numbers" to make this pass.
+ *
+ * Last regenerated for rulesVersion 1.1.0, which added the upper track: ramps,
+ * ledges, and boughs with a real top edge. Every one of those changes what a
+ * given input trace does, so all three values moved together — a change that
+ * moved only one of them would be the divergence this test is looking for.
  */
 const GOLDEN: Result[] = [
-  { seed: '5eed', score: 1501, ticks: 299, hash: 'be1550b1' },
-  { seed: '1986', score: 400, ticks: 123, hash: '448a3b83' },
-  { seed: 'beef', score: 591, ticks: 159, hash: '4b738960' },
+  { seed: '5eed', score: 1875, ticks: 333, hash: '0175d1af' },
+  { seed: '1986', score: 400, ticks: 123, hash: 'efe69ef3' },
+  { seed: 'beef', score: 841, ticks: 159, hash: '8edb9c1b' },
 ];
 
 test('the simulation reproduces the golden run exactly on this engine', async ({

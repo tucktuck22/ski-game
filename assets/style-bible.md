@@ -61,8 +61,14 @@ Eight colours. Nothing outside this set appears in any asset.
 - **LW-2** — Every sprite carries a full outline in `ink` or `snow`. No open silhouettes.
 - **LW-3** — The player silhouette reads at 16 × 16 with no interior detail. Interior
   detail is a bonus at rest, never a requirement in motion.
-- **LW-4** — Terrain gets a 1px `cyan` top edge over an `ink` fill. That edge is the
-  contact line the physics actually uses; it must never be decorative.
+- **LW-4** — Terrain gets a 1px `cyan` top edge. That edge is the contact line the
+  physics actually uses; it must never be decorative. Beneath it sits a `snow`
+  band of a few pixels — the snowpack — and beneath that the `ink` body. The
+  band was added when the mountain was a black wedge that read as a cliff; the
+  cyan edge is unchanged and still wins against anything drawn near it.
+- **LW-5** — The upper track gets the same 1px `cyan` treatment on both its top
+  edge and its underside, and a visible cut face at each end. A shelf whose ends
+  the player cannot see is a shelf he rides off without warning.
 
 ---
 
@@ -77,6 +83,49 @@ Eight colours. Nothing outside this set appears in any asset.
 - **T-4** — Chromatic fringing is ≤ 1px and never applied to HUD or menu text.
 - **T-5** — Every effect in this section is disabled by reduced motion (FR-056) and
   the game must remain fully playable and scoreable without them.
+
+---
+
+## 3a. The mountain (rules TR-*)
+
+The run is a side-on cut through a mountainside at dusk. Everything in this
+section serves one hierarchy: **the two contact lines and the hazards on them
+outrank every other mark on screen.** Backdrop exists to say where you are, not
+to be looked at.
+
+- **TR-0** — The sky carries one sunset disc: a `yellow` → `magenta` gradient
+  (P-3) slit by widening `purple` bars, low and to one side, occluded by the
+  ridge in front of it. One per frame. It is the period's most recognisable mark
+  and it costs six rectangles; a second one would cost the frame its subject.
+- **TR-1** — Depth is built from five ranks, each anchored to the piste ON SCREEN
+  and lifted above it: a capped ridge, a far pine rank, a near ridge, a mid pine
+  rank, and a near pine rank standing on the piste itself. Anchoring to the
+  visible slope rather than to terrain sampled at the rank's own parallax is not
+  a shortcut — the piste descends thousands of world units over a run, and a
+  rank sampled at its own offset leaves the frame within seconds.
+- **TR-2** — Obstacles are trees, and each reads as its own kind of tree from its
+  silhouette alone. A `low` obstacle is an overhanging bough: a tapered limb with
+  filled needle wedges hanging to the collision floor, so the shape the player
+  sees IS the shape he has to get under. A `solid` obstacle is deadfall: a
+  snow-capped log with its end grain out. Neither may be drawn as a rectangle,
+  which is what both were before this rule existed.
+- **TR-3** — Hazards keep `orange` (P-4) as an edge on the surface that actually
+  kills — the underside of a bough, the body of a log — never as a fill over the
+  whole silhouette. A tree painted entirely `orange` reads as a warning sign
+  rather than as a tree, and loses the shape TR-2 is buying.
+- **TR-4** — A ramp is never drawn in `snow` alone. Snow on snow is invisible, and
+  a ramp is the one object that launches the player without being asked, so it
+  carries `yellow` hazard stripes, chevrons, and a marked lip.
+- **TR-5** — Snowfall is three parallax depths of 1–2px `snow` marks on fixed
+  world columns. It is dropped entirely under reduced motion, not slowed: a slow
+  blizzard is still a blizzard in front of the things the player must read (L-0,
+  T-5).
+- **TR-6** — Scenery positions come from a hash of the feature's own slot, never
+  from a running RNG. A forest re-rolled each frame boils.
+- **TR-7** — Nothing in this section may be derived from run state beyond the
+  camera and the tick. Backdrop that reacted to score or outcome would be a
+  second, unverifiable channel of gameplay information (A-4's argument, applied
+  to pixels).
 
 ---
 

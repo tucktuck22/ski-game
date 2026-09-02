@@ -76,3 +76,26 @@ export function overheadClearanceAt(course: Course, x: number): number {
   }
   return clearance;
 }
+
+/**
+ * Surface height at x for a given track.
+ *
+ * `ledge` is -1 for the piste, otherwise an index into course.ledges. Because a
+ * ledge is a constant offset above the piste, this is one subtraction — and the
+ * slope of a ledge is the slope of the piste, so slopeAt needs no track
+ * argument at all. That symmetry is the reason ledges were modelled this way
+ * rather than as free polylines (see the Ledge doc comment).
+ */
+export function surfaceYAt(course: Course, x: number, ledge: number): number {
+  const base = terrainYAt(course.terrain, x);
+  if (ledge < 0) return base;
+  const l = course.ledges[ledge];
+  return l === undefined ? base : base - l.height;
+}
+
+/** True while x lies within the ledge's span. Half-open, like every footprint here. */
+export function onLedgeSpan(course: Course, x: number, ledge: number): boolean {
+  if (ledge < 0) return false;
+  const l = course.ledges[ledge];
+  return l !== undefined && x >= l.x0 && x < l.x1;
+}

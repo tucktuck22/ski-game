@@ -62,6 +62,18 @@ scenarios, not a tweak.
 | `attackReach`         | 22    | ±4        | Units ahead of the skier                                          |
 | `attackCooldownTicks` | 30    | ±6        | 0.5 s. Prevents mashing; makes barrier approach a timing decision |
 
+## Tracks and ramps
+
+| Key                | Value | Tolerance | Rationale                                                                                                                                                                               |
+| ------------------ | ----- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `branchThickness`  | 18    | ±4        | Vertical extent of a `low` obstacle's bough. A bough is a slab, not an infinite ceiling: it can be ducked under OR cleared from above, which is what lets the upper track sail over one |
+| `kickerImpulseMax` | 8.0   | ±1.0      | Ceiling on a ramp launch, so a maximum tuck into a ramp cannot fling the skier past every shelf on the course                                                                           |
+
+`branchThickness` is a shared constant rather than per-obstacle data on purpose:
+CV-14 compares it against every ledge height, and a per-obstacle thickness would
+turn that from one comparison into a search whose failure mode is a single bough
+somewhere on the course that the upper track clips.
+
 ## Course validation constants
 
 | Key                    | Value | Tolerance | Rationale                                                                                                                                                                  |
@@ -76,6 +88,9 @@ These are the Principle III criteria and are asserted by tests, not by eye:
 - **AC-2**: A run at `baseSpeed` with no crouch completes the official course in 45–75 s
 - **AC-3**: A full rotation is achievable from a full-charge launch and not from a zero-charge launch
 - **AC-4**: `crouchHeight` clears every obstacle marked `low` in both courses
+- **AC-7**: A pilot who holds a tuck on the open piste rides every shelf on the
+  official course; a pilot who never tucks rides none of them, and both finish.
+  Asserted by `tests/sim/tracks.test.ts` against the shipped courses
 - **AC-5**: Every parameter above is read from this file; no literal governing feel appears in `src/sim/`, asserted by lint
 - **AC-6**: Changing any value here changes behaviour with no recompile (FR-036)
 

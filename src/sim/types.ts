@@ -11,6 +11,14 @@ export interface TerrainPoint {
   y: number;
 }
 
+/**
+ * `low` is an overhanging bough: a ceiling with real thickness, so it can be
+ * ducked under OR cleared over. `solid` is deadfall lying across the piste:
+ * a block on the ground, cleared only by going over.
+ *
+ * The names describe the collision semantics, not the picture. What they look
+ * like is src/render/draw.ts's business and the style bible's - see rule TR-2.
+ */
 export type ObstacleKind = 'low' | 'solid';
 
 export interface Obstacle {
@@ -19,6 +27,46 @@ export interface Obstacle {
   width: number;
   /** Gap under a `low` obstacle. Must exceed crouchHeight and be under standHeight (CV-3). */
   clearance: number;
+}
+
+/**
+ * A shelf of snow running parallel to the piste at a constant height above it:
+ * the upper track.
+ *
+ * Constant offset is the whole trick. Because the ledge surface is the terrain
+ * profile translated up, its slope at any x is IDENTICAL to the slope of the
+ * piste below - so a landing on the ledge and a landing on the piste face the
+ * same tolerance check, and dropping off the end of a ledge can never present
+ * an angle the player was not already riding. A free-form upper polyline would
+ * have needed its own copy of every CV rule about bends.
+ *
+ * Ledges are one-way: you land on them from above and pass up through them from
+ * below. That is the platformer idiom, and it means being underneath one is
+ * never a collision.
+ */
+export interface Ledge {
+  /** Left edge, inclusive. */
+  x0: number;
+  /** Right edge, exclusive - ride past it and you are airborne. */
+  x1: number;
+  /** Distance above the piste surface. Constant along the whole span. */
+  height: number;
+}
+
+/**
+ * A snow ramp. Crossing its lip while grounded launches you, scaled by the
+ * speed you carried into it - no crouch required.
+ *
+ * This is the one launch the player does not have to set up, which is what
+ * makes the upper track approachable: FR-078's crouch-release is still the
+ * skill ceiling, but a kicker is the floor.
+ */
+export interface Kicker {
+  /** Left edge of the ramp. The lip is at x + width. */
+  x: number;
+  width: number;
+  /** Multiplier on carried speed. The launch impulse is power * speed. */
+  power: number;
 }
 
 export interface Barrier {
@@ -44,6 +92,8 @@ export interface Course {
   obstacles: Obstacle[];
   barriers: Barrier[];
   pickups: Pickup[];
+  ledges: Ledge[];
+  kickers: Kicker[];
 }
 
 /** Every value governing feel. Loaded from data/tuning.json — see contracts/tuning-data.md. */
@@ -68,6 +118,10 @@ export interface Tuning {
   attackReach: number;
   attackCooldownTicks: number;
   safeReleaseWindowMin: number;
+  /** Vertical extent of a `low` obstacle's bough, hanging below its clearance. */
+  branchThickness: number;
+  /** Ceiling on a kicker launch, so a tucked approach cannot fling you off-course. */
+  kickerImpulseMax: number;
 }
 
 export interface Scoring {
@@ -112,6 +166,8 @@ export interface RunState {
   /** Total rotation this air, in radians. Converts to trick score on a clean landing. */
   rotationAccum: number;
   grounded: boolean;
+  /** Which surface the skier is riding: -1 for the piste, else an index into course.ledges. */
+  ledge: number;
   crouchHeld: boolean;
   /** Ticks the crouch has been held, capped at chargeTicksToMax. */
   crouchCharge: number;

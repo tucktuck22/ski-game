@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { validateCourse } from '../../src/course/validate.js';
 import { parseCourse, parseScoring, parseTuning } from '../../src/data/load.js';
-import type { Course, Obstacle } from '../../src/sim/types.js';
+import type { Course, Kicker, Ledge, Obstacle } from '../../src/sim/types.js';
 
 const read = (p: string): unknown =>
   JSON.parse(readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8'));
@@ -109,5 +109,61 @@ describe('validator rules fire on deliberately broken courses', () => {
     const c = clone(warmup);
     c.pickups.push({ x: 400, y: -500, value: 'large' });
     expect(rulesFired(c)).toContain('CV-9');
+  });
+
+  it('CV-12: two ledges overlapping, so a landing has two answers', () => {
+    const c = clone(warmup);
+    const l = c.ledges[0] as Ledge;
+    c.ledges.push({ x0: l.x0 + 20, x1: l.x1 + 20, height: l.height });
+    expect(rulesFired(c)).toContain('CV-12');
+  });
+
+  it('CV-12: a ledge higher than any launch could ever reach', () => {
+    const c = clone(warmup);
+    (c.ledges[0] as Ledge).height = 400;
+    expect(rulesFired(c)).toContain('CV-12');
+  });
+
+  it('CV-13: a ledge with no ramp before it is scenery, not a track', () => {
+    const c = clone(warmup);
+    c.kickers = [];
+    expect(rulesFired(c)).toContain('CV-13');
+  });
+
+  it('CV-13: a ramp strong enough to throw a base-speed skier onto the shelf', () => {
+    // The trap this rule exists for. The course still validates on every other
+    // rule; what it has quietly done is take the cautious pilot's line away.
+    const c = clone(warmup);
+    (c.kickers[0] as Kicker).power = 6;
+    expect(rulesFired(c)).toContain('CV-13');
+  });
+
+  it('CV-13: a ramp too weak to reach the shelf even at full tuck', () => {
+    const c = clone(warmup);
+    (c.kickers[0] as Kicker).power = 0.4;
+    expect(rulesFired(c)).toContain('CV-13');
+  });
+
+  it('CV-14: a shelf that runs into the bough it crosses', () => {
+    const c = clone(warmup);
+    const l = c.ledges[0] as Ledge;
+    // A bough placed under the shelf, hanging above the shelf's own surface.
+    c.obstacles.push({ x: l.x0 + 100, kind: 'low', width: 40, clearance: 12 });
+    l.height = 20;
+    expect(rulesFired(c)).toContain('CV-14');
+  });
+
+  it("CV-15: a ramp inside a bough's safe release window", () => {
+    const c = clone(warmup);
+    const bough = c.obstacles.find((o) => o.kind === 'low') as Obstacle;
+    c.kickers.push({ x: bough.x + bough.width + 10, width: 40, power: 1.9 });
+    expect(rulesFired(c)).toContain('CV-15');
+  });
+
+  it('CV-15: a ramp built inside a deadfall log', () => {
+    const c = clone(warmup);
+    const log = c.obstacles.find((o) => o.kind === 'solid') as Obstacle;
+    c.kickers.push({ x: log.x - 5, width: 30, power: 1.9 });
+    expect(rulesFired(c)).toContain('CV-15');
   });
 });

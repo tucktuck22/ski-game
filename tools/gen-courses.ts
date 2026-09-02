@@ -55,71 +55,116 @@ interface Built {
   obstacles: { x: number; kind: 'low' | 'solid'; width: number; clearance: number }[];
   barriers: { x: number; width: number; bypassCostTicks: number }[];
   pickups: { x: number; y: number; value: 'small' | 'large' }[];
+  ledges: { x0: number; x1: number; height: number }[];
+  kickers: { x: number; width: number; power: number }[];
 }
+
+/**
+ * Shape of one repeating stretch of mountain, measured from the bough that
+ * opens it. The layout is deliberate rather than random: every offset here
+ * exists to satisfy a validator rule with margin, and a generator that rolled
+ * dice for placement would fail CV-15 on some seeds and pass on others.
+ *
+ *   +0    bough        duck under it, or clear it from above
+ *   +400  ramp         far clear of the bough's release window (CV-15)
+ *   +496  shelf begins 40 past the lip, inside CV-13's entry reach
+ *   +800  deadfall or barrier, on the piste and under the shelf
+ *   +1374 shelf ends   having sailed over the NEXT bough
+ */
+const BOUGH_WIDTH = 40;
+const RAMP_AT = 400;
+const RAMP_WIDTH = 56;
+const SHELF_FROM_LIP = 40;
+const SHELF_LENGTH = 900;
+const GROUND_HAZARD_AT = 800;
+
+/**
+ * Height of the upper track above the piste, and the ramp power that reaches it.
+ *
+ * These two numbers are one decision, not two. At baseSpeed 2.6 a ramp of
+ * power 1.9 has an apex of 38 - short of the shelf, so the cautious pilot is
+ * hopped and set back down on his own line. At tuckSpeedMax 4.2 the apex is 99,
+ * comfortably over it. That gap IS the upper track's entry fee, and CV-13
+ * asserts both halves of it against tuning.json rather than trusting this
+ * comment.
+ */
+const SHELF_HEIGHT = 50;
+const RAMP_POWER = 1.9;
 
 function build(
   id: string,
   length: number,
   seed: number,
   firstLowAt: number,
-  lowSpacing: number,
+  spacing: number,
 ): Built {
   const r = rng(seed + 7);
   const obstacles: Built['obstacles'] = [];
   const barriers: Built['barriers'] = [];
   const pickups: Built['pickups'] = [];
+  const ledges: Built['ledges'] = [];
+  const kickers: Built['kickers'] = [];
 
-  // Low obstacles. Spacing far exceeds safeReleaseWindowMin (140) so CV-4 and
-  // CV-5 both hold with room to spare - deliberately, because that margin is
-  // what keeps the course survivable for a cautious player (FR-035, SC-015).
-  const lowXs: number[] = [];
-  for (let x = firstLowAt; x < length - 400; x += lowSpacing) {
-    obstacles.push({ x, kind: 'low', width: 40, clearance: 11 + Math.floor(r() * 3) });
-    lowXs.push(x);
+  // Boughs are the course's punctuation, not its texture. Spacing is now far
+  // wider than safeReleaseWindowMin (140) rather than merely clear of it: the
+  // mountain should read as a mountain with obstacles on it, not as a corridor
+  // of them. Fewer, further apart, each one a decision.
+  const boughXs: number[] = [];
+  for (let x = firstLowAt; x < length - 500; x += spacing) {
+    obstacles.push({ x, kind: 'low', width: BOUGH_WIDTH, clearance: 11 + Math.floor(r() * 3) });
+    boughXs.push(x);
   }
 
-  // Solid obstacles, kept clear of every low obstacle's footprint and its window.
-  // Keep solid obstacles and barriers clear of every low obstacle's safe release
-  // window, which CV-11 requires: a block inside that window would trap the
-  // player between standing up under the tunnel and ducking into the block.
-  const SAFE_WINDOW = 140;
-  const clearOfLows = (x: number, w: number): boolean =>
-    lowXs.every((lx) => x + w < lx - SAFE_WINDOW || x > lx + 40 + SAFE_WINDOW);
-  for (
-    let x = firstLowAt + Math.floor(lowSpacing / 2);
-    x < length - 300;
-    x += Math.floor(lowSpacing / 2)
-  ) {
-    // Solid obstacles are cleared by jumping, so they need approach room.
-    const w = 24;
-    if (clearOfLows(x, w) && r() < 0.55)
-      obstacles.push({ x, kind: 'solid', width: w, clearance: 0 });
+  // Ramps and the shelves they feed, one pair per stretch. A shelf runs on past
+  // the next bough so that taking the upper line skips an obstacle - which is
+  // what makes the two tracks a real choice rather than a cosmetic fork.
+  for (let i = 0; i < boughXs.length; i++) {
+    const base = boughXs[i] as number;
+    const rampX = base + RAMP_AT;
+    const lip = rampX + RAMP_WIDTH;
+    const x0 = lip + SHELF_FROM_LIP;
+    const x1 = x0 + SHELF_LENGTH;
+
+    // The piste keeps its own hazard: whoever stayed low has something to do
+    // while the upper line is sailing over it. Alternating deadfall and barrier
+    // keeps both verbs - jump and attack - in rotation. Placed before the shelf
+    // check, because a stretch too near the finish for a shelf still gets its
+    // hazard; the first cut put this after the `continue` and quietly dropped
+    // the last obstacle of every course.
+    const hazardX = base + GROUND_HAZARD_AT;
+    if (i % 2 === 0) obstacles.push({ x: hazardX, kind: 'solid', width: 24, clearance: 0 });
+    else barriers.push({ x: hazardX, width: 30, bypassCostTicks: 18 + Math.floor(r() * 14) });
+
+    if (x1 > length - 40) continue; // no shelf that outruns the finish (CV-12)
+    kickers.push({ x: rampX, width: RAMP_WIDTH, power: RAMP_POWER });
+    ledges.push({ x0, x1, height: SHELF_HEIGHT });
+
+    // The reward for taking the upper line, spread along it so it pays for the
+    // whole shelf rather than for one hop onto it.
+    for (let k = 1; k <= 5; k++) {
+      pickups.push({
+        x: Math.round(x0 + (SHELF_LENGTH * k) / 6),
+        y: -(SHELF_HEIGHT + 6),
+        value: 'large',
+      });
+    }
   }
 
-  // Barriers: bypassCostTicks > 0 so breaking through beats going around (CV-6).
-  for (let x = firstLowAt + 260; x < length - 500; x += lowSpacing * 2) {
-    if (clearOfLows(x, 30))
-      barriers.push({ x, width: 30, bypassCostTicks: 18 + Math.floor(r() * 14) });
-  }
-
-  // Pickups sit above the surface (negative y) and within reach of a launch.
-  for (let x = 300; x < length - 200; x += 220) {
-    const high = r() < 0.35;
-    pickups.push({
-      x,
-      y: high ? -(24 + Math.floor(r() * 26)) : -(4 + Math.floor(r() * 8)),
-      value: high ? 'large' : 'small',
-    });
+  // Piste pickups: small, low, and frequent enough to mark the racing line.
+  for (let x = 300; x < length - 200; x += 320) {
+    pickups.push({ x, y: -(4 + Math.floor(r() * 8)), value: 'small' });
   }
 
   return {
     id,
-    rulesVersion: '1.0.0',
+    rulesVersion: '1.1.0',
     length,
     terrain: terrain(length, seed),
     obstacles,
     barriers,
     pickups,
+    ledges,
+    kickers,
   };
 }
 
@@ -128,14 +173,15 @@ const out = resolve(here, '../data/courses');
 mkdirSync(out, { recursive: true });
 
 // Distinct terrain, identical schema and physics - FR-028 and FR-067.
-const warmup = build('warmup', 3200, 20250901, 700, 640);
-const official = build('official', 12000, 19860214, 1000, 620);
+const warmup = build('warmup', 3200, 20250901, 700, 1200);
+const official = build('official', 12000, 19860214, 1000, 1200);
 
 writeFileSync(resolve(out, 'warmup.json'), JSON.stringify(warmup, null, 2) + '\n');
 writeFileSync(resolve(out, 'official.json'), JSON.stringify(official, null, 2) + '\n');
-console.log(
-  `warmup: ${warmup.terrain.length} pts, ${warmup.obstacles.length} obstacles, ${warmup.barriers.length} barriers, ${warmup.pickups.length} pickups`,
-);
-console.log(
-  `official: ${official.terrain.length} pts, ${official.obstacles.length} obstacles, ${official.barriers.length} barriers, ${official.pickups.length} pickups`,
-);
+for (const c of [warmup, official]) {
+  console.log(
+    `${c.id}: ${c.terrain.length} pts, ${c.obstacles.length} obstacles, ` +
+      `${c.barriers.length} barriers, ${c.pickups.length} pickups, ` +
+      `${c.ledges.length} ledges, ${c.kickers.length} ramps`,
+  );
+}

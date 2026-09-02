@@ -10,8 +10,8 @@ import { derive, initialState, step, type DerivedTuning } from '../sim/step.js';
 import { finalScore } from '../sim/scoring.js';
 import { createStage, type Stage } from '../render/stage.js';
 import { applyCrt, resetCrt } from '../render/filters/crt.js';
-import { resolveMotion } from '../render/reducedMotion.js';
-import { drawRun } from '../render/draw.js';
+import { resolveMotion, type MotionSettings } from '../render/reducedMotion.js';
+import { drawRun, resetSceneryCache } from '../render/draw.js';
 import { startLoop, type LoopHandle } from '../render/loop.js';
 import { InputSampler } from '../input/sample.js';
 import { keyboardSource } from '../input/keyboard.js';
@@ -33,6 +33,7 @@ export class GameView {
   private state: RunState;
   private prevState: RunState;
   private finished = false;
+  private readonly motion: MotionSettings;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -44,7 +45,9 @@ export class GameView {
     private readonly onEnd: (r: RunReport) => void,
   ) {
     const motion = resolveMotion();
+    this.motion = motion;
     resetCrt();
+    resetSceneryCache();
     this.stage = createStage(canvas, (ctx, buffer) => applyCrt(ctx, buffer, motion));
     this.sampler = new InputSampler([keyboardSource(), touchSource(canvas)]);
     this.derived = derive(tuning);
@@ -78,7 +81,7 @@ export class GameView {
 
   private render(): void {
     // Interpolation reads the previous state; rendering never mutates either.
-    drawRun(this.stage.ctx, this.state, this.course, this.tuning);
+    drawRun(this.stage.ctx, this.state, this.course, this.tuning, this.motion);
     this.stage.present();
   }
 

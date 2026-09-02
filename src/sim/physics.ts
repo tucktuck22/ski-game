@@ -13,7 +13,7 @@
 import type { Course, RunState, RunInput, Tuning } from './types.js';
 import { approach, clamp } from './math.js';
 import { sinDet, cosDet } from './trig.js';
-import { slopeAt, terrainYAt, overheadClearanceAt } from './terrain.js';
+import { slopeAt, terrainYAt, surfaceYAt, onLedgeSpan, overheadClearanceAt } from './terrain.js';
 
 export interface LaunchOutcome {
   launched: boolean;
@@ -56,7 +56,11 @@ export function resolveCrouch(
 
   // FR-088: releasing under a low obstacle launches into it. No clearance check,
   // no charge threshold, no suppressed jump. The timing IS the skill.
-  const clearance = overheadClearanceAt(course, state.x);
+  //
+  // Only on the piste. A skier riding the upper track is above every bough by
+  // construction (CV-14), so the boughs below him are not his ceiling and
+  // standing up there is simply standing up.
+  const clearance = state.ledge < 0 ? overheadClearanceAt(course, state.x) : Infinity;
   if (clearance < tuning.standHeight) {
     state.crouchCharge = 0;
     return { launched: false, intoObstacle: true };
@@ -68,9 +72,54 @@ export function resolveCrouch(
 
   state.vy -= impulse; // up is -y
   state.grounded = false;
+  state.ledge = -1;
   state.crouchCharge = 0;
   state.rotationAccum = 0;
   return { launched: true, intoObstacle: false };
+}
+
+/**
+ * Applies a kicker launch if the skier crossed a ramp lip this tick.
+ *
+ * The impulse is proportional to carried speed, which is what makes a kicker
+ * read as a ramp rather than as a second jump button: approach it in a tuck and
+ * it throws you to the upper track, coast into it and it gives you a hop. No
+ * per-kicker state is needed because a grounded skier's x is strictly
+ * increasing - FR-077 puts a floor under speed and the piste always runs
+ * downhill - so a lip can be crossed at most once.
+ *
+ * Called BEFORE integration, for the same reason the crouch release is: an
+ * impulse applied after the position update leaves the skier still standing on
+ * the ramp, and the ground contact resolved later in the same tick snaps him
+ * back down and scrubs the whole launch. So the lip test looks at where this
+ * tick's velocity is ABOUT to put him rather than where he already is.
+ *
+ * Returns true when a launch happened.
+ */
+export function applyKickers(state: RunState, course: Course, tuning: Tuning): boolean {
+  if (!state.grounded) return false;
+  // A ramp is built on the piste. Sailing over one on the upper track is not a
+  // launch, it is scenery.
+  if (state.ledge >= 0) return false;
+
+  const nextX = state.x + state.vx;
+  let impulse = 0;
+  for (const k of course.kickers) {
+    const lip = k.x + k.width;
+    if (state.x >= lip || nextX < lip) continue;
+    const carried = currentSpeed(state);
+    const scaled = k.power * carried;
+    const capped = scaled > tuning.kickerImpulseMax ? tuning.kickerImpulseMax : scaled;
+    if (capped > impulse) impulse = capped;
+  }
+  if (impulse <= 0) return false;
+
+  state.vy -= impulse;
+  state.grounded = false;
+  state.ledge = -1;
+  state.crouchCharge = 0;
+  state.rotationAccum = 0;
+  return true;
 }
 
 /** Grounded motion: speed toward the tuck or base target, plus slope acceleration. */
@@ -126,6 +175,12 @@ export const currentSpeed = (state: RunState): number => {
  * Returns true when the landing was clean. A landing is clean when the skier's
  * orientation is within tolerance of the slope — compared as a dot product,
  * because both are unit vectors (FR-079).
+ *
+ * Two surfaces can catch him. Ledges are ONE-WAY: they catch only a descending
+ * skier who crossed the shelf between `prevY` and now, so riding up through one
+ * from below is free and standing under one is not a collision. The piste
+ * underneath is solid and always catches. Checking the ledges first is what
+ * makes the upper track a track rather than a decoration.
  */
 export function resolveLanding(
   state: RunState,
@@ -133,18 +188,43 @@ export function resolveLanding(
   tuning: Tuning,
   cosTolerance: number,
   cosToleranceForgiving: number,
+  prevY: number,
 ): boolean {
-  const groundY = terrainYAt(course.terrain, state.x);
-  if (state.y < groundY) return true; // still airborne, nothing to resolve
-
-  state.y = groundY;
   const slope = slopeAt(course.terrain, state.x);
+
+  let landedOn = -2; // -2 = nothing, -1 = piste, >= 0 = ledge index
+  let surfaceY = 0;
+
+  if (state.vy > 0) {
+    // Descending. Take the topmost shelf crossed this tick: with overlapping
+    // ledges banned by CV-12 there is at most one, but resolving by height
+    // rather than by index keeps the result independent of file ordering.
+    for (let i = 0; i < course.ledges.length; i++) {
+      if (!onLedgeSpan(course, state.x, i)) continue;
+      const ly = surfaceYAt(course, state.x, i);
+      if (prevY > ly || state.y < ly) continue; // did not cross it going down
+      if (landedOn === -2 || ly < surfaceY) {
+        landedOn = i;
+        surfaceY = ly;
+      }
+    }
+  }
+
+  if (landedOn === -2) {
+    const groundY = terrainYAt(course.terrain, state.x);
+    if (state.y < groundY) return true; // still airborne, nothing to resolve
+    landedOn = -1;
+    surfaceY = groundY;
+  }
+
+  state.y = surfaceY;
   const alignment = state.ox * slope.ux + state.oy * slope.uy;
   const threshold = state.landingGraceTicks > 0 ? cosToleranceForgiving : cosTolerance;
 
   if (alignment < threshold) return false;
 
   state.grounded = true;
+  state.ledge = landedOn;
   state.ox = slope.ux;
   state.oy = slope.uy;
   state.landingGraceTicks = 15;

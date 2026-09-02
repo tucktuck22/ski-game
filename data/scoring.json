@@ -1,6 +1,6 @@
 {
   "$comment": "completionBase MUST exceed the maximum achievable bonus total so every finisher outranks every non-finisher (FR-034). Enforced by CV-8 and tests/unit/scoring-dominance.test.ts against the real course files, not assumed.",
-  "completionBase": 50000,
+  "completionBase": 120000,
   "progressPerUnit": 1,
   "pickupSmall": 250,
   "pickupLarge": 750,

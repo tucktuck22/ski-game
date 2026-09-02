@@ -3,15 +3,28 @@
  *
  * Reads simulation state and never mutates it — the separation the constitution's
  * Technical Standards require. Colours come only from the style bible palette.
+ *
+ * The scene is built back to front: sky, sun, ridges, three ranks of pines,
+ * snowfall, the piste, the upper track, then hazards and the skier. Everything
+ * behind the piste is scenery in the strict sense — it is derived from the
+ * camera and the tick, never from run state, so it cannot influence or be
+ * confused with anything the simulation cares about.
  */
 import type { Course, RunState, Tuning } from '../sim/types.js';
-import { terrainYAt } from '../sim/terrain.js';
+import { terrainYAt, surfaceYAt } from '../sim/terrain.js';
 import { PALETTE, type PaletteToken } from './palette.js';
 import { INTERNAL_HEIGHT, INTERNAL_WIDTH } from './stage.js';
+import type { MotionSettings } from './reducedMotion.js';
+import { FULL_MOTION } from './reducedMotion.js';
 
 const css = (t: PaletteToken): string => {
   const [r, g, b] = PALETTE[t];
   return `rgb(${r},${g},${b})`;
+};
+
+const rgba = (t: PaletteToken, a: number): string => {
+  const [r, g, b] = PALETTE[t];
+  return `rgba(${r},${g},${b},${a})`;
 };
 
 /** The skier sits a third of the way across, so most of the buffer is lookahead. */
@@ -27,11 +40,595 @@ export const cameraFor = (state: RunState): Camera => ({
   y: state.y - INTERNAL_HEIGHT * 0.6,
 });
 
+/**
+ * Scenery placement hash.
+ *
+ * Trees must stand still. Anything that picked positions from a running RNG
+ * would re-roll them every frame and the whole forest would boil, so each
+ * feature's position comes from a hash of its own integer slot — the same slot
+ * gives the same tree forever, whichever direction the camera arrives from.
+ * This is presentation only and never touches the simulation, so the
+ * determinism rules in src/sim do not apply to it.
+ */
+function hash(n: number): number {
+  let h = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+// ---------------------------------------------------------------------------
+// Scenery
+// ---------------------------------------------------------------------------
+
+/** The sunset disc: P-3's magenta -> orange gradient, slit by ink bars. */
+function drawSun(ctx: CanvasRenderingContext2D, cam: Camera, motion: MotionSettings): void {
+  // Barely-there parallax. The sun is a very long way off; move it any faster
+  // and it reads as a balloon travelling with the player rather than as the sun.
+  const drift = motion.parallax ? (cam.x * 0.012) % 40 : 0;
+  const cx = 236 - drift;
+  const cy = 52;
+  const r = 40;
+
+  const g = ctx.createLinearGradient(0, cy - r, 0, cy + r);
+  g.addColorStop(0, css('yellow'));
+  g.addColorStop(1, css('magenta'));
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.fillStyle = g;
+  ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+
+  // The slits: thin at the top, widening downward. This is the single most
+  // recognisable mark of the period and it costs six rectangles.
+  ctx.fillStyle = rgba('purple', 0.85);
+  let y = cy - 4;
+  let gapH = 2;
+  while (y < cy + r) {
+    ctx.fillRect(cx - r, Math.round(y), r * 2, gapH);
+    y += gapH + 4;
+    gapH += 0.9;
+  }
+  ctx.restore();
+
+  ctx.strokeStyle = rgba('magenta', 0.5);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 0.5, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+/** Screen y of the piste under a given column. The anchor for everything else. */
+const pisteScreenY = (course: Course, cam: Camera, px: number): number =>
+  terrainYAt(course.terrain, cam.x + px) - cam.y;
+
+/**
+ * Screen y of a backdrop layer under a given column.
+ *
+ * The layer is anchored to the piste ON SCREEN and lifted above it, rather than
+ * to the terrain sampled at the layer's own parallax position. That distinction
+ * is the whole of it: the piste descends by thousands of world units over a
+ * run, so sampling terrain at `cam.x * 0.3` and subtracting the real camera y
+ * put the far country hundreds of pixels off the top of the frame within
+ * seconds, and the first cut of this drew a purple wall over the sky and the
+ * sun with it. Anchoring to the visible slope keeps the far country parallel to
+ * the ground under the player's skis, which is what a mountainside does; the
+ * parallax then lives in the SHAPE — the wobble and the tree positions — which
+ * is the part the eye actually reads as depth.
+ */
+function backdropY(
+  course: Course,
+  cam: Camera,
+  px: number,
+  parallax: number,
+  lift: number,
+  relief: number,
+): number {
+  const pWorld = cam.x * parallax + px;
+  // Two out-of-phase sines give peaks without a repeat that reads as a repeat.
+  const wobble = (Math.sin(pWorld * 0.0071) * 1.9 + Math.sin(pWorld * 0.0183 + 1.7)) * relief;
+  return pisteScreenY(course, cam, px) - lift + wobble;
+}
+
+function drawRidge(
+  ctx: CanvasRenderingContext2D,
+  course: Course,
+  cam: Camera,
+  parallax: number,
+  lift: number,
+  relief: number,
+  fill: string,
+  capped: boolean,
+): void {
+  ctx.beginPath();
+  ctx.moveTo(0, INTERNAL_HEIGHT);
+  for (let px = 0; px <= INTERNAL_WIDTH; px += 4) {
+    ctx.lineTo(px, backdropY(course, cam, px, parallax, lift, relief));
+  }
+  ctx.lineTo(INTERNAL_WIDTH, INTERNAL_HEIGHT);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+
+  if (!capped) return;
+  // Snow caps: the lit edge of the ridge, one pixel of snow along the top.
+  ctx.beginPath();
+  for (let px = 0; px <= INTERNAL_WIDTH; px += 4) {
+    const y = backdropY(course, cam, px, parallax, lift, relief);
+    if (px === 0) ctx.moveTo(px, y);
+    else ctx.lineTo(px, y);
+  }
+  ctx.strokeStyle = rgba('snow', 0.5);
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+/** One conifer: three tiers of bough over a stub of trunk. */
+function pine(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseY: number,
+  h: number,
+  body: string,
+  snowCap: boolean,
+): void {
+  const w = h * 0.42;
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  for (let tier = 0; tier < 3; tier++) {
+    const t = tier / 3;
+    const top = baseY - h + h * t * 0.62;
+    const halfW = w * (0.45 + t * 0.55);
+    const bottom = top + h * 0.46;
+    ctx.moveTo(x, top);
+    ctx.lineTo(x + halfW, bottom);
+    ctx.lineTo(x - halfW, bottom);
+    ctx.closePath();
+  }
+  ctx.fill();
+  ctx.fillRect(x - 1, baseY - h * 0.18, 2, h * 0.18);
+
+  if (!snowCap) return;
+  // Snow sits on the windward side of each tier. This is the detail that turns
+  // a green triangle into a tree in a blizzard, and it is one line per tier.
+  ctx.strokeStyle = rgba('snow', 0.8);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let tier = 0; tier < 3; tier++) {
+    const t = tier / 3;
+    const top = baseY - h + h * t * 0.62;
+    const halfW = w * (0.45 + t * 0.55);
+    ctx.moveTo(x - 0.5, top + 0.5);
+    ctx.lineTo(x - halfW + 1, top + h * 0.46);
+  }
+  ctx.stroke();
+}
+
+/**
+ * A rank of conifers at one parallax depth.
+ *
+ * Trees are placed on a fixed world grid so that the set on screen is a
+ * function of position alone — no spawning, no despawning, no list to keep.
+ */
+function drawPineRank(
+  ctx: CanvasRenderingContext2D,
+  course: Course,
+  cam: Camera,
+  opts: {
+    parallax: number;
+    lift: number;
+    relief: number;
+    spacing: number;
+    height: number;
+    body: string;
+    salt: number;
+    snow: boolean;
+  },
+): void {
+  const worldLeft = cam.x * opts.parallax - opts.spacing;
+  const first = Math.floor(worldLeft / opts.spacing);
+  const last = Math.ceil((worldLeft + INTERNAL_WIDTH + opts.spacing * 2) / opts.spacing);
+
+  for (let i = first; i <= last; i++) {
+    const jitter = hash(i * 2654435761 + opts.salt);
+    const worldX = i * opts.spacing + (jitter - 0.5) * opts.spacing * 0.8;
+    const px = worldX - cam.x * opts.parallax;
+    if (px < -20 || px > INTERNAL_WIDTH + 20) continue;
+    const baseY = backdropY(course, cam, px, opts.parallax, opts.lift, opts.relief);
+    const h = opts.height * (0.7 + hash(i * 40503 + opts.salt) * 0.6);
+    pine(ctx, Math.round(px), Math.round(baseY), h, opts.body, opts.snow);
+  }
+}
+
+/**
+ * Snowfall, in three depths.
+ *
+ * Flakes are not simulated. Each one is a fixed world-space column that falls
+ * on a loop of its own length, so the field costs no state and never
+ * accumulates drift over a five-minute run. Under reduced motion the whole
+ * effect is dropped rather than slowed: T-5 requires the run to be fully
+ * playable without it, and a slow blizzard is still a blizzard in front of the
+ * obstacles the player has to read.
+ */
+function drawSnowfall(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  tick: number,
+  motion: MotionSettings,
+): void {
+  if (!motion.parallax) return;
+  const layers = [
+    { count: 26, parallax: 0.3, speed: 0.5, size: 1, alpha: 0.4 },
+    { count: 22, parallax: 0.6, speed: 0.95, size: 1, alpha: 0.65 },
+    { count: 16, parallax: 0.95, speed: 1.6, size: 2, alpha: 0.9 },
+  ];
+  for (let l = 0; l < layers.length; l++) {
+    const layer = layers[l]!;
+    ctx.fillStyle = rgba('snow', layer.alpha);
+    for (let i = 0; i < layer.count; i++) {
+      const seed = l * 977 + i;
+      const spanY = INTERNAL_HEIGHT + 24;
+      const fall = (hash(seed) * spanY + tick * layer.speed) % spanY;
+      // A gentle lateral sway, out of phase per flake, sold as wind.
+      const sway = Math.sin(tick * 0.03 + hash(seed + 51) * 6.28) * (2 + l);
+      const px =
+        (hash(seed + 13) * (INTERNAL_WIDTH + 40) - cam.x * layer.parallax * 0.25 + sway) %
+        (INTERNAL_WIDTH + 40);
+      const x = px < 0 ? px + INTERNAL_WIDTH + 40 : px;
+      ctx.fillRect(Math.round(x - 20), Math.round(fall - 12), layer.size, layer.size);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The mountain itself
+// ---------------------------------------------------------------------------
+
+/** Snow depth drawn under the contact line, in pixels. */
+const SNOW_BAND = 7;
+
+let halftone: CanvasPattern | null = null;
+
+/** T-1: a 2x2 ordered dither in one accent over ink, under the snow band. */
+function halftonePattern(ctx: CanvasRenderingContext2D): CanvasPattern | null {
+  if (halftone) return halftone;
+  const tile = document.createElement('canvas');
+  tile.width = 2;
+  tile.height = 2;
+  const t = tile.getContext('2d');
+  if (!t) return null;
+  t.fillStyle = css('ink');
+  t.fillRect(0, 0, 2, 2);
+  t.fillStyle = css('purple');
+  t.fillRect(0, 0, 1, 1);
+  t.fillRect(1, 1, 1, 1);
+  halftone = ctx.createPattern(tile, 'repeat');
+  return halftone;
+}
+
+/** Reset between runs so a stale pattern is not bound to a destroyed context. */
+export function resetSceneryCache(): void {
+  halftone = null;
+}
+
+function drawPiste(ctx: CanvasRenderingContext2D, course: Course, cam: Camera): void {
+  const surface: number[] = [];
+  for (let px = 0; px <= INTERNAL_WIDTH; px++) {
+    surface.push(terrainYAt(course.terrain, cam.x + px) - cam.y);
+  }
+
+  const body = (from: number): void => {
+    ctx.beginPath();
+    ctx.moveTo(0, INTERNAL_HEIGHT);
+    for (let px = 0; px <= INTERNAL_WIDTH; px++) ctx.lineTo(px, (surface[px] as number) + from);
+    ctx.lineTo(INTERNAL_WIDTH, INTERNAL_HEIGHT);
+    ctx.closePath();
+  };
+
+  // Snowpack first, then the rock and shadow under it. Two fills, no clipping:
+  // the deeper shape simply paints over the lower part of the shallower one,
+  // which leaves exactly SNOW_BAND pixels of snow along the contact line. The
+  // first cut did this with a clip whose region was the intersection rather
+  // than the difference, and painted the entire mountain white.
+  body(0);
+  ctx.fillStyle = css('snow');
+  ctx.fill();
+
+  body(SNOW_BAND);
+  const dither = halftonePattern(ctx);
+  ctx.fillStyle = dither ?? css('ink');
+  ctx.fill();
+
+  // LW-4: the 1px cyan edge IS the contact line the physics uses. It is drawn
+  // last so nothing can cover it, and it is never decorative.
+  ctx.beginPath();
+  for (let px = 0; px <= INTERNAL_WIDTH; px++) {
+    const y = surface[px] as number;
+    if (px === 0) ctx.moveTo(px, y);
+    else ctx.lineTo(px, y);
+  }
+  ctx.strokeStyle = css('cyan');
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+/** The upper track: a snow shelf with an iced underside. */
+function drawLedges(ctx: CanvasRenderingContext2D, course: Course, cam: Camera): void {
+  for (const l of course.ledges) {
+    if (l.x1 - cam.x < -8 || l.x0 - cam.x > INTERNAL_WIDTH + 8) continue;
+    const from = Math.max(0, Math.floor(l.x0 - cam.x));
+    const to = Math.min(INTERNAL_WIDTH, Math.ceil(l.x1 - cam.x));
+
+    const yAt = (px: number): number => terrainYAt(course.terrain, cam.x + px) - l.height - cam.y;
+    const THICK = 6;
+
+    ctx.beginPath();
+    ctx.moveTo(from, yAt(from));
+    for (let px = from; px <= to; px++) ctx.lineTo(px, yAt(px));
+    for (let px = to; px >= from; px--) ctx.lineTo(px, yAt(px) + THICK);
+    ctx.closePath();
+    ctx.fillStyle = css('snow');
+    ctx.fill();
+
+    // Iced underside, so the shelf reads as a solid thing with a bottom rather
+    // than as a floating line.
+    ctx.beginPath();
+    for (let px = from; px <= to; px++) {
+      const y = yAt(px) + THICK;
+      if (px === from) ctx.moveTo(px, y);
+      else ctx.lineTo(px, y);
+    }
+    ctx.strokeStyle = css('cyan');
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Icicles. Spaced on the world grid so they belong to the shelf, not the
+    // camera.
+    ctx.fillStyle = rgba('cyan', 0.8);
+    for (let wx = Math.ceil(l.x0 / 14) * 14; wx < l.x1; wx += 14) {
+      const px = wx - cam.x;
+      if (px < -2 || px > INTERNAL_WIDTH + 2) continue;
+      const drop = 2 + Math.floor(hash(wx) * 4);
+      ctx.fillRect(Math.round(px), Math.round(yAt(px) + THICK), 1, drop);
+    }
+
+    // Both ends get a cut face, so the player can see where the shelf runs out.
+    ctx.fillStyle = css('cyan');
+    if (l.x0 - cam.x >= 0) ctx.fillRect(Math.round(from), Math.round(yAt(from)), 1, THICK);
+    if (l.x1 - cam.x <= INTERNAL_WIDTH)
+      ctx.fillRect(Math.round(to) - 1, Math.round(yAt(to)), 1, THICK);
+  }
+}
+
+/**
+ * A ramp: a wedge of packed snow with a striped face and a marked lip.
+ *
+ * Snow on snow is invisible, which is the whole problem with drawing a kicker
+ * on a piste. The first cut was a plain white wedge and it read as a fold in
+ * the terrain — unacceptable for the one object on the course that launches the
+ * player without being asked. So the wedge carries hazard stripes and a hard
+ * ink face, and the lip gets the same emphatic treatment LW-4 gives the contact
+ * line, because the lip is exactly where the launch fires.
+ */
+function drawKickers(ctx: CanvasRenderingContext2D, course: Course, cam: Camera): void {
+  for (const k of course.kickers) {
+    const px = k.x - cam.x;
+    if (px < -80 || px > INTERNAL_WIDTH + 80) continue;
+    const groundAt = (wx: number): number => terrainYAt(course.terrain, wx) - cam.y;
+    const lipRise = 19;
+    const rampTop = (i: number): number => groundAt(k.x + i) - lipRise * (i / k.width) ** 2;
+
+    const face = (): void => {
+      ctx.beginPath();
+      ctx.moveTo(px, groundAt(k.x));
+      for (let i = 0; i <= k.width; i++) ctx.lineTo(px + i, rampTop(i));
+      ctx.lineTo(px + k.width, groundAt(k.x + k.width));
+      ctx.closePath();
+    };
+
+    face();
+    ctx.fillStyle = css('snow');
+    ctx.fill();
+
+    // Hazard stripes, clipped to the wedge. P-5: the stripes carry the meaning
+    // in pattern, so nothing here depends on telling yellow from white.
+    ctx.save();
+    face();
+    ctx.clip();
+    ctx.strokeStyle = css('yellow');
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let i = -lipRise; i < k.width + lipRise; i += 9) {
+      // Each stripe is anchored to the ground UNDER it, not to the ramp's left
+      // edge. Anchoring them all to one x put every stripe above the wedge on a
+      // steep pitch, where the clip then removed the lot of them.
+      ctx.moveTo(px + i, groundAt(k.x + i) + 4);
+      ctx.lineTo(px + i + lipRise, groundAt(k.x + i + lipRise) - lipRise - 4);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.strokeStyle = css('ink');
+    ctx.lineWidth = 1;
+    face();
+    ctx.stroke();
+
+    // Chevrons up the ramp, then the lip. Both say the same thing twice, in
+    // shape and in position, which is what a one-shot launch warrants.
+    ctx.strokeStyle = css('ink');
+    ctx.beginPath();
+    for (let c = 1; c <= 3; c++) {
+      const i = (k.width * c) / 4;
+      const by = rampTop(i);
+      ctx.moveTo(px + i - 5, by + 9);
+      ctx.lineTo(px + i, by + 3);
+      ctx.lineTo(px + i + 5, by + 9);
+    }
+    ctx.stroke();
+
+    const lipX = px + k.width;
+    const lipY = rampTop(k.width);
+    ctx.fillStyle = css('cyan');
+    ctx.fillRect(lipX - 4, Math.round(lipY) - 1, 5, 2);
+    ctx.strokeStyle = css('ink');
+    ctx.beginPath();
+    ctx.moveTo(lipX, lipY);
+    ctx.lineTo(lipX, groundAt(k.x + k.width));
+    ctx.stroke();
+  }
+}
+
+/**
+ * An overhanging bough: a tapered limb with needle clusters hanging off it.
+ *
+ * The silhouette has one job — say "the gap is UNDER here" — so the shape is
+ * built around the collision box rather than decorated near it. The limb runs
+ * along the top of the box, the needles hang to its floor, and the orange
+ * hazard edge (P-4) is drawn on that floor, which is the exact line the player
+ * has to get his head below. Anything drawn above the limb is scenery.
+ *
+ * The limb is fed in from off-frame rather than grown from a visible trunk: at
+ * 320x180 a whole tree pushes the bough itself below the size at which the gap
+ * under it can be judged, and L-0 says the gap wins.
+ */
+function drawBough(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  width: number,
+  bottom: number,
+  thickness: number,
+): void {
+  const top = bottom - thickness;
+  // The limb sags as it reaches out, which is what tells the eye it is a branch
+  // under load and not a girder.
+  const bx = x - 9;
+  const by = top - 4;
+  const ex = x + width + 7;
+  const ey = top + 5;
+  const spineX = (t: number): number => bx + (ex - bx) * t;
+  const spineY = (t: number): number => by + (ey - by) * t + Math.sin(t * 2.1) * 2.2;
+  const halfW = (t: number): number => 3.4 * (1 - t) + 0.7;
+
+  ctx.fillStyle = css('ink');
+  ctx.beginPath();
+  for (let i = 0; i <= 16; i++) {
+    const t = i / 16;
+    const px = spineX(t);
+    const py = spineY(t) - halfW(t);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  for (let i = 16; i >= 0; i--) {
+    const t = i / 16;
+    ctx.lineTo(spineX(t), spineY(t) + halfW(t));
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // Needle clusters, as filled wedges rather than drawn hairs. At 320x180 a fan
+  // of separate strokes reads as a comb or a truss — the first cut of this drew
+  // a scaffold hanging over the piste — where overlapping solid wedges read as
+  // foliage and give the jagged underside a snow-laden bough actually has. The
+  // deepest of them reach the collision floor, so what the player sees as the
+  // bottom of the tree IS the bottom of the tree.
+  ctx.fillStyle = css('ink');
+  for (let i = 0; i <= 11; i++) {
+    const t = i / 11;
+    const sx = spineX(t);
+    const sy = spineY(t);
+    const wob = hash(Math.round(x) * 31 + i);
+    const depth = (bottom - sy) * (0.72 + wob * 0.28);
+    const spread = 3.4 + wob * 1.8;
+    ctx.beginPath();
+    ctx.moveTo(sx - spread, sy - 1);
+    ctx.lineTo(sx + spread, sy - 1);
+    ctx.lineTo(sx - 1.2, sy + depth);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Snow sits in clumps on the windward face of the clusters, not as a stripe:
+  // a continuous white line along the top turned the whole thing into a girder.
+  ctx.strokeStyle = css('snow');
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i <= 11; i += 2) {
+    const t = i / 11;
+    const sx = spineX(t);
+    const sy = spineY(t);
+    const wob = hash(Math.round(x) * 17 + i);
+    ctx.moveTo(sx - 3.5, sy - 1.5);
+    ctx.lineTo(sx - 0.5, sy - 1.5 + (1 + wob * 2));
+  }
+  ctx.stroke();
+
+  // The limb itself, redrawn over the clusters so it still reads as one branch
+  // running through them, with a snow highlight along its top.
+  ctx.strokeStyle = css('snow');
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i <= 12; i++) {
+    const t = i / 12;
+    const px = spineX(t);
+    const py = spineY(t) - halfW(t) - 0.5;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+}
+
+/** Deadfall: a snow-capped log lying across the piste, with its end grain out. */
+function drawDeadfall(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  width: number,
+  groundY: number,
+  height: number,
+): void {
+  const top = groundY - height;
+  const r = height / 2;
+  const cy = top + r;
+
+  ctx.fillStyle = css('orange');
+  ctx.beginPath();
+  ctx.moveTo(x, top);
+  ctx.lineTo(x + width, top);
+  ctx.lineTo(x + width, groundY);
+  ctx.lineTo(x, groundY);
+  ctx.closePath();
+  ctx.fill();
+
+  // End grain: the rings are what make it a log rather than a crate, and they
+  // read at 12px where a wood texture along the barrel would not.
+  ctx.strokeStyle = css('ink');
+  ctx.lineWidth = 1;
+  for (const rr of [r - 1.5, r * 0.6, r * 0.25]) {
+    ctx.beginPath();
+    ctx.ellipse(x + 4, cy, Math.max(1, rr * 0.55), Math.max(1, rr), 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.strokeRect(x + 0.5, top + 0.5, width - 1, height - 1);
+
+  // A sawn-off stub, so it reads as fallen rather than placed.
+  ctx.beginPath();
+  ctx.moveTo(x + width - 5, top + 2);
+  ctx.lineTo(x + width + 3, top - 4);
+  ctx.stroke();
+
+  ctx.fillStyle = css('snow');
+  ctx.fillRect(x, top, width, 2);
+  ctx.fillRect(x + width - 6, top - 5, 4, 2);
+}
+
+// ---------------------------------------------------------------------------
+
 export function drawRun(
   ctx: CanvasRenderingContext2D,
   state: RunState,
   course: Course,
   tuning: Tuning,
+  motion: MotionSettings = FULL_MOTION,
 ): void {
   const cam = cameraFor(state);
 
@@ -42,40 +639,79 @@ export function drawRun(
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, INTERNAL_WIDTH, INTERNAL_HEIGHT);
 
-  // Terrain: ink fill under a 1px cyan edge. LW-4 — that edge is the contact
-  // line the physics actually uses, so it must never be decorative.
-  ctx.beginPath();
-  ctx.moveTo(0, INTERNAL_HEIGHT);
-  for (let px = 0; px <= INTERNAL_WIDTH; px++) {
-    const worldX = cam.x + px;
-    ctx.lineTo(px, terrainYAt(course.terrain, worldX) - cam.y);
-  }
-  ctx.lineTo(INTERNAL_WIDTH, INTERNAL_HEIGHT);
-  ctx.closePath();
-  ctx.fillStyle = css('ink');
-  ctx.fill();
+  drawSun(ctx, cam, motion);
 
-  ctx.beginPath();
-  for (let px = 0; px <= INTERNAL_WIDTH; px++) {
-    const y = terrainYAt(course.terrain, cam.x + px) - cam.y;
-    if (px === 0) ctx.moveTo(px, y);
-    else ctx.lineTo(px, y);
+  // Four depths of country, each lifted a little further above the piste than
+  // the last. Under reduced motion the far ranks are dropped rather than
+  // frozen: a still backdrop at the wrong parallax is more confusing than no
+  // backdrop, and T-5 requires the run to work without it.
+  if (motion.parallax) {
+    drawRidge(ctx, course, cam, 0.22, 60, 7, rgba('purple', 0.95), true);
+    drawPineRank(ctx, course, cam, {
+      parallax: 0.36,
+      lift: 44,
+      relief: 6,
+      spacing: 17,
+      height: 9,
+      body: rgba('purple', 0.85),
+      salt: 11,
+      snow: false,
+    });
+    drawRidge(ctx, course, cam, 0.5, 30, 4, css('purple'), false);
+    drawPineRank(ctx, course, cam, {
+      parallax: 0.62,
+      lift: 22,
+      relief: 3,
+      spacing: 26,
+      height: 15,
+      body: rgba('ink', 0.7),
+      salt: 77,
+      snow: false,
+    });
   }
-  ctx.strokeStyle = css('cyan');
-  ctx.lineWidth = 1;
-  ctx.stroke();
+  // The near rank stands on the piste itself and is drawn before it, so the
+  // trunks are buried in the snowpack rather than floating on top of it.
+  drawPineRank(ctx, course, cam, {
+    parallax: 0.94,
+    lift: 0,
+    relief: 0,
+    spacing: 44,
+    height: 27,
+    body: css('ink'),
+    salt: 909,
+    snow: true,
+  });
 
-  // Pickups
+  drawSnowfall(ctx, cam, state.tick, motion);
+
+  drawPiste(ctx, course, cam);
+  drawKickers(ctx, course, cam);
+  drawLedges(ctx, course, cam);
+
+  // Pickups. Shape differs by value as well as colour (P-5): a small pickup is
+  // a square, a large one a diamond, so the two are told apart without hue.
   for (let i = 0; i < course.pickups.length; i++) {
     if (state.pickupsTaken[i] === 1) continue;
     const p = course.pickups[i]!;
     const px = p.x - cam.x;
     if (px < -10 || px > INTERNAL_WIDTH + 10) continue;
     const py = terrainYAt(course.terrain, p.x) + p.y - cam.y;
-    ctx.fillStyle = css(p.value === 'large' ? 'yellow' : 'cyan');
-    ctx.fillRect(px - 2, py - 2, 4, 4);
-    ctx.strokeStyle = css('ink');
-    ctx.strokeRect(px - 2.5, py - 2.5, 5, 5);
+    if (p.value === 'large') {
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = css('yellow');
+      ctx.fillRect(-3, -3, 6, 6);
+      ctx.strokeStyle = css('ink');
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-3.5, -3.5, 7, 7);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = css('cyan');
+      ctx.fillRect(px - 2, py - 2, 4, 4);
+      ctx.strokeStyle = css('ink');
+      ctx.strokeRect(px - 2.5, py - 2.5, 5, 5);
+    }
   }
 
   // Barriers — orange, hazard colour P-4. Marked with a break line so they read
@@ -89,52 +725,54 @@ export function drawRun(
     ctx.fillStyle = css('orange');
     ctx.fillRect(px, groundY - 20, b.width, 20);
     ctx.strokeStyle = css('ink');
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(px, groundY - 10);
     ctx.lineTo(px + b.width, groundY - 10);
     ctx.stroke();
+    ctx.fillStyle = css('snow');
+    ctx.fillRect(px, groundY - 20, b.width, 2);
   }
 
-  // Obstacles
+  // Obstacles.
   for (const o of course.obstacles) {
     const px = o.x - cam.x;
     if (px < -60 || px > INTERNAL_WIDTH + 60) continue;
     const groundY = terrainYAt(course.terrain, o.x) - cam.y;
-    ctx.fillStyle = css('orange');
-    if (o.kind === 'low') {
-      // A ceiling. Drawn hanging, so the gap beneath it reads as the way through.
-      const underside = groundY - o.clearance;
-      ctx.fillRect(px, underside - 26, o.width, 26);
-      ctx.strokeStyle = css('snow');
-      ctx.beginPath();
-      ctx.moveTo(px, underside);
-      ctx.lineTo(px + o.width, underside);
-      ctx.stroke();
-    } else {
-      ctx.fillRect(px, groundY - tuning.standHeight, o.width, tuning.standHeight);
-      ctx.strokeStyle = css('ink');
-      ctx.strokeRect(
-        px + 0.5,
-        groundY - tuning.standHeight + 0.5,
-        o.width - 1,
-        tuning.standHeight - 1,
-      );
-    }
+    if (o.kind === 'low')
+      drawBough(ctx, px, o.width, groundY - o.clearance, tuning.branchThickness);
+    else drawDeadfall(ctx, px, o.width, groundY, tuning.standHeight);
   }
 
-  drawSkier(ctx, state, tuning, cam);
+  drawSkier(ctx, state, course, tuning, cam, motion);
 }
 
 function drawSkier(
   ctx: CanvasRenderingContext2D,
   state: RunState,
+  course: Course,
   tuning: Tuning,
   cam: Camera,
+  motion: MotionSettings,
 ): void {
   const px = state.x - cam.x;
   const py = state.y - cam.y;
   const height =
     tuning.standHeight - (tuning.standHeight - tuning.crouchHeight) * state.crouchProfile;
+
+  // Rooster tail. Only while carving, only behind him, and only at the depth of
+  // the surface he is actually on — spray coming off the piste while he is on
+  // the shelf would be a lie about which track he is riding.
+  if (state.grounded && motion.parallax) {
+    ctx.fillStyle = rgba('snow', 0.75);
+    for (let i = 0; i < 7; i++) {
+      const age = ((state.tick * 1.7 + i * 5) % 18) / 18;
+      const sx = px - age * 22 - 4;
+      const sy = surfaceYAt(course, state.x - age * 22, state.ledge) - cam.y - age * 7;
+      const s = age < 0.5 ? 2 : 1;
+      ctx.fillRect(Math.round(sx), Math.round(sy), s, s);
+    }
+  }
 
   ctx.save();
   ctx.translate(px, py);
@@ -156,8 +794,22 @@ function drawSkier(
   ctx.fillStyle = css('ink');
   ctx.fillRect(-3, -height + 3, 6, 2);
 
+  // Scarf, streaming back. Pure decoration, and the only thing on him that
+  // moves when he does not.
+  ctx.fillStyle = css('cyan');
+  const flap = motion.parallax ? Math.sin(state.tick * 0.25) * 1.5 : 0;
+  ctx.beginPath();
+  ctx.moveTo(-4, -height + 4);
+  ctx.lineTo(-11, -height + 3 + flap);
+  ctx.lineTo(-11, -height + 6 + flap);
+  ctx.lineTo(-4, -height + 7);
+  ctx.closePath();
+  ctx.fill();
+
   // Skis
   ctx.fillStyle = css('snow');
   ctx.fillRect(-8, 0, 16, 2);
+  ctx.strokeStyle = css('ink');
+  ctx.strokeRect(-8.5, -0.5, 17, 3);
   ctx.restore();
 }

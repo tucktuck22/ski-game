@@ -11,11 +11,12 @@
  */
 import type { Course, RunInput, RunState, Scoring, Tuning } from './types.js';
 import { cosDet } from './trig.js';
-import { terrainYAt } from './terrain.js';
+import { terrainYAt, surfaceYAt, onLedgeSpan } from './terrain.js';
 import {
   resolveCrouch,
   applyGroundedMotion,
   applyAirborneMotion,
+  applyKickers,
   resolveLanding,
 } from './physics.js';
 import { pickupValue, trickScore } from './scoring.js';
@@ -49,6 +50,7 @@ export function initialState(course: Course, tuning: Tuning, seed: number): RunS
     oy: 0,
     rotationAccum: 0,
     grounded: true,
+    ledge: -1,
     crouchHeld: false,
     crouchCharge: 0,
     crouchProfile: 0,
@@ -93,6 +95,7 @@ export function step(
   if (prev.outcome !== 'running') return prev;
 
   const s = cloneState(prev);
+  const prevY = prev.y;
   s.tick += 1;
   if (s.landingGraceTicks > 0) s.landingGraceTicks -= 1;
   if (s.attackCooldown > 0) s.attackCooldown -= 1;
@@ -105,19 +108,34 @@ export function step(
   if (s.grounded) applyGroundedMotion(s, course, tuning);
   else applyAirborneMotion(s, input, tuning);
 
+  // 2b. Ramps. After motion so the launch scales with the speed actually
+  // carried into the lip, and before integration so the impulse gets a tick to
+  // lift him clear - see applyKickers.
+  const kicked = applyKickers(s, course, tuning);
+
   // 3. Integrate (semi-implicit: velocity was updated first).
   s.x += s.vx;
   s.y += s.vy;
   if (s.x > s.maxX) s.maxX = s.x;
 
+  // 3b. Ride off the end of the upper track. Nothing catches you at x1: the
+  // ledge simply stops and you are in the air over the piste, holding the slope
+  // you were already riding. That is why a ledge is a constant offset - the
+  // piste below runs at the same angle, so the drop is always landable.
+  if (s.grounded && s.ledge >= 0 && !onLedgeSpan(course, s.x, s.ledge)) {
+    s.grounded = false;
+    s.ledge = -1;
+  }
+
   // 4. Ground contact.
-  if (!s.grounded || launch.launched) {
+  if (!s.grounded || launch.launched || kicked) {
     const landedCleanly = resolveLanding(
       s,
       course,
       tuning,
       derived.cosTolerance,
       derived.cosToleranceForgiving,
+      prevY,
     );
     if (!landedCleanly) return wipeout(s, 'bad_landing');
     if (s.grounded && s.rotationAccum > 0) {
@@ -125,7 +143,7 @@ export function step(
       s.rotationAccum = 0;
     }
   } else {
-    s.y = terrainYAt(course.terrain, s.x);
+    s.y = surfaceYAt(course, s.x, s.ledge);
   }
 
   // 5. Attack, then barriers.
@@ -147,24 +165,33 @@ export function step(
   for (let i = 0; i < course.barriers.length; i++) {
     const b = course.barriers[i]!;
     if (s.barriersBroken[i] === 1) continue;
-    if (s.grounded && s.x >= b.x && s.x < b.x + b.width) return wipeout(s, 'struck_barrier');
+    // A barrier stands on the piste. Riding the upper track carries you clean
+    // over it - which is the point of the upper track, and is why breaking
+    // through still has to beat the bypass on the lower line (CV-6).
+    if (s.grounded && s.ledge < 0 && s.x >= b.x && s.x < b.x + b.width)
+      return wipeout(s, 'struck_barrier');
   }
 
-  // 6. Obstacles, with real vertical extent.
+  // 6. Obstacles, with real vertical extent on both axes.
   //
   // y increases downward, the skier's feet are at s.y and his head at
-  // s.y - height. A `low` obstacle is a ceiling whose underside sits `clearance`
-  // above the ground: you pass by ducking under it, and jumping into it hits it.
-  // A `solid` obstacle is a block standing on the ground: you pass by going over.
-  // Testing only the x-range - as this did first - meant a skier flying well
-  // above a solid obstacle still collided, which left nothing jumpable.
+  // s.y - height. A `low` obstacle is an overhanging bough: a slab occupying
+  // [ground - clearance - branchThickness, ground - clearance]. You pass it by
+  // ducking under it OR by clearing it from above, and the two ways out are the
+  // reason it is a slab rather than the infinite ceiling it was first written
+  // as - an infinite ceiling made every bough a wall to anyone on the upper
+  // track, which is the whole reason that track exists. A `solid` obstacle is
+  // deadfall lying on the ground: you pass it by going over.
   const height = tuning.standHeight - (tuning.standHeight - tuning.crouchHeight) * s.crouchProfile;
+  const headY = s.y - height;
   const groundHere = terrainYAt(course.terrain, s.x);
   for (const o of course.obstacles) {
     if (s.x < o.x || s.x >= o.x + o.width) continue;
     if (o.kind === 'low') {
-      const ceilingUnderside = groundHere - o.clearance;
-      if (s.y - height > ceilingUnderside) continue; // head below the ceiling
+      const bottom = groundHere - o.clearance;
+      const top = bottom - tuning.branchThickness;
+      if (headY > bottom) continue; // wholly below the bough: ducked under
+      if (s.y < top) continue; // wholly above it: cleared it
     } else {
       const blockTop = groundHere - tuning.standHeight;
       if (s.y <= blockTop) continue; // feet above the block

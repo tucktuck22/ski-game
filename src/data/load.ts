@@ -34,6 +34,8 @@ const REQUIRED_TUNING_KEYS: ReadonlyArray<keyof Tuning> = [
   'attackReach',
   'attackCooldownTicks',
   'safeReleaseWindowMin',
+  'branchThickness',
+  'kickerImpulseMax',
 ];
 
 const REQUIRED_SCORING_KEYS: ReadonlyArray<keyof Scoring> = [
@@ -78,6 +80,10 @@ export function parseCourse(raw: unknown): Course {
     obstacles: o.obstacles ?? [],
     barriers: o.barriers ?? [],
     pickups: o.pickups ?? [],
+    // Both default to empty: a course with no upper track and no ramps is still
+    // a valid course, and the warm-up deliberately has fewer of each.
+    ledges: o.ledges ?? [],
+    kickers: o.kickers ?? [],
   };
 }
 
