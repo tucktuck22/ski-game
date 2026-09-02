@@ -79,9 +79,10 @@ jobs:
 
       - name: Assert the seed script produces a usable draft
         run: |
+          # Roles are CLUSTER-wide in Postgres, not per-database, so anon and
+          # authenticated already exist from the step above. Creating them again
+          # is what failed this job the first time it ran.
           $PSQL -d postgres -c 'create database seedtest;'
-          $PSQL -d seedtest -c 'create role anon2;' >/dev/null 2>&1 || true
-          $PSQL -d seedtest -c "create role anon;" -c "create role authenticated;"
           $PSQL -d seedtest -f supabase/setup.sql
           $PSQL -d seedtest -f supabase/seed-draft.sql
           $PSQL -d seedtest -tAc 'select count(*) from roster_entry;' | grep -qx 8

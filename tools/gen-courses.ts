@@ -57,7 +57,13 @@ interface Built {
   pickups: { x: number; y: number; value: 'small' | 'large' }[];
 }
 
-function build(id: string, length: number, seed: number, firstLowAt: number, lowSpacing: number): Built {
+function build(
+  id: string,
+  length: number,
+  seed: number,
+  firstLowAt: number,
+  lowSpacing: number,
+): Built {
   const r = rng(seed + 7);
   const obstacles: Built['obstacles'] = [];
   const barriers: Built['barriers'] = [];
@@ -79,15 +85,21 @@ function build(id: string, length: number, seed: number, firstLowAt: number, low
   const SAFE_WINDOW = 140;
   const clearOfLows = (x: number, w: number): boolean =>
     lowXs.every((lx) => x + w < lx - SAFE_WINDOW || x > lx + 40 + SAFE_WINDOW);
-  for (let x = firstLowAt + Math.floor(lowSpacing / 2); x < length - 300; x += Math.floor(lowSpacing / 2)) {
+  for (
+    let x = firstLowAt + Math.floor(lowSpacing / 2);
+    x < length - 300;
+    x += Math.floor(lowSpacing / 2)
+  ) {
     // Solid obstacles are cleared by jumping, so they need approach room.
     const w = 24;
-    if (clearOfLows(x, w) && r() < 0.55) obstacles.push({ x, kind: 'solid', width: w, clearance: 0 });
+    if (clearOfLows(x, w) && r() < 0.55)
+      obstacles.push({ x, kind: 'solid', width: w, clearance: 0 });
   }
 
   // Barriers: bypassCostTicks > 0 so breaking through beats going around (CV-6).
   for (let x = firstLowAt + 260; x < length - 500; x += lowSpacing * 2) {
-    if (clearOfLows(x, 30)) barriers.push({ x, width: 30, bypassCostTicks: 18 + Math.floor(r() * 14) });
+    if (clearOfLows(x, 30))
+      barriers.push({ x, width: 30, bypassCostTicks: 18 + Math.floor(r() * 14) });
   }
 
   // Pickups sit above the surface (negative y) and within reach of a launch.
@@ -100,7 +112,15 @@ function build(id: string, length: number, seed: number, firstLowAt: number, low
     });
   }
 
-  return { id, rulesVersion: '1.0.0', length, terrain: terrain(length, seed), obstacles, barriers, pickups };
+  return {
+    id,
+    rulesVersion: '1.0.0',
+    length,
+    terrain: terrain(length, seed),
+    obstacles,
+    barriers,
+    pickups,
+  };
 }
 
 const here = dirname(fileURLToPath(import.meta.url));

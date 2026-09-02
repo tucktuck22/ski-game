@@ -32,8 +32,14 @@ export default tseslint.config(
     rules: {
       'no-restricted-globals': [
         'error',
-        { name: 'Date', message: 'Simulation code must not read wall-clock time. See research.md R2.' },
-        { name: 'performance', message: 'Simulation code must not read wall-clock time. See research.md R2.' },
+        {
+          name: 'Date',
+          message: 'Simulation code must not read wall-clock time. See research.md R2.',
+        },
+        {
+          name: 'performance',
+          message: 'Simulation code must not read wall-clock time. See research.md R2.',
+        },
       ],
       // Precisely the functions ECMAScript declares implementation-approximated.
       // Math.abs/ceil/floor/round/trunc/sign/min/max/imul/fround and the numeric
@@ -44,9 +50,30 @@ export default tseslint.config(
       'no-restricted-properties': [
         'error',
         ...[
-          'acos', 'acosh', 'asin', 'asinh', 'atan', 'atanh', 'atan2', 'cbrt',
-          'cos', 'cosh', 'exp', 'expm1', 'hypot', 'log', 'log1p', 'log2',
-          'log10', 'pow', 'random', 'sin', 'sinh', 'sqrt', 'tan', 'tanh',
+          'acos',
+          'acosh',
+          'asin',
+          'asinh',
+          'atan',
+          'atanh',
+          'atan2',
+          'cbrt',
+          'cos',
+          'cosh',
+          'exp',
+          'expm1',
+          'hypot',
+          'log',
+          'log1p',
+          'log2',
+          'log10',
+          'pow',
+          'random',
+          'sin',
+          'sinh',
+          'sqrt',
+          'tan',
+          'tanh',
         ].map((property) => ({
           object: 'Math',
           property,
@@ -54,8 +81,16 @@ export default tseslint.config(
             `Math.${property} is implementation-approximated and differs between V8, ` +
             'SpiderMonkey and JavaScriptCore. Use src/sim/trig.ts or src/sim/math.ts. See research.md R2.',
         })),
-        { object: 'Date', property: 'now', message: 'Wall-clock reads break determinism. See research.md R2.' },
-        { object: 'performance', property: 'now', message: 'Wall-clock reads break determinism. See research.md R2.' },
+        {
+          object: 'Date',
+          property: 'now',
+          message: 'Wall-clock reads break determinism. See research.md R2.',
+        },
+        {
+          object: 'performance',
+          property: 'now',
+          message: 'Wall-clock reads break determinism. See research.md R2.',
+        },
       ],
       'no-restricted-syntax': [
         'error',

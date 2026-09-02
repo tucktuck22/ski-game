@@ -62,7 +62,7 @@ export class Synth {
     if (s % 4 === 0) this.bass(t, 55 * (s % 16 === 8 ? 1.5 : 1));
     if (s % 2 === 0) this.noise(t, s % 8 === 4 ? 0.16 : 0.05);
     if (s % 3 === 0) {
-      const note = A_MINOR_PENTATONIC[(s / 3) % A_MINOR_PENTATONIC.length | 0] as number;
+      const note = A_MINOR_PENTATONIC[((s / 3) % A_MINOR_PENTATONIC.length) | 0] as number;
       this.pulse(t, note, 0.09);
     }
   }
@@ -120,9 +120,15 @@ export class Synth {
     if (!this.ctx || this.muted) return;
     const t = this.ctx.currentTime;
     switch (kind) {
-      case 'launch': this.pulse(t, 660, 0.08); break;
-      case 'land': this.noise(t, 0.12); break;
-      case 'pickup': this.pulse(t, 880, 0.06); break;
+      case 'launch':
+        this.pulse(t, 660, 0.08);
+        break;
+      case 'land':
+        this.noise(t, 0.12);
+        break;
+      case 'pickup':
+        this.pulse(t, 880, 0.06);
+        break;
       case 'wipeout':
         this.noise(t, 0.3);
         this.bass(t, 40);

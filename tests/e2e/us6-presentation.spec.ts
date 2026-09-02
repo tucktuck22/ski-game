@@ -5,7 +5,9 @@ test.describe('US6: presentation and accessibility', () => {
   test('no audio plays before a deliberate gesture (FR-054)', async ({ page }) => {
     await page.goto('/');
     // No AudioContext may exist before the player touches anything.
-    const beforeGesture = await page.evaluate(() => (window as unknown as { __ac?: number }).__ac ?? 0);
+    const beforeGesture = await page.evaluate(
+      () => (window as unknown as { __ac?: number }).__ac ?? 0,
+    );
     expect(beforeGesture).toBe(0);
     await expect(page.locator('#mute')).toBeVisible();
   });
@@ -19,7 +21,9 @@ test.describe('US6: presentation and accessibility', () => {
     await expect(page.locator('#mute')).toContainText('SOUND ON');
   });
 
-  test('reduced motion is toggleable and the run stays fully playable (FR-056)', async ({ page }) => {
+  test('reduced motion is toggleable and the run stays fully playable (FR-056)', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.locator('#motion').click();
     await expect(page.locator('#motion')).toContainText('REDUCED MOTION');
@@ -39,7 +43,9 @@ test.describe('US6: presentation and accessibility', () => {
     await expect(page.locator('#motion')).toContainText('REDUCED MOTION');
   });
 
-  test('a wipeout shows a randomised insult in text, not only in audio (FR-058, FR-059)', async ({ page }) => {
+  test('a wipeout shows a randomised insult in text, not only in audio (FR-058, FR-059)', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.locator('button[data-claim]').first().click();
     await page.locator('#practice').click();

@@ -96,11 +96,7 @@ export interface RunInput {
 export type Outcome = 'running' | 'finished' | 'wiped_out';
 
 export type WipeoutReason =
-  | 'launched_into_obstacle'
-  | 'bad_landing'
-  | 'struck_obstacle'
-  | 'struck_barrier'
-  | null;
+  'launched_into_obstacle' | 'bad_landing' | 'struck_obstacle' | 'struck_barrier' | null;
 
 export interface RunState {
   tick: number;

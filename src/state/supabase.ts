@@ -37,7 +37,11 @@ export function classifyError(err: { code?: string; message?: string } | null): 
 export class DraftStore {
   private readonly db: SupabaseClient;
 
-  constructor(url: string, anonKey: string, private readonly draftId: string) {
+  constructor(
+    url: string,
+    anonKey: string,
+    private readonly draftId: string,
+  ) {
     this.db = createClient(url, anonKey, { auth: { persistSession: false } });
   }
 
@@ -60,9 +64,7 @@ export class DraftStore {
     if (entryRes.error) throw entryRes.error;
     if (scoreRes.error) throw scoreRes.error;
 
-    const scores = new Map(
-      (scoreRes.data ?? []).map((s) => [s.entry_id as string, s]),
-    );
+    const scores = new Map((scoreRes.data ?? []).map((s) => [s.entry_id as string, s]));
 
     const entries: EntryView[] = (entryRes.data ?? []).map((e) => {
       const s = scores.get(e.id as string);
@@ -94,7 +96,9 @@ export class DraftStore {
   }
 
   /** FR-070: self-serve creation, claimed in the same action (FR-008). */
-  async createEntry(name: string): Promise<{ ok: true; id: string } | { ok: false; reason: string }> {
+  async createEntry(
+    name: string,
+  ): Promise<{ ok: true; id: string } | { ok: false; reason: string }> {
     const { data, error } = await this.db
       .from('roster_entry')
       .insert({
@@ -106,8 +110,10 @@ export class DraftStore {
       .select('id')
       .single();
     if (error) {
-      if (error.code === '23505') return { ok: false, reason: 'That name is already on the roster.' };
-      if (error.message.includes('roster is full')) return { ok: false, reason: 'The roster is full (16). Ask the organizer.' };
+      if (error.code === '23505')
+        return { ok: false, reason: 'That name is already on the roster.' };
+      if (error.message.includes('roster is full'))
+        return { ok: false, reason: 'The roster is full (16). Ask the organizer.' };
       return { ok: false, reason: error.message };
     }
     return { ok: true, id: data.id as string };
@@ -122,7 +128,8 @@ export class DraftStore {
       .is('claimed_at', null)
       .select('id');
     if (error) return { ok: false, reason: error.message };
-    if (!data || data.length === 0) return { ok: false, reason: 'Someone else just claimed that name.' };
+    if (!data || data.length === 0)
+      return { ok: false, reason: 'Someone else just claimed that name.' };
     return { ok: true };
   }
 
@@ -151,7 +158,10 @@ export class DraftStore {
     });
     const result = classifyError(error);
     if (result.kind === 'confirmed') {
-      await this.db.from('roster_entry').update({ official_status: 'committed' }).eq('id', c.entryId);
+      await this.db
+        .from('roster_entry')
+        .update({ official_status: 'committed' })
+        .eq('id', c.entryId);
     }
     return result;
   }
@@ -170,7 +180,10 @@ export class DraftStore {
   }
 
   async releaseClaim(entryId: string): Promise<void> {
-    const { error } = await this.db.from('roster_entry').update({ claimed_at: null }).eq('id', entryId);
+    const { error } = await this.db
+      .from('roster_entry')
+      .update({ claimed_at: null })
+      .eq('id', entryId);
     if (error) throw error;
   }
 
@@ -188,7 +201,12 @@ export class DraftStore {
     await this.db.from('committed_score').delete().eq('draft_id', this.draftId);
     await this.db
       .from('roster_entry')
-      .update({ claimed_at: null, practice_runs_used: 0, abandoned_official_runs: 0, official_status: 'unused' })
+      .update({
+        claimed_at: null,
+        practice_runs_used: 0,
+        abandoned_official_runs: 0,
+        official_status: 'unused',
+      })
       .eq('draft_id', this.draftId);
   }
 

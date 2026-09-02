@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { deadlineState, canStartOfficialRun, canCommit, formatRemaining, COMMIT_GRACE_MS } from '../../src/state/deadline.js';
+import {
+  deadlineState,
+  canStartOfficialRun,
+  canCommit,
+  formatRemaining,
+  COMMIT_GRACE_MS,
+} from '../../src/state/deadline.js';
 
 const DEADLINE = '2026-09-10T23:00:00Z';
 const at = (iso: string): number => Date.parse(iso);

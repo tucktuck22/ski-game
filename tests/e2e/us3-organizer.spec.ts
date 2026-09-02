@@ -32,7 +32,10 @@ test.describe('US3: organizer', () => {
     await page.locator('#done').click();
 
     let dialogText = '';
-    page.on('dialog', async (d) => { dialogText = d.message(); await d.dismiss(); });
+    page.on('dialog', async (d) => {
+      dialogText = d.message();
+      await d.dismiss();
+    });
     await page.locator('[data-remove]').first().click();
     await expect.poll(() => dialogText).toContain('DISCARD their committed score');
     await expect.poll(() => dialogText).toContain('cannot be undone');

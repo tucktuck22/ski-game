@@ -36,7 +36,7 @@ export function nextU32(r: RngState): number {
   r.a = r.b;
   r.b = r.c;
   r.c = r.d;
-  r.d = ((r.d ^ (r.d >>> 19)) ^ (t ^ (t >>> 8))) >>> 0;
+  r.d = (r.d ^ (r.d >>> 19) ^ (t ^ (t >>> 8))) >>> 0;
   return r.d;
 }
 

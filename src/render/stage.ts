@@ -40,7 +40,10 @@ export function createStage(display: HTMLCanvasElement, post?: PostProcess): Sta
     const availH = display.clientHeight * dpr;
     // Integer scale only: a fractional scale reintroduces the blurring the
     // whole fixed-buffer approach exists to avoid (style bible LW-1).
-    const scale = Math.max(1, Math.floor(Math.min(availW / INTERNAL_WIDTH, availH / INTERNAL_HEIGHT)));
+    const scale = Math.max(
+      1,
+      Math.floor(Math.min(availW / INTERNAL_WIDTH, availH / INTERNAL_HEIGHT)),
+    );
     display.width = INTERNAL_WIDTH * scale;
     display.height = INTERNAL_HEIGHT * scale;
     out.imageSmoothingEnabled = false;

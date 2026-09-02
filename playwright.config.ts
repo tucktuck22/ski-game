@@ -22,7 +22,9 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         // This environment ships a preinstalled Chromium; never run
         // `playwright install`. CI resolves browsers normally.
-        ...(process.env['CI'] ? {} : { launchOptions: { executablePath: '/opt/pw-browsers/chromium' } }),
+        ...(process.env['CI']
+          ? {}
+          : { launchOptions: { executablePath: '/opt/pw-browsers/chromium' } }),
       },
     },
     // Firefox and WebKit run in CI, where all three engines are installed. The

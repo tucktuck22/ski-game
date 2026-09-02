@@ -33,15 +33,20 @@ describe('scoring dominance (FR-034)', () => {
   it('a bonus-free finish still beats a maximally lucky wipeout', () => {
     // The floor of the finishers' band against the ceiling of the wipeout band.
     const bonusFreeFinish = scoring.completionBase;
-    const luckiestWipeout = maxAchievableBonus(official, scoring, 4) + official.length * scoring.progressPerUnit;
+    const luckiestWipeout =
+      maxAchievableBonus(official, scoring, 4) + official.length * scoring.progressPerUnit;
     // Progress score is included in both, so compare only what separates them.
-    expect(bonusFreeFinish).toBeGreaterThan(luckiestWipeout - official.length * scoring.progressPerUnit);
+    expect(bonusFreeFinish).toBeGreaterThan(
+      luckiestWipeout - official.length * scoring.progressPerUnit,
+    );
   });
 
   it('a run that wipes out immediately still posts a non-zero, non-negative score', () => {
     // FR-035: even a disaster is a real score, not a humiliating zero.
     const suicide: RunInput[] = Array.from({ length: 600 }, () => ({
-      crouch: false as const, rotate: 1 as const, attack: false as const,
+      crouch: false as const,
+      rotate: 1 as const,
+      attack: false as const,
     }));
     const r = runTrace(official, tuning, scoring, 19860214, suicide);
     expect(r.score).toBeGreaterThanOrEqual(0);

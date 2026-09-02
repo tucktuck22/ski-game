@@ -17,11 +17,19 @@ export interface MotionSettings {
 }
 
 export const FULL_MOTION: MotionSettings = {
-  scanlines: true, bloom: true, shake: true, parallax: true, flashes: true,
+  scanlines: true,
+  bloom: true,
+  shake: true,
+  parallax: true,
+  flashes: true,
 };
 
 export const REDUCED_MOTION: MotionSettings = {
-  scanlines: false, bloom: false, shake: false, parallax: false, flashes: false,
+  scanlines: false,
+  bloom: false,
+  shake: false,
+  parallax: false,
+  flashes: false,
 };
 
 const KEY = 'shredpocalypse-reduced-motion';

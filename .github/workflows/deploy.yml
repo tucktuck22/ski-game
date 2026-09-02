@@ -31,6 +31,12 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       - uses: actions/configure-pages@v5
+        with:
+          # Turns Pages on and sets the source to GitHub Actions automatically.
+          # Without it the first deploy fails with "Get Pages site failed" and
+          # needs a manual toggle in Settings, which is a bad first experience
+          # for something whose whole point is producing a link to share.
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with: { path: dist }
       - id: deployment

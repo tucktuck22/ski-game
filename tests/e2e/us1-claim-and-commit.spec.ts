@@ -8,7 +8,9 @@ test.describe('US1: claim, practise, commit', () => {
   test('a player claims a name and the roster reflects it', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+    page.on('console', (m) => {
+      if (m.type() === 'error') errors.push(m.text());
+    });
 
     await page.goto('/');
     await expect(page.locator('h1.title')).toHaveText("SHREDPOCALYPSE '86");
@@ -21,7 +23,9 @@ test.describe('US1: claim, practise, commit', () => {
     expect(errors).toEqual([]);
   });
 
-  test('a completed practice run decrements the count and records nothing (FR-014)', async ({ page }) => {
+  test('a completed practice run decrements the count and records nothing (FR-014)', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.locator('button[data-claim]').first().click();
     await page.locator('#practice').click();
@@ -38,7 +42,9 @@ test.describe('US1: claim, practise, commit', () => {
     await expect(page.locator('table')).not.toContainText('FINISHED');
   });
 
-  test('the official run demands an explicit confirmation that says it counts once (FR-016)', async ({ page }) => {
+  test('the official run demands an explicit confirmation that says it counts once (FR-016)', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.locator('button[data-claim]').first().click();
     await page.locator('#official').click();
@@ -54,7 +60,9 @@ test.describe('US1: claim, practise, commit', () => {
     await expect(page.locator('#official')).toBeVisible();
   });
 
-  test('the official run commits irreversibly and offers only free play afterwards', async ({ page }) => {
+  test('the official run commits irreversibly and offers only free play afterwards', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.locator('button[data-claim]').first().click();
     await page.locator('#official').click();

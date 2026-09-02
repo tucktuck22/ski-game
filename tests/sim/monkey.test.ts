@@ -12,7 +12,16 @@ import { official, warmup, scoring, tuning } from './fixtures.js';
  * headless in milliseconds where a browser-driven equivalent would take hours.
  */
 const finiteFields = (s: RunState): number[] => [
-  s.x, s.y, s.vx, s.vy, s.ox, s.oy, s.rotationAccum, s.crouchProfile, s.score, s.maxX,
+  s.x,
+  s.y,
+  s.vx,
+  s.vy,
+  s.ox,
+  s.oy,
+  s.rotationAccum,
+  s.crouchProfile,
+  s.score,
+  s.maxX,
 ];
 
 function fuzzOne(course: typeof official, seed: number): { state: RunState; ticks: number } {
@@ -41,7 +50,12 @@ function fuzzOne(course: typeof official, seed: number): { state: RunState; tick
       if (!Number.isFinite(v)) {
         throw new Error(
           `non-finite state at tick ${state.tick}, seed ${seed}: ${JSON.stringify({
-            x: state.x, y: state.y, vx: state.vx, vy: state.vy, ox: state.ox, oy: state.oy,
+            x: state.x,
+            y: state.y,
+            vx: state.vx,
+            vy: state.vy,
+            ox: state.ox,
+            oy: state.oy,
           })}`,
         );
       }
@@ -84,7 +98,14 @@ describe('monkey fuzz (FR-062)', () => {
       let crouch = false;
       while (state.outcome === 'running' && state.tick < 2000) {
         if (next() < 0.2) crouch = !crouch;
-        state = step(state, { crouch, rotate: 0, attack: false }, official, tuning, scoring, derived);
+        state = step(
+          state,
+          { crouch, rotate: 0, attack: false },
+          official,
+          tuning,
+          scoring,
+          derived,
+        );
         if (state.grounded) {
           const speed = state.vx * state.ox + state.vy * state.oy;
           // There is no brake: FR-077 says the player cannot choose to go slower.

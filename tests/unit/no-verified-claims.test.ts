@@ -12,7 +12,14 @@ import { join } from 'node:path';
  */
 const ROOT = new URL('../../', import.meta.url).pathname;
 
-const SKIP = new Set(['node_modules', 'dist', '.git', 'coverage', 'test-results', 'playwright-report']);
+const SKIP = new Set([
+  'node_modules',
+  'dist',
+  '.git',
+  'coverage',
+  'test-results',
+  'playwright-report',
+]);
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {

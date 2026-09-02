@@ -14,16 +14,35 @@ export interface GameData {
 }
 
 const REQUIRED_TUNING_KEYS: ReadonlyArray<keyof Tuning> = [
-  'baseSpeed', 'tuckSpeedMax', 'tuckAccel', 'tuckDecel', 'slopeAccelFactor', 'gravity',
-  'launchImpulseMin', 'launchImpulseMax', 'chargeTicksToMax', 'rotationRateMax',
-  'airControlFactor', 'landingAngleTolerance', 'landingAngleToleranceForgiving',
-  'collisionSpeedThreshold', 'standHeight', 'crouchHeight', 'crouchTransitionTicks',
-  'attackReach', 'attackCooldownTicks', 'safeReleaseWindowMin',
+  'baseSpeed',
+  'tuckSpeedMax',
+  'tuckAccel',
+  'tuckDecel',
+  'slopeAccelFactor',
+  'gravity',
+  'launchImpulseMin',
+  'launchImpulseMax',
+  'chargeTicksToMax',
+  'rotationRateMax',
+  'airControlFactor',
+  'landingAngleTolerance',
+  'landingAngleToleranceForgiving',
+  'collisionSpeedThreshold',
+  'standHeight',
+  'crouchHeight',
+  'crouchTransitionTicks',
+  'attackReach',
+  'attackCooldownTicks',
+  'safeReleaseWindowMin',
 ];
 
 const REQUIRED_SCORING_KEYS: ReadonlyArray<keyof Scoring> = [
-  'completionBase', 'progressPerUnit', 'pickupSmall', 'pickupLarge',
-  'trickPerRotation', 'barrierBroken',
+  'completionBase',
+  'progressPerUnit',
+  'pickupSmall',
+  'pickupLarge',
+  'trickPerRotation',
+  'barrierBroken',
 ];
 
 export function parseTuning(raw: unknown): Tuning {
@@ -47,7 +66,8 @@ export function parseScoring(raw: unknown): Scoring {
 export function parseCourse(raw: unknown): Course {
   const o = raw as Partial<Course>;
   if (typeof o.id !== 'string') throw new Error('course: "id" must be a string');
-  if (typeof o.rulesVersion !== 'string') throw new Error(`course ${o.id}: "rulesVersion" must be a string`);
+  if (typeof o.rulesVersion !== 'string')
+    throw new Error(`course ${o.id}: "rulesVersion" must be a string`);
   if (typeof o.length !== 'number') throw new Error(`course ${o.id}: "length" must be a number`);
   if (!Array.isArray(o.terrain)) throw new Error(`course ${o.id}: "terrain" must be an array`);
   return {

@@ -56,15 +56,15 @@ correctness of a single irreversible write is.
 
 ## Constitution Check
 
-*GATE: evaluated before Phase 0 and re-evaluated after Phase 1 design.*
+_GATE: evaluated before Phase 0 and re-evaluated after Phase 1 design._
 
-| # | Principle | Gate | Verdict |
-|---|---|---|---|
-| I | Spec-Driven Delivery | Approved spec exists; every task traces to a numbered FR | **PASS** — 89 FRs, zero open markers, checklist 16/16 |
-| II | Stability Before Content | No crash on any input; deterministic sim; frame budget held; saved state never corrupted | **PASS by design** — monkey fuzz over `step()`, three-engine golden run, throttled CI budget check, insert-only storage with migration round-trip |
-| III | Fun Is a Testable Requirement | Feel parameters measurable; latency ≤ 2 frames; tuning in data; human playtest; consistent verbs | **PASS with residual** — see below |
-| IV | One Coherent 1980s Voice | Style bible is the single source of truth; every asset cites a rule | **CONDITIONAL** — see below |
-| V | Fair and Verifiable Competition | Runs reproducible; identical conditions; scores replay-verified; no pay-to-win | **DOCUMENTED DEVIATION** — see below |
+| #   | Principle                       | Gate                                                                                             | Verdict                                                                                                                                           |
+| --- | ------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I   | Spec-Driven Delivery            | Approved spec exists; every task traces to a numbered FR                                         | **PASS** — 89 FRs, zero open markers, checklist 16/16                                                                                             |
+| II  | Stability Before Content        | No crash on any input; deterministic sim; frame budget held; saved state never corrupted         | **PASS by design** — monkey fuzz over `step()`, three-engine golden run, throttled CI budget check, insert-only storage with migration round-trip |
+| III | Fun Is a Testable Requirement   | Feel parameters measurable; latency ≤ 2 frames; tuning in data; human playtest; consistent verbs | **PASS with residual** — see below                                                                                                                |
+| IV  | One Coherent 1980s Voice        | Style bible is the single source of truth; every asset cites a rule                              | **CONDITIONAL** — see below                                                                                                                       |
+| V   | Fair and Verifiable Competition | Runs reproducible; identical conditions; scores replay-verified; no pay-to-win                   | **DOCUMENTED DEVIATION** — see below                                                                                                              |
 
 ### Principle III — residual, closed by this plan
 
@@ -102,16 +102,16 @@ cosmetic affects scoring.
 
 ### Technical Standards
 
-| Standard | How this plan satisfies it |
-|---|---|
-| Simulation separated from rendering | `src/sim/` is a pure function; `src/render/` reads state and never mutates it. Enforced by lint, not convention. |
-| Fixed timestep with render interpolation | 60 Hz accumulator; renderer interpolates between the last two states |
-| No wall-clock, unseeded random, or unordered iteration in sim | Lint bans `Math.*`, `Date.*`, `performance.*` in `src/sim/**`; all randomness from the shared seed |
-| Floating-point pinned | float64 restricted to `+ - * /`; three-engine golden test is the proof (R2) |
-| Data-driven content | Courses, tuning, scoring, and insults are versioned data files loaded without recompile |
-| Performance budgets enforced in CI | Throttled Playwright measurement against the table in R1 |
-| Accessibility | Remappable keys, no colour-only information, reduced-motion, flash limits, CVD-validated palette (FR-055 to FR-061) |
-| Asset management | Git LFS for binary sprite atlases; audio is synthesised, so there are no audio binaries to track |
+| Standard                                                      | How this plan satisfies it                                                                                          |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Simulation separated from rendering                           | `src/sim/` is a pure function; `src/render/` reads state and never mutates it. Enforced by lint, not convention.    |
+| Fixed timestep with render interpolation                      | 60 Hz accumulator; renderer interpolates between the last two states                                                |
+| No wall-clock, unseeded random, or unordered iteration in sim | Lint bans `Math.*`, `Date.*`, `performance.*` in `src/sim/**`; all randomness from the shared seed                  |
+| Floating-point pinned                                         | float64 restricted to `+ - * /`; three-engine golden test is the proof (R2)                                         |
+| Data-driven content                                           | Courses, tuning, scoring, and insults are versioned data files loaded without recompile                             |
+| Performance budgets enforced in CI                            | Throttled Playwright measurement against the table in R1                                                            |
+| Accessibility                                                 | Remappable keys, no colour-only information, reduced-motion, flash limits, CVD-validated palette (FR-055 to FR-061) |
+| Asset management                                              | Git LFS for binary sprite atlases; audio is synthesised, so there are no audio binaries to track                    |
 
 ### Post-Phase-1 re-evaluation
 
@@ -196,9 +196,9 @@ than left to discipline.
 
 ## Complexity Tracking
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|---|---|---|
-| Hand-written physics instead of a physics library | FR-026 requires bit-identical scores across three browser engines | Matter.js and Planck.js are float-based general solvers whose iteration order and broadphase are not determinism-guaranteed, and both are larger than the entire simulation a skier on a height profile needs |
-| Generated trig lookup table instead of `Math.sin` | `Math.sin` is implementation-approximated and differs across V8, SpiderMonkey, and JavaScriptCore | Using `Math.sin` directly would produce different scores per browser — the exact failure Principle V exists to prevent |
-| A course validator in CI | FR-089 and SC-016 require every low obstacle to be followed by a verified safe release window | Human review misses this. A single badly placed beam makes the course unfinishable for the players FR-035 protects, and would surface as one friend saying the game is broken |
-| Fixed 320 × 180 internal buffer instead of scaling to viewport | SC-006 requires phone and desktop scores to be comparable | Scaling to the viewport gives desktop more course ahead, which after FR-088 is directly more reaction time for the game's core skill — permanent tuning problem instead of a rendering property |
+| Violation                                                      | Why Needed                                                                                        | Simpler Alternative Rejected Because                                                                                                                                                                          |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hand-written physics instead of a physics library              | FR-026 requires bit-identical scores across three browser engines                                 | Matter.js and Planck.js are float-based general solvers whose iteration order and broadphase are not determinism-guaranteed, and both are larger than the entire simulation a skier on a height profile needs |
+| Generated trig lookup table instead of `Math.sin`              | `Math.sin` is implementation-approximated and differs across V8, SpiderMonkey, and JavaScriptCore | Using `Math.sin` directly would produce different scores per browser — the exact failure Principle V exists to prevent                                                                                        |
+| A course validator in CI                                       | FR-089 and SC-016 require every low obstacle to be followed by a verified safe release window     | Human review misses this. A single badly placed beam makes the course unfinishable for the players FR-035 protects, and would surface as one friend saying the game is broken                                 |
+| Fixed 320 × 180 internal buffer instead of scaling to viewport | SC-006 requires phone and desktop scores to be comparable                                         | Scaling to the viewport gives desktop more course ahead, which after FR-088 is directly more reaction time for the game's core skill — permanent tuning problem instead of a rendering property               |

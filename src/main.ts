@@ -29,8 +29,11 @@ type Backend = LocalDraftStore | DraftStore;
 const app = document.getElementById('app') as HTMLDivElement;
 
 const data: GameData = assembleGameData({
-  tuning: tuningJson, scoring: scoringJson,
-  warmup: warmupJson, official: officialJson, insults: insultsJson,
+  tuning: tuningJson,
+  scoring: scoringJson,
+  warmup: warmupJson,
+  official: officialJson,
+  insults: insultsJson,
 });
 
 const url = import.meta.env['VITE_SUPABASE_URL'] as string | undefined;
@@ -45,8 +48,11 @@ const localDeadlineIso = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString
 
 const backend: Backend = isLocal
   ? new LocalDraftStore({
-      id: DRAFT_ID, deadline: localDeadlineIso, courseSeed: 19860214,
-      rulesVersion: data.official.rulesVersion, finalizedAt: null,
+      id: DRAFT_ID,
+      deadline: localDeadlineIso,
+      courseSeed: 19860214,
+      rulesVersion: data.official.rulesVersion,
+      finalizedAt: null,
     })
   : new DraftStore(url, key, DRAFT_ID);
 
@@ -55,8 +61,12 @@ const backend: Backend = isLocal
 const memory = new Map<string, PendingCommit>();
 const store: OutboxStore = {
   all: async () => [...memory.values()],
-  put: async (c) => { memory.set(c.id, c); },
-  remove: async (id) => { memory.delete(id); },
+  put: async (c) => {
+    memory.set(c.id, c);
+  },
+  remove: async (id) => {
+    memory.delete(id);
+  },
 };
 const outbox = new Outbox(store, (c) => backend.submitCommit(c));
 
@@ -110,11 +120,15 @@ function render(): void {
   if (game) return; // a run owns the screen
   const me = myEntry();
   app.innerHTML = `
-    ${isLocal ? `<div class="panel" style="border-color:var(--yellow)">
+    ${
+      isLocal
+        ? `<div class="panel" style="border-color:var(--yellow)">
       <strong style="color:var(--yellow)">LOCAL SESSION — NOT A REAL DRAFT.</strong>
       No shared storage is configured, so nothing here is visible to anyone else
       and run counts do not survive a reload. Set VITE_SUPABASE_URL to run a real draft.
-    </div>` : ''}
+    </div>`
+        : ''
+    }
     <div class="panel">
       <h1 class="title">SHREDPOCALYPSE '86</h1>
       <p class="subtitle">The leaderboard IS the bed order. One official run. It counts the moment it ends.</p>
@@ -135,8 +149,11 @@ function renderRoster(): string {
   return `
     <p>Pick your name:</p>
     <div class="row">
-      ${unclaimed.map((e) => `<button data-claim="${e.id}">${escapeHtml(e.name)}</button>`).join('') ||
-        '<em>Every name is claimed.</em>'}
+      ${
+        unclaimed
+          .map((e) => `<button data-claim="${e.id}">${escapeHtml(e.name)}</button>`)
+          .join('') || '<em>Every name is claimed.</em>'
+      }
     </div>
     <p style="margin-top:16px">Not on the list? Add yourself:</p>
     <div class="row">
@@ -204,25 +221,36 @@ function wire(): void {
 
   const bind = (sel: string, kind: RunKind): void => {
     const el = app.querySelector<HTMLButtonElement>(sel);
-    if (el) el.onclick = (): void => { void startRun(kind); };
+    if (el)
+      el.onclick = (): void => {
+        void startRun(kind);
+      };
   };
   bind('#practice', 'practice');
   bind('#free', 'free');
 
   const official = app.querySelector<HTMLButtonElement>('#official');
-  if (official) official.onclick = (): void => { confirmOfficial(); };
+  if (official)
+    official.onclick = (): void => {
+      confirmOfficial();
+    };
 
   const mute = app.querySelector<HTMLButtonElement>('#mute');
-  if (mute) mute.onclick = (): void => { synth.setMuted(!synth.isMuted); render(); };
+  if (mute)
+    mute.onclick = (): void => {
+      synth.setMuted(!synth.isMuted);
+      render();
+    };
 
   if (isOrganizer) wireOrganizer();
 
   const motion = app.querySelector<HTMLButtonElement>('#motion');
-  if (motion) motion.onclick = (): void => {
-    reducedMotion = !reducedMotion;
-    setMotion(reducedMotion);
-    render();
-  };
+  if (motion)
+    motion.onclick = (): void => {
+      reducedMotion = !reducedMotion;
+      setMotion(reducedMotion);
+      render();
+    };
 }
 
 /** FR-016: an explicit confirmation, stating unambiguously that it counts once. */
@@ -250,24 +278,31 @@ function wireOrganizer(): void {
   });
 
   const save = app.querySelector<HTMLButtonElement>('#save-deadline');
-  if (save) save.onclick = async (): Promise<void> => {
-    const input = app.querySelector<HTMLInputElement>('#deadline');
-    if (!input?.value) return;
-    const iso = new Date(input.value).toISOString();
-    // FR-004: warn before applying a deadline that has already elapsed.
-    if (Date.parse(iso) < Date.now() &&
-        !confirm('That time has already passed. Applying it finalises the draft immediately. Continue?'))
-      return;
-    await backend.setDeadline(iso);
-    await refresh();
-  };
+  if (save)
+    save.onclick = async (): Promise<void> => {
+      const input = app.querySelector<HTMLInputElement>('#deadline');
+      if (!input?.value) return;
+      const iso = new Date(input.value).toISOString();
+      // FR-004: warn before applying a deadline that has already elapsed.
+      if (
+        Date.parse(iso) < Date.now() &&
+        !confirm(
+          'That time has already passed. Applying it finalises the draft immediately. Continue?',
+        )
+      )
+        return;
+      await backend.setDeadline(iso);
+      await refresh();
+    };
 
   const reset = app.querySelector<HTMLButtonElement>('#reset');
-  if (reset) reset.onclick = async (): Promise<void> => {
-    if (!confirm('Reset the draft? Every committed score is destroyed. There is no undo.')) return;
-    await backend.resetDraft();
-    await refresh();
-  };
+  if (reset)
+    reset.onclick = async (): Promise<void> => {
+      if (!confirm('Reset the draft? Every committed score is destroyed. There is no undo.'))
+        return;
+      await backend.resetDraft();
+      await refresh();
+    };
 }
 
 function confirmOfficial(): void {
@@ -286,8 +321,12 @@ function confirmOfficial(): void {
         <button id="back">NOT YET</button>
       </div>
     </div>`;
-  (app.querySelector('#go') as HTMLButtonElement).onclick = (): void => { void startRun('official'); };
-  (app.querySelector('#back') as HTMLButtonElement).onclick = (): void => { render(); };
+  (app.querySelector('#go') as HTMLButtonElement).onclick = (): void => {
+    void startRun('official');
+  };
+  (app.querySelector('#back') as HTMLButtonElement).onclick = (): void => {
+    render();
+  };
 }
 
 async function startRun(kind: RunKind): Promise<void> {
@@ -307,8 +346,15 @@ async function startRun(kind: RunKind): Promise<void> {
 
   const canvas = app.querySelector('#screen') as HTMLCanvasElement;
   game = new GameView(
-    canvas, course, data.tuning, data.scoring, snapshot.draft.courseSeed, kind,
-    (report) => { void endRun(report); },
+    canvas,
+    course,
+    data.tuning,
+    data.scoring,
+    snapshot.draft.courseSeed,
+    kind,
+    (report) => {
+      void endRun(report);
+    },
   );
   game.start();
 
@@ -362,15 +408,23 @@ async function endRun(report: RunReport): Promise<void> {
       <h2 class="sfx">${headline}</h2>
       ${report.outcome === 'wiped_out' ? `<p class="subtitle">${escapeHtml(insult)}</p>` : ''}
       <p style="font-size:22px;color:var(--yellow)">${report.score.toLocaleString()}</p>
-      <p>${report.kind === 'official'
-        ? (commitStatus === 'confirmed' ? 'Committed. That is your bed pick.'
-          : commitStatus === 'rejected' ? escapeHtml(commitMessage)
-          : 'Queued — it will post as soon as you have a signal. Do not close this tab.')
-        : 'Practice. Nothing was recorded.'}</p>
+      <p>${
+        report.kind === 'official'
+          ? commitStatus === 'confirmed'
+            ? 'Committed. That is your bed pick.'
+            : commitStatus === 'rejected'
+              ? escapeHtml(commitMessage)
+              : 'Queued — it will post as soon as you have a signal. Do not close this tab.'
+          : 'Practice. Nothing was recorded.'
+      }</p>
       <button id="done">BACK TO THE BOARD</button>
     </div>`;
-  (app.querySelector('#done') as HTMLButtonElement).onclick = (): void => { void refresh(); };
+  (app.querySelector('#done') as HTMLButtonElement).onclick = (): void => {
+    void refresh();
+  };
 }
 
-backend.subscribe(() => { void refresh(); });
+backend.subscribe(() => {
+  void refresh();
+});
 await refresh();

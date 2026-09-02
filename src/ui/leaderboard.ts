@@ -5,7 +5,12 @@
  * has to be unambiguous enough that eight friends can read it and act on it
  * without argument (SC-010).
  */
-import { computeStandings, pickLabel, type EntryView, type RankedEntry } from '../state/ordering.js';
+import {
+  computeStandings,
+  pickLabel,
+  type EntryView,
+  type RankedEntry,
+} from '../state/ordering.js';
 
 export function renderLeaderboard(entries: readonly EntryView[], final: boolean): string {
   const s = computeStandings(entries, final);
@@ -29,11 +34,17 @@ export function renderLeaderboard(entries: readonly EntryView[], final: boolean)
         </thead>
         <tbody>
           ${s.ranked.map(row).join('')}
-          ${s.forfeits.length > 0 ? `<tr><td colspan="5" style="color:var(--yellow);padding-top:14px">
-            ${final
-              ? 'DID NOT POST A SCORE — settle the order below by coin flip at the cabin'
-              : 'STILL TO POST A SCORE — no order among these until the deadline'}
-          </td></tr>` : ''}
+          ${
+            s.forfeits.length > 0
+              ? `<tr><td colspan="5" style="color:var(--yellow);padding-top:14px">
+            ${
+              final
+                ? 'DID NOT POST A SCORE — settle the order below by coin flip at the cabin'
+                : 'STILL TO POST A SCORE — no order among these until the deadline'
+            }
+          </td></tr>`
+              : ''
+          }
           ${s.forfeits.map(row).join('')}
         </tbody>
       </table>
@@ -51,6 +62,8 @@ function statusOf(e: RankedEntry): string {
 }
 
 export function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string,
+  );
 }
