@@ -60,7 +60,20 @@ export class DraftStore {
       this.db.from('roster_entry').select('*').eq('draft_id', this.draftId),
       this.db.from('committed_score').select('*').eq('draft_id', this.draftId),
     ]);
-    if (draftRes.error) throw draftRes.error;
+    if (draftRes.error) {
+      // The most likely real-world failure: secrets are configured, the schema
+      // is applied, but nobody has run seed-draft.sql yet — or the link is
+      // missing its ?draft=<id>. A raw Postgres error here tells the organizer
+      // nothing actionable.
+      if (draftRes.error.code === 'PGRST116' || draftRes.error.code === '22P02') {
+        throw new Error(
+          `No draft found for id "${this.draftId}". ` +
+            'Run supabase/seed-draft.sql to create one, then share the link it prints ' +
+            '(it ends in ?draft=<id>). A link without ?draft= cannot find a draft.',
+        );
+      }
+      throw draftRes.error;
+    }
     if (entryRes.error) throw entryRes.error;
     if (scoreRes.error) throw scoreRes.error;
 

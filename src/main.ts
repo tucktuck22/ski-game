@@ -18,6 +18,7 @@ import { deadlineState, canStartOfficialRun, formatRemaining } from './state/dea
 import { organizerSecretFromUrl } from './state/links.js';
 import { renderOrganizer, removalConfirmationText } from './ui/organizer.js';
 import { safeSession } from './state/safeStorage.js';
+import { showFatalError, installGlobalErrorHandlers } from './ui/errorBoundary.js';
 
 import tuningJson from '../data/tuning.json';
 import scoringJson from '../data/scoring.json';
@@ -28,6 +29,10 @@ import insultsJson from '../data/insults.json';
 type Backend = LocalDraftStore | DraftStore;
 
 const app = document.getElementById('app') as HTMLDivElement;
+
+// Installed before anything else runs, so even a failure during module
+// evaluation reaches the screen.
+installGlobalErrorHandlers();
 
 const data: GameData = assembleGameData({
   tuning: tuningJson,
@@ -100,11 +105,26 @@ function armAudioOnFirstGesture(): void {
 }
 armAudioOnFirstGesture();
 
-if (isLocal) {
-  for (const n of ['Tucker', 'Dave', 'Sam', 'Al', 'Zach', 'Marty', 'Rob', 'Cheeks']) {
-    await (backend as LocalDraftStore).seedOrganizerEntry(n);
-  }
+/**
+ * Paint something before the first await.
+ *
+ * This module used to end in a top-level `await`, so anything that rejected up
+ * there halted evaluation with nothing on screen. That is exactly the blank
+ * page that took days to pin down: the audio handler above had already been
+ * attached, so the page made a sound on click and rendered nothing, and the
+ * error boundary further down had not been reached yet.
+ *
+ * A shell painted synchronously means the page always has content, and any
+ * later failure replaces it rather than leaving a void.
+ */
+function renderBootShell(): void {
+  app.innerHTML = `
+    <div class="panel">
+      <h1 class="title">SHREDPOCALYPSE '86</h1>
+      <p class="subtitle">Loading the mountain…</p>
+    </div>`;
 }
+renderBootShell();
 
 async function refresh(): Promise<void> {
   snapshot = await backend.snapshot();
@@ -427,7 +447,26 @@ async function endRun(report: RunReport): Promise<void> {
   };
 }
 
-backend.subscribe(() => {
-  void refresh();
+/**
+ * Everything asynchronous lives here, behind one catch.
+ *
+ * Deliberately NOT a top-level await: a rejected top-level await halts module
+ * evaluation, which leaves whatever was already attached (audio, listeners)
+ * working while nothing renders and no handler runs. Kept as a function, a
+ * failure lands in the catch and reaches the screen.
+ */
+async function bootstrap(): Promise<void> {
+  if (isLocal) {
+    for (const n of ['Tucker', 'Dave', 'Sam', 'Al', 'Zach', 'Marty', 'Rob', 'Cheeks']) {
+      await (backend as LocalDraftStore).seedOrganizerEntry(n);
+    }
+  }
+  backend.subscribe(() => {
+    void refresh();
+  });
+  await refresh();
+}
+
+void bootstrap().catch((error: unknown) => {
+  showFatalError('The game could not load its data or reach shared storage.', error);
 });
-await refresh();
