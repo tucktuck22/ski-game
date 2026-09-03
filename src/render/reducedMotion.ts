@@ -32,16 +32,14 @@ export const REDUCED_MOTION: MotionSettings = {
   flashes: false,
 };
 
+import { safeLocal } from '../state/safeStorage.js';
+
 const KEY = 'shredpocalypse-reduced-motion';
 
 /** Honours the OS setting by default, and remembers an explicit override. */
 export function resolveMotion(): MotionSettings {
-  let explicit: string | null = null;
-  try {
-    explicit = localStorage.getItem(KEY);
-  } catch {
-    /* private window: fall through to the OS preference */
-  }
+  // Denied storage falls through to the OS preference rather than throwing.
+  const explicit = safeLocal.get(KEY);
   if (explicit === 'reduced') return REDUCED_MOTION;
   if (explicit === 'full') return FULL_MOTION;
   const prefersReduced =
@@ -50,11 +48,7 @@ export function resolveMotion(): MotionSettings {
 }
 
 export function setMotion(reduced: boolean): void {
-  try {
-    localStorage.setItem(KEY, reduced ? 'reduced' : 'full');
-  } catch {
-    /* non-fatal: the setting simply does not persist */
-  }
+  safeLocal.set(KEY, reduced ? 'reduced' : 'full');
 }
 
 /**

@@ -17,6 +17,7 @@ import { resolveMotion, setMotion, REDUCED_MOTION } from './render/reducedMotion
 import { deadlineState, canStartOfficialRun, formatRemaining } from './state/deadline.js';
 import { organizerSecretFromUrl } from './state/links.js';
 import { renderOrganizer, removalConfirmationText } from './ui/organizer.js';
+import { safeSession } from './state/safeStorage.js';
 
 import tuningJson from '../data/tuning.json';
 import scoringJson from '../data/scoring.json';
@@ -71,7 +72,9 @@ const store: OutboxStore = {
 const outbox = new Outbox(store, (c) => backend.submitCommit(c));
 
 let snapshot: DraftSnapshot;
-let myEntryId: string | null = sessionStorage.getItem(`claim:${DRAFT_ID}`);
+// Guarded: an unguarded read here threw when site data was blocked, which
+// killed module initialisation and rendered a blank page. See safeStorage.ts.
+let myEntryId: string | null = safeSession.get(`claim:${DRAFT_ID}`);
 let game: GameView | null = null;
 let commitStatus: 'idle' | 'pending' | 'confirmed' | 'rejected' = 'idle';
 let commitMessage = '';
@@ -195,7 +198,7 @@ function wire(): void {
       if (r.ok) {
         myEntryId = id;
         rosterError = '';
-        sessionStorage.setItem(`claim:${DRAFT_ID}`, id);
+        safeSession.set(`claim:${DRAFT_ID}`, id);
       } else {
         rosterError = r.reason;
       }
@@ -211,7 +214,7 @@ function wire(): void {
       if (r.ok) {
         myEntryId = r.id;
         rosterError = '';
-        sessionStorage.setItem(`claim:${DRAFT_ID}`, r.id);
+        safeSession.set(`claim:${DRAFT_ID}`, r.id);
       } else {
         rosterError = r.reason;
       }
