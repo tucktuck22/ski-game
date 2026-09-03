@@ -102,3 +102,53 @@ jobs:
             echo 'seed printed an unsubstituted placeholder'; cat /tmp/seed-out.txt; exit 1
           fi
           echo 'Seed printed links that actually resolve.'
+
+      - name: Re-running the seed is refused, not silently duplicated
+        run: |
+          # Six drafts in one database is what actually happened: the seed was
+          # re-run while debugging a setup problem, each run added a draft, and
+          # the bare site link became ambiguous. The guard is the fix; this
+          # asserts the guard fires rather than trusting that it is present.
+          if $PSQL -d seedtest -f supabase/seed-draft.sql > /tmp/second-seed.txt 2>&1; then
+            echo 'seed-draft.sql ran a second time without refusing'
+            cat /tmp/second-seed.txt; exit 1
+          fi
+          grep -q 'A draft already exists' /tmp/second-seed.txt \
+            || { echo 'refused, but not by the guard'; cat /tmp/second-seed.txt; exit 1; }
+          $PSQL -d seedtest -tAc 'select count(*) from draft;' | grep -qx 1
+          echo 'Second seed refused; exactly one draft remains.'
+
+      - name: show-links.sql reprints usable links and writes nothing
+        run: |
+          $PSQL -d seedtest -tA -f supabase/show-links.sql | tee /tmp/links.txt
+          grep -Eq '^https://[^|]+/\|https://[^|]+/\?draft=[0-9a-f-]{36}\|' /tmp/links.txt \
+            || { echo 'not <bare>|<player>|<organizer>|<deadline>'; cat /tmp/links.txt; exit 1; }
+          $PSQL -d seedtest -tAc 'select count(*) from draft;' | grep -qx 1
+          echo 'show-links.sql is read-only and prints both link shapes.'
+
+      - name: cleanup-drafts.sql fails closed, then keeps exactly the named draft
+        run: |
+          # An unedited placeholder must delete nothing.
+          if $PSQL -d seedtest -f supabase/cleanup-drafts.sql > /tmp/cleanup1.txt 2>&1; then
+            echo 'cleanup ran with the placeholder still in place'
+            cat /tmp/cleanup1.txt; exit 1
+          fi
+          $PSQL -d seedtest -tAc 'select count(*) from draft;' | grep -qx 1
+
+          # Two more drafts, reproducing the ambiguous state.
+          $PSQL -d seedtest -c "insert into draft (deadline, course_seed, rules_version, organizer_secret) select '2026-03-14 23:59:00+00', 19860214, '1.0.0', encode(gen_random_bytes(16),'hex') from generate_series(1,2);"
+          $PSQL -d seedtest -tAc 'select count(*) from draft;' | grep -qx 3
+          KEEP=$($PSQL -d seedtest -tAc 'select id from draft order by created_at limit 1;')
+
+          # An id matching no row must delete nothing.
+          sed "s/PASTE-THE-ID-HERE/00000000-0000-0000-0000-000000000000/" \
+            supabase/cleanup-drafts.sql > /tmp/cleanup-miss.sql
+          $PSQL -d seedtest -f /tmp/cleanup-miss.sql
+          $PSQL -d seedtest -tAc 'select count(*) from draft;' | grep -qx 3
+
+          # The real id keeps exactly that draft.
+          sed "s/PASTE-THE-ID-HERE/$KEEP/" supabase/cleanup-drafts.sql > /tmp/cleanup-hit.sql
+          $PSQL -d seedtest -f /tmp/cleanup-hit.sql
+          $PSQL -d seedtest -tAc 'select count(*) from draft;' | grep -qx 1
+          $PSQL -d seedtest -tAc 'select id from draft;' | grep -qx "$KEEP"
+          echo 'cleanup-drafts.sql fails closed on a placeholder and on a miss, and keeps the named draft.'
