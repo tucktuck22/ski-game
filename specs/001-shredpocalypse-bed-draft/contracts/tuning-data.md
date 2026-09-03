@@ -31,13 +31,13 @@ scenarios, not a tweak.
 
 ## Launch and air
 
-| Key                | Value | Tolerance | Rationale                                                                                                                                                                                                                         |
-| ------------------ | ----- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `launchImpulseMin` | 3.4   | ±0.4      | Release with no charge. Clears a low obstacle, no more                                                                                                                                                                            |
-| `launchImpulseMax` | 7.2   | ±0.6      | Release at full charge. ~0.75 s of air — one comfortable full rotation                                                                                                                                                            |
-| `chargeTicksToMax` | 45    | ±8        | 0.75 s holding the tuck to reach maximum launch                                                                                                                                                                                   |
-| `rotationRateMax`  | 0.2   | ±0.030    | Radians per tick. Full rotation in ~31 ticks, inside the ~45 a full-charge launch buys — a full spin is achievable but not free. Raised from 0.115, where a maximum launch bought four fifths of a turn and AC-3 was simply false |
-| `airControlFactor` | 0.25  | ±0.10     | How much rotation input affects horizontal drift. Low: air is committed                                                                                                                                                           |
+| Key                 | Value | Tolerance | Rationale                                                                                                                                                                                                         |
+| ------------------- | ----- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `launchImpulseMin`  | 3.4   | ±0.4      | Release with no charge. Clears a low obstacle, no more                                                                                                                                                            |
+| `launchImpulseMax`  | 7.2   | ±0.6      | Release at full charge. ~0.75 s of air — one comfortable full rotation                                                                                                                                            |
+| `chargeTicksToMax`  | 45    | ±8        | 0.75 s holding the tuck to reach maximum launch                                                                                                                                                                   |
+| `spinDurationTicks` | 15    | ±4        | Ticks for one whole turn, start to finish — a quarter second. Replaces `rotationRateMax`: rotation is a committed animation, not a rate, so its speed is a consequence of this number rather than a separate knob |
+| `airControlFactor`  | 0.25  | ±0.10     | How much rotation input affects horizontal drift. Low: air is committed                                                                                                                                           |
 
 ## Landing and wipeout
 
@@ -73,11 +73,22 @@ These are the Principle III criteria and are asserted by tests, not by eye:
 
 - **AC-1**: Input to visible response ≤ 2 simulation frames for all three inputs (FR-031)
 - **AC-2**: A run at `baseSpeed` with no crouch completes the official course in 45–75 s
-- **AC-3**: A full rotation is achievable from a full-charge launch and not from a
-  zero-charge launch. **Asserted by `tests/sim/rotation.test.ts`.** It had no test
-  until feature 002 and was false for the whole of 1.0.0 and 1.1.0: at
-  `rotationRateMax` 0.115 no launch bought a complete turn, so the trick bonus
-  was unreachable by anyone
+- **AC-3**: A trick is paid for in timing. A full-charge launch is forgiving about
+  WHEN the spin starts; a zero-charge launch gives a window of a few ticks and
+  kills anyone who misses it. **Asserted by `tests/sim/rotation.test.ts`.**
+
+  This criterion has been rewritten twice and the history is worth keeping. It
+  originally read "a full rotation is achievable from a full-charge launch and
+  not from a zero-charge launch", had no test, and was simply **false** for the
+  whole of 1.0.0 and 1.1.0 — at `rotationRateMax` 0.115 no launch in the game
+  bought a complete turn, so the trick bonus was unreachable by any player. 1.2.0
+  raised the rate and gave it a test. 1.4.0 replaced the mechanic entirely with a
+  committed spin, at which point the second half stopped describing anything
+  true: a quarter-second turn fits inside the ~21 ticks a zero-charge launch
+  buys, so the smallest jump in the game CAN land a trick. What survives is the
+  intent — a trick must be paid for — and the payment is now risk and timing
+  rather than charge
+
 - **AC-4**: `crouchHeight` clears every obstacle marked `low` in both courses
 - **AC-7**: A pilot who holds a tuck on the open piste rides every shelf on the
   official course; a pilot who never tucks rides none of them, and both finish.

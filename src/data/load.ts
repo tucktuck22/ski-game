@@ -23,7 +23,7 @@ const REQUIRED_TUNING_KEYS: ReadonlyArray<keyof Tuning> = [
   'launchImpulseMin',
   'launchImpulseMax',
   'chargeTicksToMax',
-  'rotationRateMax',
+  'spinDurationTicks',
   'airControlFactor',
   'landingAngleTolerance',
   'landingAngleToleranceForgiving',

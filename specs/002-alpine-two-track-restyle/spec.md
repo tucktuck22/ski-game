@@ -28,7 +28,7 @@ catching a bad requirement while it is still cheap.
 
 **Implementation status**: every requirement in this document is built. FR-094
 and FR-111 to FR-113 were specified ahead of implementation and have since been
-closed; FR-114 and FR-115 were added after the change they describe and carry
+closed; FR-114 to FR-126 were added after the changes they describe and carry
 the same Principle I deviation as the rest of the feature.
 
 ## Clarifications
@@ -79,31 +79,37 @@ ridden high and ridden low.
 4. **Given** a player riding the upper track, **When** distance-based points
    accrue, **Then** they accrue at twice the rate they would on the piste
    beneath him.
-   4a. **Given** a player riding onto a stretch of crumbling ice, **When** he stays
+5. **Given** a player riding onto a stretch of crumbling ice, **When** he stays
    on it, **Then** it gives way and drops him to the piste below, and his run
    continues.
-   4b. **Given** a player riding onto a stretch of crumbling ice, **When** he
+6. **Given** a player riding onto a stretch of crumbling ice, **When** he
    launches off it before it gives way, **Then** he stays on the upper track.
-   4c. **Given** a stretch of ice that has already given way, **When** any player
+7. **Given** a stretch of ice that has already given way, **When** any player
    passes over it again, **Then** there is nothing there to stand on.
-   4d. **Given** a rock standing on the upper track, **When** the player launches
+8. **Given** a rock standing on the upper track, **When** the player launches
    over it, **Then** he passes cleanly; **when** he rides into it, the run ends.
-   4e. **Given** a rock or a stretch of ice on the upper track, **When** a player
-   on the piste passes underneath it, **Then** neither touches him.
-5. **Given** a player riding the upper track, **When** he passes over a hazard
-   that sits on the piste below, **Then** it does not touch him.
-6. **Given** a player riding the upper track, **When** he reaches the end of the
-   segment, **Then** he drops to the piste and continues the run without an
-   unavoidable wipeout.
-7. **Given** a player on the piste passing beneath an upper segment, **When** he
-   travels under it, **Then** it does not obstruct or touch him.
-8. **Given** a player who never carries speed, **When** he plays the official
-   course start to finish, **Then** he completes it and is never placed on the
-   upper track by anything other than his own choice.
-9. **Given** a player anywhere in a run, **When** he looks at the screen,
-   **Then** he can tell which of the two tracks he is on — whether or not he saw
-   the landing effect that put him there.
-10. **Given** a player with reduced motion enabled, **When** he lands on the
+9. **Given** a rock or a stretch of ice on the upper track, **When** a player on
+   the piste passes underneath it, **Then** neither touches him.
+10. **Given** a player in the air, **When** he presses a direction, **Then** one
+    whole turn begins in that direction and runs to completion on its own.
+11. **Given** a spin still turning, **When** the skier touches down, **Then** the
+    run ends.
+12. **Given** a spin that completed in the air, **When** the skier lands, **Then**
+    he lands facing exactly as he did before the spin, and scores one rotation.
+13. **Given** a player riding the upper track, **When** he passes over a hazard
+    that sits on the piste below, **Then** it does not touch him.
+14. **Given** a player riding the upper track, **When** he reaches the end of the
+    segment, **Then** he drops to the piste and continues the run without an
+    unavoidable wipeout.
+15. **Given** a player on the piste passing beneath an upper segment, **When** he
+    travels under it, **Then** it does not obstruct or touch him.
+16. **Given** a player who never carries speed, **When** he plays the official
+    course start to finish, **Then** he completes it and is never placed on the
+    upper track by anything other than his own choice.
+17. **Given** a player anywhere in a run, **When** he looks at the screen,
+    **Then** he can tell which of the two tracks he is on — whether or not he saw
+    the landing effect that put him there.
+18. **Given** a player with reduced motion enabled, **When** he lands on the
     upper track, **Then** neither the flash nor the shake occurs, he is still
     told which track he is on, and his points still accrue at the doubled rate.
 
@@ -350,15 +356,35 @@ that every hazard and both tracks remain readable in each.
   is the tuck, which is strictly easier one-handed than what it replaced
   (feature 001's FR-085).
 
-- **FR-115**: A full rotation MUST be achievable from a full-charge launch and
-  MUST NOT be achievable from a zero-charge one.
+- **FR-115**: A trick MUST be paid for. A launch MUST buy enough air for a spin
+  only if the player commits to it in time, so that the bonus is earned by
+  judgement rather than handed to anyone who presses the key.
 
   This is not a new idea — it is AC-3 of feature 001's tuning contract, which
-  had never been tested and was false. At the previous rotation rate a maximum
+  had never been tested and was false. At the original rotation rate a maximum
   launch bought about four fifths of a turn, so the trick bonus was unreachable
-  by any player on any line. Raising the rate is half the fix; asserting both
-  halves of AC-3 against the shipped tuning is the other half, because a rate
-  raised without a ceiling makes the bonus free instead of unreachable.
+  by any player on any line. FR-124 changes what the payment is.
+
+- **FR-124**: Rotation MUST be a **committed spin**, not a rate the player
+  steers. One press MUST start exactly one whole turn in the pressed direction;
+  it MUST run for a fixed duration and MUST NOT be stoppable, reversible or
+  shortenable; and touching down before it completes MUST end the run.
+
+  Free rotation asked the player to judge a continuous angle at 320x180 while
+  moving, and to arrive at the ground within a tolerance of a slope he could not
+  measure. The honest answer was usually to not rotate at all, which made the
+  entire trick economy dead weight. A committed spin asks one question — is
+  there time? — and that is a question a player can actually answer at speed.
+
+- **FR-125**: A completed spin MUST leave the skier facing exactly where he
+  began it. A whole turn that ended even slightly off would leave a little
+  rotation error behind after every trick, and a player who landed several would
+  fail a landing for reasons he could neither see nor control.
+
+- **FR-126**: A spin MUST start on the press and MUST NOT start on the hold.
+  Held input would restart a spin the instant one finished, so the last one is
+  always incomplete at touchdown and holding the key becomes a way to die rather
+  than a way to score.
 
 ### Key Entities
 
@@ -412,6 +438,11 @@ that every hazard and both tracks remain readable in each.
   the piste, still running. A player who launches off it stays on the shelf.
 - **SC-032**: Taking the upper line and playing its hazards badly scores worse
   than never having left the piste, so the high line is a bet and not a bonus.
+- **SC-033**: A spin either completes and scores one whole rotation, or does not
+  complete and ends the run. No input produces a partial trick or a partial
+  score.
+- **SC-034**: A player can bank two spins in the air bought by a full-charge
+  launch, and going for a third costs him both.
 
 ## Assumptions
 

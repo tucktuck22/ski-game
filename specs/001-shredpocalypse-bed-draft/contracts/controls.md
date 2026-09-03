@@ -27,8 +27,12 @@ makes one-handed phone play possible (FR-085) and is the game's core skill
   neither gets finer control — touch rotate is quantised to the same −1/0/+1 the
   keyboard produces, so a desktop player cannot rotate more precisely.
 - **One-handed on a phone** (FR-085). No verb requires a second finger. Crouch and
-  rotate can overlap because rotation only applies airborne, when crouch does
+  spin can overlap because a spin only applies airborne, when crouch does
   nothing.
+- **The press is the commitment.** Spin reads the rising edge, not the held
+  state, so holding the key does not chain turns. Held input would restart a
+  spin the instant one finished, which makes the last one always incomplete on
+  landing and turns leaning on the key into a way to die.
 - **Fully remappable keyboard** (FR-030). Touch zones are not remappable; their
   contract is the region, not the key.
 - **Never inverted between devices** (FR-032). Hold means charge everywhere.

@@ -78,10 +78,15 @@ export function stateHash(s: RunState): string {
     s.crouchProfile,
     s.maxX,
     s.progress,
+    s.spinFromOx,
+    s.spinFromOy,
   ])
     mixFloat(v);
   mix(s.score);
   mix(s.crouchCharge);
+  mix(s.spinTicksLeft);
+  mix(s.spinDir + 1);
+  mix(s.rotateHeld + 1);
   mix(s.grounded ? 1 : 0);
   // The track matters: two runs at the same point at the same speed are not the
   // same run if one is on the upper shelf and the other on the piste.

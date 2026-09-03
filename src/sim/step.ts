@@ -57,6 +57,11 @@ export function initialState(course: Course, tuning: Tuning, seed: number): RunS
     ox: 1,
     oy: 0,
     rotationAccum: 0,
+    spinTicksLeft: 0,
+    spinDir: 0,
+    spinFromOx: 1,
+    spinFromOy: 0,
+    rotateHeld: 0,
     grounded: true,
     ledge: -1,
     crouchHeld: false,
@@ -141,7 +146,7 @@ export function step(
 
   // 4. Ground contact.
   if (!s.grounded || launch.launched || kicked) {
-    const landedCleanly = resolveLanding(
+    const contact = resolveLanding(
       s,
       course,
       tuning,
@@ -149,8 +154,13 @@ export function step(
       derived.cosToleranceForgiving,
       prevY,
     );
-    if (!landedCleanly) return wipeout(s, 'bad_landing');
-    if (s.grounded && s.rotationAccum > 0) {
+    // FR-124: a spin still turning at touchdown ends the run, and it is checked
+    // before alignment so the player is told which mistake he made. He would
+    // have failed the alignment test too - mid-spin he is pointing anywhere -
+    // but "you ran out of air" and "you landed crooked" are different lessons.
+    if (contact !== 'airborne' && s.spinTicksLeft > 0) return wipeout(s, 'spun_out');
+    if (contact === 'misaligned') return wipeout(s, 'bad_landing');
+    if (contact === 'landed' && s.rotationAccum > 0) {
       s.score += trickScore(scoring, s.rotationAccum);
       s.rotationAccum = 0;
     }
@@ -236,6 +246,10 @@ export function step(
     if (s.y <= ledgeY - rock.height) continue; // feet above the rock
     return wipeout(s, 'struck_obstacle');
   }
+
+  // 6b. Remember the rotate input so the next tick can see a press rather than
+  // a hold. Last, so everything above read the PREVIOUS tick's value.
+  s.rotateHeld = input.rotate;
 
   // 7. Finish.
   if (s.x >= course.length) {

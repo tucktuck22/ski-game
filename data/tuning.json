@@ -9,7 +9,7 @@
   "launchImpulseMin": 3.4,
   "launchImpulseMax": 7.2,
   "chargeTicksToMax": 45,
-  "rotationRateMax": 0.2,
+  "spinDurationTicks": 15,
   "airControlFactor": 0.25,
   "landingAngleTolerance": 0.42,
   "landingAngleToleranceForgiving": 0.58,

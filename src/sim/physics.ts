@@ -12,7 +12,7 @@
  */
 import type { Course, RunState, RunInput, Tuning } from './types.js';
 import { approach, clamp } from './math.js';
-import { sinDet, cosDet } from './trig.js';
+import { sinDet, cosDet, TAU } from './trig.js';
 import {
   slopeAt,
   terrainYAt,
@@ -150,23 +150,61 @@ export function applyGroundedMotion(state: RunState, course: Course, tuning: Tun
   state.oy = slope.uy;
 }
 
-/** Airborne motion: gravity, and rotation if the player is spinning. */
+/**
+ * Airborne motion: gravity, and the spin if one is turning.
+ *
+ * Rotation is a COMMITTED ANIMATION, not a rate the player steers. A press
+ * starts one whole turn in the pressed direction; it then runs for exactly
+ * `spinDurationTicks` and cannot be stopped, reversed or shortened, and touching
+ * down before it finishes ends the run (FR-124).
+ *
+ * This replaced a free-rotation model where the player nudged his orientation a
+ * little every tick and had to arrive at the ground within a tolerance of the
+ * slope. That asked him to judge a continuous quantity he could barely see at
+ * 320x180, at speed, and the answer was usually "don't rotate at all". A
+ * committed spin asks one question instead - is there time? - and the player can
+ * actually answer it.
+ */
 export function applyAirborneMotion(state: RunState, input: RunInput, tuning: Tuning): void {
   state.vy += tuning.gravity;
 
-  if (input.rotate !== 0) {
-    const delta = tuning.rotationRateMax * input.rotate;
-    const c = cosDet(delta);
-    const s = sinDet(delta);
-    const ox = state.ox * c - state.oy * s;
-    const oy = state.ox * s + state.oy * c;
-    state.ox = ox;
-    state.oy = oy;
-    state.rotationAccum += delta < 0 ? -delta : delta;
-
-    // Air control is deliberately weak: committing to a rotation costs you the line.
-    state.vx += tuning.airControlFactor * input.rotate * 0.01;
+  // On the PRESS, and only when nothing is already turning. Holding the key
+  // does not chain spins: a chain restarts the moment one finishes, so the last
+  // one is always incomplete on landing and holding becomes a way to die.
+  const pressed = input.rotate !== 0 && state.rotateHeld === 0;
+  if (pressed && state.spinTicksLeft === 0) {
+    state.spinTicksLeft = tuning.spinDurationTicks;
+    state.spinDir = input.rotate;
+    state.spinFromOx = state.ox;
+    state.spinFromOy = state.oy;
   }
+
+  if (state.spinTicksLeft === 0) return;
+
+  state.spinTicksLeft -= 1;
+
+  if (state.spinTicksLeft === 0) {
+    // A whole turn ends where it began, exactly. Restored rather than rotated
+    // the last step, so no drift survives the trick.
+    state.ox = state.spinFromOx;
+    state.oy = state.spinFromOy;
+    state.rotationAccum += TAU;
+    state.spinDir = 0;
+    return;
+  }
+
+  // Rebuilt from the starting orientation each tick rather than nudged on from
+  // the last one, so the error is bounded by one rotation instead of compounding
+  // across fifteen.
+  const elapsed = tuning.spinDurationTicks - state.spinTicksLeft;
+  const angle = ((TAU * elapsed) / tuning.spinDurationTicks) * state.spinDir;
+  const c = cosDet(angle);
+  const sn = sinDet(angle);
+  state.ox = state.spinFromOx * c - state.spinFromOy * sn;
+  state.oy = state.spinFromOx * sn + state.spinFromOy * c;
+
+  // Air control is deliberately weak: committing to a rotation costs you the line.
+  state.vx += tuning.airControlFactor * state.spinDir * 0.01;
 }
 
 export const currentSpeed = (state: RunState): number => {
@@ -189,6 +227,8 @@ export const currentSpeed = (state: RunState): number => {
  * underneath is solid and always catches. Checking the ledges first is what
  * makes the upper track a track rather than a decoration.
  */
+export type Contact = 'airborne' | 'landed' | 'misaligned';
+
 export function resolveLanding(
   state: RunState,
   course: Course,
@@ -196,7 +236,7 @@ export function resolveLanding(
   cosTolerance: number,
   cosToleranceForgiving: number,
   prevY: number,
-): boolean {
+): Contact {
   const slope = slopeAt(course.terrain, state.x);
 
   let landedOn = -2; // -2 = nothing, -1 = piste, >= 0 = ledge index
@@ -223,7 +263,7 @@ export function resolveLanding(
 
   if (landedOn === -2) {
     const groundY = terrainYAt(course.terrain, state.x);
-    if (state.y < groundY) return true; // still airborne, nothing to resolve
+    if (state.y < groundY) return 'airborne'; // nothing to resolve
     landedOn = -1;
     surfaceY = groundY;
   }
@@ -232,7 +272,7 @@ export function resolveLanding(
   const alignment = state.ox * slope.ux + state.oy * slope.uy;
   const threshold = state.landingGraceTicks > 0 ? cosToleranceForgiving : cosTolerance;
 
-  if (alignment < threshold) return false;
+  if (alignment < threshold) return 'misaligned';
 
   state.grounded = true;
   state.ledge = landedOn;
@@ -248,5 +288,5 @@ export function resolveLanding(
   const settled = clamp(along, tuning.baseSpeed, tuning.tuckSpeedMax);
   state.vx = settled * slope.ux;
   state.vy = settled * slope.uy;
-  return true;
+  return 'landed';
 }

@@ -30,18 +30,16 @@ interface Result {
  * bump rulesVersion, because scores under different rules are not comparable
  * (FR-023). Do not "just update the numbers" to make this pass.
  *
- * Last regenerated for rulesVersion 1.3.0, which put rocks and crumbling ice on
- * the upper track. The scores and tick counts are unchanged from 1.2.0 and only
- * the hashes moved, which is exactly right and worth stating: these traces are
- * random input that never gets onto a shelf, so no upper-track hazard touches
- * them — but the state they hash now carries the broken-ice record, so every
- * hash differs. A run where the scores had moved too would mean the new hazards
- * had reached the lower line.
+ * Last regenerated for rulesVersion 1.4.0, which made rotation a committed spin.
+ * These traces press rotate at random, so under the old model they wobbled the
+ * skier's orientation a few degrees and under this one they commit him to a
+ * whole turn he usually has no time for. Two of the three now end far sooner,
+ * which is the mechanic working rather than a regression.
  */
 const GOLDEN: Result[] = [
-  { seed: '5eed', score: 1501, ticks: 271, hash: 'c49f3182' },
-  { seed: '1986', score: 467, ticks: 134, hash: 'f7f32caf' },
-  { seed: 'beef', score: 235, ticks: 63, hash: 'd5f81a39' },
+  { seed: '5eed', score: 2925, ticks: 145, hash: '2cc0d8df' },
+  { seed: '1986', score: 138, ticks: 48, hash: '18318781' },
+  { seed: 'beef', score: 235, ticks: 63, hash: '476dac53' },
 ];
 
 test('the simulation reproduces the golden run exactly on this engine', async ({

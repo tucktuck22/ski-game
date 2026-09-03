@@ -142,6 +142,28 @@ answered. What is deliberately not claimed is that the two lines are now
 balanced; SC-032 asserts only that the high line can be played badly enough to
 lose, and leaves the tuning to playtest evidence.
 
+### Fifth validation pass — after the committed spin
+
+FR-124 to FR-126 replace free rotation with a fixed spin animation. One finding,
+and it is a requirement in another feature going false rather than anything
+wrong here:
+
+1. **AC-3 of feature 001's tuning contract no longer describes anything true,
+   for the second time.** It required a full rotation to be achievable from a
+   full-charge launch and NOT from a zero-charge one. A quarter-second spin fits
+   inside the ~21 ticks a zero-charge launch buys, so the smallest jump in the
+   game can now land a trick if the player commits at once. The criterion is
+   rewritten in place, with its own history kept: it was false through 1.0.0 and
+   1.1.0 for the opposite reason (no launch bought a whole turn at all), fixed in
+   1.2.0, and made false again by this change. What survives across all three is
+   the intent — a trick must be paid for — and the payment is now risk and
+   timing rather than charge. That intent is what FR-115 states and what the
+   restated AC-3 tests.
+
+Worth recording because it is the same shape of problem twice: an acceptance
+criterion written against a mechanic outlives the mechanic and keeps asserting
+something nobody re-reads. The defence in both cases was a test, not a review.
+
 ### Implementation status
 
 All requirements in the spec are built, and the spec's Context section says so.

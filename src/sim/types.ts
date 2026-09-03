@@ -136,7 +136,11 @@ export interface Tuning {
   launchImpulseMin: number;
   launchImpulseMax: number;
   chargeTicksToMax: number;
-  rotationRateMax: number;
+  /**
+   * How long one spin takes, start to finish. A spin is a fixed animation, not
+   * a rate the player steers, so this is the only number that governs rotation.
+   */
+  spinDurationTicks: number;
   airControlFactor: number;
   landingAngleTolerance: number;
   landingAngleToleranceForgiving: number;
@@ -180,7 +184,13 @@ export interface RunInput {
 
 export type Outcome = 'running' | 'finished' | 'wiped_out';
 
-export type WipeoutReason = 'launched_into_obstacle' | 'bad_landing' | 'struck_obstacle' | null;
+export type WipeoutReason =
+  | 'launched_into_obstacle'
+  | 'bad_landing'
+  | 'struck_obstacle'
+  /** Touched down with a spin still turning. See FR-124. */
+  | 'spun_out'
+  | null;
 
 export interface RunState {
   tick: number;
@@ -195,6 +205,36 @@ export interface RunState {
   oy: number;
   /** Total rotation this air, in radians. Converts to trick score on a clean landing. */
   rotationAccum: number;
+  /**
+   * Ticks left in the spin currently turning, or 0 when none is.
+   *
+   * A spin is committed: once started it runs to completion and the player
+   * cannot stop, reverse or shorten it. Touching down while this is non-zero
+   * ends the run (FR-124). That is the whole risk the trick bonus is paid for.
+   */
+  spinTicksLeft: number;
+  /** Direction of the spin currently turning: -1, +1, or 0 when none is. */
+  spinDir: -1 | 0 | 1;
+  /**
+   * Orientation the spin started from, restored exactly when it completes.
+   *
+   * A spin is a whole turn, so it must finish facing precisely where it began -
+   * otherwise every trick would leave a little rotation error behind and a
+   * player who landed several would fail an alignment check for reasons he
+   * could neither see nor control. Rebuilding the orientation from this each
+   * tick, rather than nudging it round, means the error never accumulates in
+   * the first place.
+   */
+  spinFromOx: number;
+  spinFromOy: number;
+  /**
+   * Rotate input as of the previous tick, so a spin can start on the PRESS.
+   *
+   * Held input would chain spins back to back for as long as the player leaned
+   * on the key, which turns holding it into a way to die rather than a way to
+   * score. The crouch release is derived from state the same way.
+   */
+  rotateHeld: -1 | 0 | 1;
   grounded: boolean;
   /** Which surface the skier is riding: -1 for the piste, else an index into course.ledges. */
   ledge: number;
