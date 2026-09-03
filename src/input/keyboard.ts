@@ -14,25 +14,24 @@ export const DEFAULT_BINDINGS: KeyBindings = {
   rotateRight: ['ArrowRight', 'KeyD'],
 };
 
+import { safeLocal } from '../state/safeStorage.js';
+
 const STORAGE_KEY = 'shredpocalypse-bindings';
 
 /** Bindings are a per-device convenience, never run state (FR-021). */
 export function loadBindings(): KeyBindings {
+  const raw = safeLocal.get(STORAGE_KEY);
+  if (raw === null) return DEFAULT_BINDINGS;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...DEFAULT_BINDINGS, ...(JSON.parse(raw) as Partial<KeyBindings>) };
+    return { ...DEFAULT_BINDINGS, ...(JSON.parse(raw) as Partial<KeyBindings>) };
   } catch {
-    /* a private window or blocked storage is fine: fall back to defaults */
+    // Corrupt JSON is not the same failure as denied storage; defaults either way.
+    return DEFAULT_BINDINGS;
   }
-  return DEFAULT_BINDINGS;
 }
 
 export function saveBindings(b: KeyBindings): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(b));
-  } catch {
-    /* non-fatal */
-  }
+  safeLocal.set(STORAGE_KEY, JSON.stringify(b));
 }
 
 export function keyboardSource(bindings: KeyBindings = loadBindings()): InputSource {

@@ -330,6 +330,20 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **R-rated means profane, not hateful.** The boys-weekend register — beer, joints, jorts, mustaches, pizza, steaks, boomboxes, koozies — is intended and specified. Slurs and content targeting protected characteristics are excluded by FR-059 and are not a matter of taste.
 - **No replays, no spectator mode, no accounts, no multi-trip, no enemies.** Explicitly out of scope for v1. The consequence for score verification is accepted as a recorded constitutional deviation below.
 
+## Playtest Findings
+
+Recorded against this spec per Principle III and the playtest cadence
+requirement. First human playtest, 2026-09-02.
+
+| #    | Finding                                                                                                                        | Disposition                                                                                                                                                                                    |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PT-1 | The crouch-to-tuck, release-to-jump coupling reads as self-explanatory without instruction.                                    | FR-078 holds as written. A brief tutorial is wanted anyway, deferred to a later feature.                                                                                                       |
+| PT-2 | Obstacles are confusing and read as generic blocks — a player cannot tell at a glance what a thing does or how to get past it. | Legibility issue against style-bible rule L-0 and FR-061. Deferred to a later feature; the shapes must distinguish duck-under, jump-over and break-through without relying on colour (FR-055). |
+
+Neither finding blocks the first deployment. PT-2 is the more serious of the
+two: FR-088 makes release timing the core skill, and timing a release against
+an obstacle you cannot read is guesswork rather than skill.
+
 ## Accepted Consequences
 
 Three decisions were taken knowingly at clarification. Two of them compound, and the combination is worth stating plainly before planning starts.

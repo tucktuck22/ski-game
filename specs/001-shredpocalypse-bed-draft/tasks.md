@@ -248,6 +248,8 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 - [ ] T105 [P] Enforce rules-version pinning so a mid-draft physics or scoring change is refused rather than silently accepted per FR-023 in `src/state/rulesVersion.ts`
 - [ ] T106 [P] Add empty, loading, and error states across roster, leaderboard, and run flows in `src/ui/states.ts`
 - [ ] T107 Run the full suite and confirm every scenario in `specs/001-shredpocalypse-bed-draft/quickstart.md` passes, recording results in `specs/001-shredpocalypse-bed-draft/quickstart.md`
+- [ ] T111 Give obstacles a readable silhouette so duck-under, jump-over and break-through are distinguishable at speed, without relying on colour (PT-2, FR-055, FR-061, style-bible L-0)
+- [ ] T112 Add a brief first-run tutorial for the crouch-and-release verb (PT-1)
 - [ ] T108 Conduct the human playtest on a real mid-range phone, confirm the tuning acceptance criteria in contracts/tuning-data.md, and record findings against spec.md per Definition of Done item 6
 - [ ] T109 Re-tune `data/tuning.json` from playtest findings, staying within tolerance or re-running acceptance scenarios if outside
 

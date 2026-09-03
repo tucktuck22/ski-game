@@ -7,7 +7,7 @@
  */
 import { assembleGameData, type GameData } from './data/load.js';
 import { LocalDraftStore } from './state/localDraft.js';
-import { DraftStore, type DraftSnapshot } from './state/supabase.js';
+import { DraftStore, discoverDraft, type DraftSnapshot } from './state/supabase.js';
 import { Outbox, type OutboxStore, type PendingCommit } from './state/outbox.js';
 import { availability, courseFor, PRACTICE_RUNS, type RunKind } from './state/runEconomy.js';
 import { renderLeaderboard, escapeHtml } from './ui/leaderboard.js';
@@ -19,6 +19,9 @@ import { resolveMotion, setMotion, REDUCED_MOTION } from './render/reducedMotion
 import { deadlineState, canStartOfficialRun, formatRemaining } from './state/deadline.js';
 import { organizerSecretFromUrl } from './state/links.js';
 import { renderOrganizer, removalConfirmationText } from './ui/organizer.js';
+import { safeSession } from './state/safeStorage.js';
+import { showFatalError, installGlobalErrorHandlers } from './ui/errorBoundary.js';
+import { resolveConfig, describeUnreachable, isNetworkFailure } from './state/config.js';
 
 import tuningJson from '../data/tuning.json';
 import scoringJson from '../data/scoring.json';
@@ -30,6 +33,10 @@ type Backend = LocalDraftStore | DraftStore;
 
 const app = document.getElementById('app') as HTMLDivElement;
 
+// Installed before anything else runs, so even a failure during module
+// evaluation reaches the screen.
+installGlobalErrorHandlers();
+
 const data: GameData = assembleGameData({
   tuning: tuningJson,
   scoring: scoringJson,
@@ -38,25 +45,39 @@ const data: GameData = assembleGameData({
   insults: insultsJson,
 });
 
-const url = import.meta.env['VITE_SUPABASE_URL'] as string | undefined;
-const key = import.meta.env['VITE_SUPABASE_ANON_KEY'] as string | undefined;
-const isLocal = !url || !key;
+// Validated up front: a bad URL otherwise surfaces as an opaque
+// "TypeError: Failed to fetch" that names neither the cause nor the fix.
+const config = resolveConfig(
+  import.meta.env['VITE_SUPABASE_URL'],
+  import.meta.env['VITE_SUPABASE_ANON_KEY'],
+);
+const isLocal = config.kind === 'local';
 
-const DRAFT_ID = new URLSearchParams(location.search).get('draft') ?? 'local-draft';
+// May be absent: the bare site URL is what people bookmark and re-share once
+// the query string is lost. bootstrap() then asks the database which draft is
+// meant rather than failing on a fallback id nobody chose.
+const DRAFT_ID_FROM_URL = new URLSearchParams(location.search).get('draft');
+let DRAFT_ID = DRAFT_ID_FROM_URL ?? 'local-draft';
 // FR-006: organizer controls appear only for a holder of the organizer URL.
 // Secrecy, not authentication - see src/state/links.ts.
 const isOrganizer = organizerSecretFromUrl(location.search) !== null;
 const localDeadlineIso = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
 
-const backend: Backend = isLocal
-  ? new LocalDraftStore({
-      id: DRAFT_ID,
-      deadline: localDeadlineIso,
-      courseSeed: 19860214,
-      rulesVersion: data.official.rulesVersion,
-      finalizedAt: null,
-    })
-  : new DraftStore(url, key, DRAFT_ID);
+// Assigned in bootstrap(), once DRAFT_ID is settled. Every read of it happens
+// inside a handler that cannot run before then.
+let backend!: Backend;
+
+function makeBackend(): Backend {
+  return config.kind === 'configured'
+    ? new DraftStore(config.url, config.anonKey, DRAFT_ID)
+    : new LocalDraftStore({
+        id: DRAFT_ID,
+        deadline: localDeadlineIso,
+        courseSeed: 19860214,
+        rulesVersion: data.official.rulesVersion,
+        finalizedAt: null,
+      });
+}
 
 // The outbox needs somewhere to persist. In local mode it is in memory, because
 // a local session is already not a real draft.
@@ -73,7 +94,9 @@ const store: OutboxStore = {
 const outbox = new Outbox(store, (c) => backend.submitCommit(c));
 
 let snapshot: DraftSnapshot;
-let myEntryId: string | null = sessionStorage.getItem(`claim:${DRAFT_ID}`);
+// Guarded: an unguarded read here threw when site data was blocked, which
+// killed module initialisation and rendered a blank page. See safeStorage.ts.
+let myEntryId: string | null = null;
 let game: GameView | null = null;
 let commitStatus: 'idle' | 'pending' | 'confirmed' | 'rejected' = 'idle';
 let commitMessage = '';
@@ -99,11 +122,26 @@ function armAudioOnFirstGesture(): void {
 }
 armAudioOnFirstGesture();
 
-if (isLocal) {
-  for (const n of ['Tucker', 'Dave', 'Sam', 'Al', 'Zach', 'Marty', 'Rob', 'Cheeks']) {
-    await (backend as LocalDraftStore).seedOrganizerEntry(n);
-  }
+/**
+ * Paint something before the first await.
+ *
+ * This module used to end in a top-level `await`, so anything that rejected up
+ * there halted evaluation with nothing on screen. That is exactly the blank
+ * page that took days to pin down: the audio handler above had already been
+ * attached, so the page made a sound on click and rendered nothing, and the
+ * error boundary further down had not been reached yet.
+ *
+ * A shell painted synchronously means the page always has content, and any
+ * later failure replaces it rather than leaving a void.
+ */
+function renderBootShell(): void {
+  app.innerHTML = `
+    <div class="panel">
+      <h1 class="title">SHREDPOCALYPSE '86</h1>
+      <p class="subtitle">Loading the mountain…</p>
+    </div>`;
 }
+renderBootShell();
 
 async function refresh(): Promise<void> {
   snapshot = await backend.snapshot();
@@ -197,7 +235,7 @@ function wire(): void {
       if (r.ok) {
         myEntryId = id;
         rosterError = '';
-        sessionStorage.setItem(`claim:${DRAFT_ID}`, id);
+        safeSession.set(`claim:${DRAFT_ID}`, id);
       } else {
         rosterError = r.reason;
       }
@@ -213,7 +251,7 @@ function wire(): void {
       if (r.ok) {
         myEntryId = r.id;
         rosterError = '';
-        sessionStorage.setItem(`claim:${DRAFT_ID}`, r.id);
+        safeSession.set(`claim:${DRAFT_ID}`, r.id);
       } else {
         rosterError = r.reason;
       }
@@ -455,7 +493,68 @@ async function endRun(report: RunReport): Promise<void> {
   };
 }
 
-backend.subscribe(() => {
-  void refresh();
+/**
+ * Everything asynchronous lives here, behind one catch.
+ *
+ * Deliberately NOT a top-level await: a rejected top-level await halts module
+ * evaluation, which leaves whatever was already attached (audio, listeners)
+ * working while nothing renders and no handler runs. Kept as a function, a
+ * failure lands in the catch and reaches the screen.
+ */
+async function bootstrap(): Promise<void> {
+  // Misconfiguration is a setup mistake, not a runtime fault: say which secret
+  // is wrong and how to fix it rather than letting fetch fail opaquely later.
+  if (config.kind === 'invalid') {
+    throw new Error(`${config.problem}\n\n${config.fix}`);
+  }
+
+  // A link with no ?draft= is the common case, not an error case. Ask the
+  // database which draft is meant before deciding anything has gone wrong.
+  if (config.kind === 'configured' && DRAFT_ID_FROM_URL === null) {
+    const found = await discoverDraft(config.url, config.anonKey);
+    if (found.kind === 'none') {
+      throw new Error(
+        'There is no draft in the database yet. Run supabase/seed-draft.sql in the ' +
+          'Supabase SQL editor to create one — it prints the link to share.',
+      );
+    }
+    if (found.kind === 'many') {
+      const list = found.drafts.map((d) => `?draft=${d.id}  (deadline ${d.deadline})`).join('\n');
+      throw new Error(
+        `This database holds ${found.drafts.length} drafts, so the bare link is ` +
+          `ambiguous — the app will not guess which one eight people meant.\n\n` +
+          `To use the bare link, run supabase/cleanup-drafts.sql to leave exactly ` +
+          `one draft. To carry on without cleaning up, add one of these to the URL:` +
+          `\n\n${list}`,
+      );
+    }
+    DRAFT_ID = found.id;
+    // Keep the address bar honest, so a copied link carries the draft with it.
+    const url = new URL(location.href);
+    url.searchParams.set('draft', DRAFT_ID);
+    history.replaceState(null, '', url.toString());
+  }
+
+  backend = makeBackend();
+  myEntryId = safeSession.get(`claim:${DRAFT_ID}`);
+
+  if (isLocal) {
+    for (const n of ['Tucker', 'Dave', 'Sam', 'Al', 'Zach', 'Marty', 'Rob', 'Cheeks']) {
+      await (backend as LocalDraftStore).seedOrganizerEntry(n);
+    }
+  }
+  backend.subscribe(() => {
+    void refresh();
+  });
+  await refresh();
+}
+
+void bootstrap().catch((error: unknown) => {
+  // "Failed to fetch" carries no status and no Postgres code — the request
+  // never reached a server — so it needs translating into something actionable.
+  if (config.kind === 'configured' && isNetworkFailure(error)) {
+    showFatalError('Shared storage is unreachable.', new Error(describeUnreachable(config.url)));
+    return;
+  }
+  showFatalError('The game could not start.', error);
 });
-await refresh();

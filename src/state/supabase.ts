@@ -34,6 +34,40 @@ export function classifyError(err: { code?: string; message?: string } | null): 
   return { kind: 'retry' };
 }
 
+/**
+ * Finds the draft when the link carries no `?draft=`.
+ *
+ * The bare site URL is what people actually type and bookmark, and what gets
+ * pasted back into a group chat once the query string is lost. Failing it with
+ * "no draft found for local-draft" blames the player for the organizer's link
+ * hygiene. There is almost always exactly one draft, so look.
+ *
+ * Not a security boundary: the draft id was never secret (FR-040 makes the
+ * board public to link holders), and the organizer secret is a separate
+ * revoked column.
+ */
+export async function discoverDraft(
+  url: string,
+  anonKey: string,
+): Promise<
+  | { kind: 'found'; id: string }
+  | { kind: 'none' }
+  | { kind: 'many'; drafts: { id: string; deadline: string }[] }
+> {
+  const db = createClient(url, anonKey, { auth: { persistSession: false } });
+  const { data, error } = await db
+    .from('draft')
+    .select('id, deadline')
+    .order('created_at', { ascending: false })
+    .limit(10);
+  if (error) throw error;
+
+  const drafts = (data ?? []).map((d) => ({ id: d.id as string, deadline: d.deadline as string }));
+  if (drafts.length === 0) return { kind: 'none' };
+  if (drafts.length === 1) return { kind: 'found', id: drafts[0]!.id };
+  return { kind: 'many', drafts };
+}
+
 export class DraftStore {
   private readonly db: SupabaseClient;
 
@@ -60,9 +94,39 @@ export class DraftStore {
       this.db.from('roster_entry').select('*').eq('draft_id', this.draftId),
       this.db.from('committed_score').select('*').eq('draft_id', this.draftId),
     ]);
-    if (draftRes.error) throw draftRes.error;
-    if (entryRes.error) throw entryRes.error;
-    if (scoreRes.error) throw scoreRes.error;
+    // A misconfigured project is the likeliest real failure, and a raw
+    // PostgrestError tells the organizer nothing actionable. Name the cause and
+    // the fix instead.
+    const setupError = draftRes.error ?? entryRes.error ?? scoreRes.error;
+    if (setupError) {
+      const code = setupError.code ?? '';
+      const msg = setupError.message ?? '';
+
+      if (code === '42P01' || /relation .* does not exist/i.test(msg)) {
+        throw new Error(
+          'The database has no tables yet. Run supabase/setup.sql in the Supabase ' +
+            'SQL editor, then supabase/seed-draft.sql to create a draft.',
+        );
+      }
+      if (code === '42501' || /permission denied/i.test(msg)) {
+        throw new Error(
+          'The database refused access. supabase/setup.sql grants the anon role what ' +
+            'it needs - re-run it, and check the anon key in VITE_SUPABASE_ANON_KEY.',
+        );
+      }
+      if (
+        code === 'PGRST116' ||
+        code === '22P02' ||
+        /invalid input syntax for type uuid/i.test(msg)
+      ) {
+        throw new Error(
+          `No draft found for id "${this.draftId}". Run supabase/seed-draft.sql to ` +
+            'create one, then use the link it prints — it ends in ?draft=<id>. ' +
+            'A link with no ?draft= cannot find a draft.',
+        );
+      }
+      throw setupError;
+    }
 
     const scores = new Map((scoreRes.data ?? []).map((s) => [s.entry_id as string, s]));
 
@@ -83,6 +147,12 @@ export class DraftStore {
     });
 
     const d = draftRes.data;
+    if (!d) {
+      throw new Error(
+        `No draft found for id "${this.draftId}". Run supabase/seed-draft.sql to create ` +
+          'one, then use the link it prints — it ends in ?draft=<id>.',
+      );
+    }
     return {
       draft: {
         id: d.id as string,
