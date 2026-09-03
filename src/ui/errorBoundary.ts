@@ -14,9 +14,53 @@ import { escapeHtml } from './leaderboard.js';
 
 const PANEL_ID = 'fatal-error';
 
+/**
+ * Turns anything throwable into readable text.
+ *
+ * `String(error)` gives "[object Object]" for a plain object, and Supabase
+ * rejects with a PostgrestError - a plain object carrying message, code,
+ * details and hint - not an Error. The first real failure this boundary caught
+ * displayed "[object Object]", which told nobody anything and wasted a round
+ * trip. Whatever arrives here is the only evidence anyone gets, so it has to
+ * survive being an unusual shape.
+ */
+export function describeError(error: unknown): { message: string; detail: string } {
+  if (error instanceof Error) {
+    return { message: error.message, detail: error.stack ?? '' };
+  }
+  if (typeof error === 'string') return { message: error, detail: '' };
+
+  if (error !== null && typeof error === 'object') {
+    const o = error as Record<string, unknown>;
+    const parts: string[] = [];
+    // PostgrestError shape, and most API error objects.
+    for (const key of [
+      'message',
+      'code',
+      'details',
+      'hint',
+      'error',
+      'error_description',
+      'status',
+    ]) {
+      const v = o[key];
+      if (typeof v === 'string' || typeof v === 'number') parts.push(`${key}: ${v}`);
+    }
+    if (parts.length > 0) {
+      return { message: String(o['message'] ?? parts[0]), detail: parts.join('\n') };
+    }
+    try {
+      return { message: JSON.stringify(error), detail: '' };
+    } catch {
+      return { message: Object.prototype.toString.call(error), detail: '' };
+    }
+  }
+  return { message: String(error), detail: '' };
+}
+
 export function showFatalError(context: string, error: unknown): void {
-  const message = error instanceof Error ? error.message : String(error);
-  const stack = error instanceof Error && error.stack ? error.stack : '';
+  const { message, detail } = describeError(error);
+  const stack = detail;
 
   const host = document.getElementById('app') ?? document.body;
   // Never stack panels: the first failure is the useful one, later ones are

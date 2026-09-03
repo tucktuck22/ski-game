@@ -60,22 +60,39 @@ export class DraftStore {
       this.db.from('roster_entry').select('*').eq('draft_id', this.draftId),
       this.db.from('committed_score').select('*').eq('draft_id', this.draftId),
     ]);
-    if (draftRes.error) {
-      // The most likely real-world failure: secrets are configured, the schema
-      // is applied, but nobody has run seed-draft.sql yet — or the link is
-      // missing its ?draft=<id>. A raw Postgres error here tells the organizer
-      // nothing actionable.
-      if (draftRes.error.code === 'PGRST116' || draftRes.error.code === '22P02') {
+    // A misconfigured project is the likeliest real failure, and a raw
+    // PostgrestError tells the organizer nothing actionable. Name the cause and
+    // the fix instead.
+    const setupError = draftRes.error ?? entryRes.error ?? scoreRes.error;
+    if (setupError) {
+      const code = setupError.code ?? '';
+      const msg = setupError.message ?? '';
+
+      if (code === '42P01' || /relation .* does not exist/i.test(msg)) {
         throw new Error(
-          `No draft found for id "${this.draftId}". ` +
-            'Run supabase/seed-draft.sql to create one, then share the link it prints ' +
-            '(it ends in ?draft=<id>). A link without ?draft= cannot find a draft.',
+          'The database has no tables yet. Run supabase/setup.sql in the Supabase ' +
+            'SQL editor, then supabase/seed-draft.sql to create a draft.',
         );
       }
-      throw draftRes.error;
+      if (code === '42501' || /permission denied/i.test(msg)) {
+        throw new Error(
+          'The database refused access. supabase/setup.sql grants the anon role what ' +
+            'it needs - re-run it, and check the anon key in VITE_SUPABASE_ANON_KEY.',
+        );
+      }
+      if (
+        code === 'PGRST116' ||
+        code === '22P02' ||
+        /invalid input syntax for type uuid/i.test(msg)
+      ) {
+        throw new Error(
+          `No draft found for id "${this.draftId}". Run supabase/seed-draft.sql to ` +
+            'create one, then use the link it prints — it ends in ?draft=<id>. ' +
+            'A link with no ?draft= cannot find a draft.',
+        );
+      }
+      throw setupError;
     }
-    if (entryRes.error) throw entryRes.error;
-    if (scoreRes.error) throw scoreRes.error;
 
     const scores = new Map((scoreRes.data ?? []).map((s) => [s.entry_id as string, s]));
 
@@ -96,6 +113,12 @@ export class DraftStore {
     });
 
     const d = draftRes.data;
+    if (!d) {
+      throw new Error(
+        `No draft found for id "${this.draftId}". Run supabase/seed-draft.sql to create ` +
+          'one, then use the link it prints — it ends in ?draft=<id>.',
+      );
+    }
     return {
       draft: {
         id: d.id as string,

@@ -62,3 +62,28 @@ describe('safeStorage survives a browser that denies storage', () => {
     expect(safeSession.get('claim:draft-1')).toBeNull();
   });
 });
+
+describe('describeError renders what actually gets thrown', () => {
+  it('reads a PostgrestError-shaped plain object instead of showing [object Object]', async () => {
+    // The first real failure the boundary caught displayed "[object Object]",
+    // which told nobody anything. Supabase rejects with a plain object.
+    const { describeError } = await import('../../src/ui/errorBoundary.js');
+    const r = describeError({
+      message: 'relation "public.draft" does not exist',
+      code: '42P01',
+      details: null,
+      hint: null,
+    });
+    expect(r.message).toBe('relation "public.draft" does not exist');
+    expect(r.detail).toContain('code: 42P01');
+    expect(r.message).not.toContain('[object Object]');
+  });
+
+  it('handles Errors, strings, and shapes with no recognised keys', async () => {
+    const { describeError } = await import('../../src/ui/errorBoundary.js');
+    expect(describeError(new Error('boom')).message).toBe('boom');
+    expect(describeError('plain string').message).toBe('plain string');
+    expect(describeError({ weird: 1 }).message).toBe('{"weird":1}');
+    expect(describeError(undefined).message).toBe('undefined');
+  });
+});
