@@ -53,7 +53,6 @@ interface Built {
   length: number;
   terrain: P[];
   obstacles: { x: number; kind: 'low' | 'solid'; width: number; clearance: number }[];
-  barriers: { x: number; width: number; bypassCostTicks: number }[];
   pickups: { x: number; y: number; value: 'small' | 'large' }[];
   ledges: { x0: number; x1: number; height: number }[];
   kickers: { x: number; width: number; power: number }[];
@@ -100,7 +99,6 @@ function build(
 ): Built {
   const r = rng(seed + 7);
   const obstacles: Built['obstacles'] = [];
-  const barriers: Built['barriers'] = [];
   const pickups: Built['pickups'] = [];
   const ledges: Built['ledges'] = [];
   const kickers: Built['kickers'] = [];
@@ -126,14 +124,13 @@ function build(
     const x1 = x0 + SHELF_LENGTH;
 
     // The piste keeps its own hazard: whoever stayed low has something to do
-    // while the upper line is sailing over it. Alternating deadfall and barrier
-    // keeps both verbs - jump and attack - in rotation. Placed before the shelf
-    // check, because a stretch too near the finish for a shelf still gets its
-    // hazard; the first cut put this after the `continue` and quietly dropped
-    // the last obstacle of every course.
-    const hazardX = base + GROUND_HAZARD_AT;
-    if (i % 2 === 0) obstacles.push({ x: hazardX, kind: 'solid', width: 24, clearance: 0 });
-    else barriers.push({ x: hazardX, width: 30, bypassCostTicks: 18 + Math.floor(r() * 14) });
+    // while the upper line is sailing over it. Deadfall throughout now that the
+    // attack verb and the barriers it broke are withdrawn (FR-114) - a barrier
+    // nothing can break is just a differently drawn log. Placed before the
+    // shelf check, because a stretch too near the finish for a shelf still gets
+    // its hazard; the first cut put this after the `continue` and quietly
+    // dropped the last obstacle of every course.
+    obstacles.push({ x: base + GROUND_HAZARD_AT, kind: 'solid', width: 24, clearance: 0 });
 
     if (x1 > length - 40) continue; // no shelf that outruns the finish (CV-12)
     kickers.push({ x: rampX, width: RAMP_WIDTH, power: RAMP_POWER });
@@ -157,11 +154,10 @@ function build(
 
   return {
     id,
-    rulesVersion: '1.1.0',
+    rulesVersion: '1.2.0',
     length,
     terrain: terrain(length, seed),
     obstacles,
-    barriers,
     pickups,
     ledges,
     kickers,
@@ -181,7 +177,6 @@ writeFileSync(resolve(out, 'official.json'), JSON.stringify(official, null, 2) +
 for (const c of [warmup, official]) {
   console.log(
     `${c.id}: ${c.terrain.length} pts, ${c.obstacles.length} obstacles, ` +
-      `${c.barriers.length} barriers, ${c.pickups.length} pickups, ` +
-      `${c.ledges.length} ledges, ${c.kickers.length} ramps`,
+      `${c.pickups.length} pickups, ${c.ledges.length} ledges, ${c.kickers.length} ramps`,
   );
 }

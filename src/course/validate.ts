@@ -161,15 +161,6 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
       });
   }
 
-  // CV-6: breaking a barrier must beat going around it
-  for (const b of course.barriers) {
-    if (b.bypassCostTicks <= 0)
-      v.push({
-        rule: 'CV-6',
-        message: `barrier at x=${b.x} has bypassCostTicks ${b.bypassCostTicks}: bypassing costs nothing, so attack has no reason to exist (FR-081)`,
-      });
-  }
-
   // CV-7: completable at base speed, crouching only where CV-3 demands it
   for (const o of course.obstacles) {
     if (o.kind !== 'solid') continue;

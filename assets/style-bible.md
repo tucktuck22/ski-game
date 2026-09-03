@@ -26,7 +26,7 @@ Eight colours. Nothing outside this set appears in any asset.
 | `magenta` | `#FF2D95` | Primary accent. Player, active state, title lettering  |
 | `cyan`    | `#22E8F5` | Secondary accent. Terrain edge, pickups, confirmations |
 | `blue`    | `#4361FF` | Tertiary. Sky gradient top, inactive UI                |
-| `orange`  | `#FC6008` | Warning. Obstacles, barriers, hazard edges             |
+| `orange`  | `#FC6008` | Warning. Obstacle and hazard edges                     |
 | `yellow`  | `#FFD23F` | Alert and score. Wipeout lettering, HUD score          |
 | `snow`    | `#F2F0FF` | Body text, snow surface, high-contrast marks           |
 

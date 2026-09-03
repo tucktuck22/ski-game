@@ -32,8 +32,8 @@ interface Ride {
 /**
  * One pilot, played by rule rather than by trace.
  *
- * Both pilots duck the boughs, jump the deadfall and break the barriers — that
- * is the floor of skill FR-035 describes. The ONLY difference between them is
+ * Both pilots duck the boughs and jump the deadfall — that is the floor of
+ * skill FR-035 describes. The ONLY difference between them is
  * whether they hold a tuck on the open piste, which is the single decision the
  * whole two-track design hangs on.
  */
@@ -54,14 +54,9 @@ function ride(course: Course, pilot: Pilot, seed: number): Ride {
     // (FR-078), so a pilot who simply stays crouched rides into the log.
     const charging = gap < 90 && gap > 34;
     const releasing = gap <= 34 && gap > -30;
-    const barrierInReach = course.barriers.some(
-      (b, i) => s.barriersBroken[i] === 0 && b.x >= s.x && b.x <= s.x + tuning.attackReach,
-    );
-
     const input: RunInput = {
       crouch: !releasing && (duck || charging || (pilot === 'tuck' && s.grounded && s.ledge < 0)),
       rotate: 0,
-      attack: barrierInReach,
     };
     s = step(s, input, course, tuning, scoring, derived);
     if (s.ledge >= 0) {

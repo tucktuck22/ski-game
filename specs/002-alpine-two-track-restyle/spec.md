@@ -26,20 +26,10 @@ that Principle I requires. Reviewers should know that approving those parts
 ratifies a decision already taken in code, without the usual protection of
 catching a bad requirement while it is still cheap.
 
-**Implementation status**: the spec and the code do not currently agree, and the
-disagreement is a defect under Principle I until one of them moves. The
-following are specified here and **not built**:
-
-| Requirement            | Status                                                                        |
-| ---------------------- | ----------------------------------------------------------------------------- |
-| FR-094                 | Not built. Distance points accrue at a single rate regardless of track        |
-| FR-111, FR-112, FR-113 | Not built. Landing on the upper track is currently unmarked                   |
-| FR-108                 | Built as originally drafted; the narrowing to scenery only is not yet in code |
-
-Everything else in this document describes behavior that exists. The gap is
-deliberate — these requirements were added to the spec first, which is the
-order Principle I asks for — and closing it is the work of `/speckit-plan`
-onward.
+**Implementation status**: every requirement in this document is built. FR-094
+and FR-111 to FR-113 were specified ahead of implementation and have since been
+closed; FR-114 and FR-115 were added after the change they describe and carry
+the same Principle I deviation as the rest of the feature.
 
 ## Clarifications
 
@@ -303,6 +293,33 @@ that every hazard and both tracks remain readable in each.
 - **FR-110**: This feature MUST bump the rules version, because a score set
   under it is not comparable to one set before it (feature 001's FR-023).
 
+#### Withdrawals and rebalancing
+
+- **FR-114**: The attack verb is **withdrawn**, and the destructible barriers it
+  acted on are withdrawn with it. A barrier nothing can break is not a barrier —
+  it is a differently drawn log — so removing the verb without removing its
+  hazard would have left the course with two names for the same obstacle.
+
+  This **suspends feature 001's FR-081** and reduces its controls contract from
+  three verbs to two. It is a withdrawal, not a deletion of intent: the verb is
+  expected back, and the spec records the dependency so that whoever restores it
+  knows CV-6 and the barrier entity have to come back together with it.
+
+  One thing genuinely improves in the meantime. Touch input divided the screen
+  into thirds to give attack its own zone; with one verb left, the whole surface
+  is the tuck, which is strictly easier one-handed than what it replaced
+  (feature 001's FR-085).
+
+- **FR-115**: A full rotation MUST be achievable from a full-charge launch and
+  MUST NOT be achievable from a zero-charge one.
+
+  This is not a new idea — it is AC-3 of feature 001's tuning contract, which
+  had never been tested and was false. At the previous rotation rate a maximum
+  launch bought about four fifths of a turn, so the trick bonus was unreachable
+  by any player on any line. Raising the rate is half the fix; asserting both
+  halves of AC-3 against the shipped tuning is the other half, because a rate
+  raised without a ceiling makes the bonus free instead of unreachable.
+
 ### Key Entities
 
 - **Upper track segment**: a stretch of skiable surface running above the main
@@ -347,6 +364,10 @@ that every hazard and both tracks remain readable in each.
   no more distance-based points than a player who crosses it once.
 - **SC-028**: Two runs with identical input score identically whether or not the
   landing flash and shake were shown.
+- **SC-029**: A player can land a full rotation from a full-charge launch, and
+  cannot from a zero-charge one.
+- **SC-030**: No run can reach a state in which the attack verb would have
+  applied — there is no hazard on either course that only breaking could pass.
 
 ## Assumptions
 
@@ -399,9 +420,11 @@ that every hazard and both tracks remain readable in each.
   course.
 - **"Fewer obstacles" is measured against feature 001's shipped official
   course**, which is the only baseline that exists.
-- **No new player input is introduced.** The three inputs of feature 001's
-  controls contract are unchanged; ramps launch on contact rather than on a
-  button.
+- **No new player input is introduced, and one is taken away.** Ramps launch on
+  contact rather than on a button, so nothing was added. The attack verb is
+  withdrawn by FR-114, leaving two: crouch-and-release, and rotate. Feature
+  001's controls contract is amended to match rather than left describing a verb
+  the game no longer has.
 - **The rules-version bump invalidates any draft already in progress**, by
   feature 001's FR-023 and its storage layer's refusal to accept commits under a
   different rules version. This is the intended consequence and not a defect,

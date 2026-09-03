@@ -38,11 +38,7 @@ function fuzzOne(course: typeof official, seed: number): { state: RunState; tick
   while (state.outcome === 'running' && ticks < MAX_TICKS) {
     if (next() < 0.15) crouch = !crouch;
     const rv = next();
-    const input: RunInput = {
-      crouch,
-      rotate: rv < 0.2 ? -1 : rv > 0.8 ? 1 : 0,
-      attack: next() < 0.1,
-    };
+    const input: RunInput = { crouch, rotate: rv < 0.2 ? -1 : rv > 0.8 ? 1 : 0 };
     state = step(state, input, course, tuning, scoring, derived);
     ticks++;
 
@@ -98,14 +94,7 @@ describe('monkey fuzz (FR-062)', () => {
       let crouch = false;
       while (state.outcome === 'running' && state.tick < 2000) {
         if (next() < 0.2) crouch = !crouch;
-        state = step(
-          state,
-          { crouch, rotate: 0, attack: false },
-          official,
-          tuning,
-          scoring,
-          derived,
-        );
+        state = step(state, { crouch, rotate: 0 }, official, tuning, scoring, derived);
         if (state.grounded) {
           const speed = state.vx * state.ox + state.vy * state.oy;
           // There is no brake: FR-077 says the player cannot choose to go slower.
@@ -124,7 +113,7 @@ describe('monkey fuzz (FR-062)', () => {
     while (state.outcome === 'running' && state.tick < 6000) {
       r = (Math.imul(r, 1664525) + 1013904223) >>> 0;
       if (r / 4294967296 < 0.15) crouch = !crouch;
-      state = step(state, { crouch, rotate: 0, attack: true }, official, tuning, scoring, derived);
+      state = step(state, { crouch, rotate: 0 }, official, tuning, scoring, derived);
       for (const b of state.pickupsTaken) expect(b === 0 || b === 1).toBe(true);
     }
   });

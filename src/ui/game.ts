@@ -12,6 +12,7 @@ import { createStage, type Stage } from '../render/stage.js';
 import { applyCrt, resetCrt } from '../render/filters/crt.js';
 import { resolveMotion, type MotionSettings } from '../render/reducedMotion.js';
 import { drawRun, resetSceneryCache } from '../render/draw.js';
+import { LandingEffect } from '../render/landing.js';
 import { startLoop, type LoopHandle } from '../render/loop.js';
 import { InputSampler } from '../input/sample.js';
 import { keyboardSource } from '../input/keyboard.js';
@@ -34,6 +35,7 @@ export class GameView {
   private prevState: RunState;
   private finished = false;
   private readonly motion: MotionSettings;
+  private readonly landing = new LandingEffect();
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -68,6 +70,15 @@ export class GameView {
     this.prevState = this.state;
     this.state = step(this.state, input, this.course, this.tuning, this.scoring, this.derived);
 
+    // FR-111: the piste-to-shelf transition, read from two consecutive states
+    // rather than from a field the simulation had to carry. Advanced on the
+    // tick rather than the frame so the effect lasts the same wall-clock time
+    // whatever the display refresh rate.
+    this.landing.advance();
+    if (this.prevState.ledge < 0 && this.state.ledge >= 0) {
+      this.landing.trigger(performance.now(), this.motion);
+    }
+
     if (this.state.outcome !== 'running' && !this.finished) {
       this.finished = true;
       this.onEnd({
@@ -81,7 +92,15 @@ export class GameView {
 
   private render(): void {
     // Interpolation reads the previous state; rendering never mutates either.
-    drawRun(this.stage.ctx, this.state, this.course, this.tuning, this.motion);
+    drawRun(
+      this.stage.ctx,
+      this.state,
+      this.course,
+      this.tuning,
+      this.motion,
+      this.landing.shake(),
+      this.landing.flashAlpha(),
+    );
     this.stage.present();
   }
 
@@ -97,8 +116,5 @@ export class GameView {
     this.loop?.stop();
     this.sampler.destroy();
     this.stage.destroy();
-    // Reading prevState keeps the field live for interpolation without tripping
-    // the unused-member check; interpolated drawing lands with the US6 filters.
-    void this.prevState;
   }
 }

@@ -31,13 +31,13 @@ scenarios, not a tweak.
 
 ## Launch and air
 
-| Key                | Value | Tolerance | Rationale                                                                                                     |
-| ------------------ | ----- | --------- | ------------------------------------------------------------------------------------------------------------- |
-| `launchImpulseMin` | 3.4   | ±0.4      | Release with no charge. Clears a low obstacle, no more                                                        |
-| `launchImpulseMax` | 7.2   | ±0.6      | Release at full charge. ~0.75 s of air — one comfortable full rotation                                        |
-| `chargeTicksToMax` | 45    | ±8        | 0.75 s holding the tuck to reach maximum launch                                                               |
-| `rotationRateMax`  | 0.115 | ±0.020    | Radians per tick. Full rotation in ~55 ticks, just under max airtime — a full spin is achievable but not free |
-| `airControlFactor` | 0.25  | ±0.10     | How much rotation input affects horizontal drift. Low: air is committed                                       |
+| Key                | Value | Tolerance | Rationale                                                                                                                                                                                                                         |
+| ------------------ | ----- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `launchImpulseMin` | 3.4   | ±0.4      | Release with no charge. Clears a low obstacle, no more                                                                                                                                                                            |
+| `launchImpulseMax` | 7.2   | ±0.6      | Release at full charge. ~0.75 s of air — one comfortable full rotation                                                                                                                                                            |
+| `chargeTicksToMax` | 45    | ±8        | 0.75 s holding the tuck to reach maximum launch                                                                                                                                                                                   |
+| `rotationRateMax`  | 0.2   | ±0.030    | Radians per tick. Full rotation in ~31 ticks, inside the ~45 a full-charge launch buys — a full spin is achievable but not free. Raised from 0.115, where a maximum launch bought four fifths of a turn and AC-3 was simply false |
+| `airControlFactor` | 0.25  | ±0.10     | How much rotation input affects horizontal drift. Low: air is committed                                                                                                                                                           |
 
 ## Landing and wipeout
 
@@ -55,24 +55,11 @@ scenarios, not a tweak.
 | `crouchHeight`          | 9     | exact     | Must clear every `low` obstacle in course data. Enforced by the course validator |
 | `crouchTransitionTicks` | 4     | ±1        | Time to change profile. Non-zero so ducking must be anticipated                  |
 
-## Attack
+## Attack — withdrawn
 
-| Key                   | Value | Tolerance | Rationale                                                         |
-| --------------------- | ----- | --------- | ----------------------------------------------------------------- |
-| `attackReach`         | 22    | ±4        | Units ahead of the skier                                          |
-| `attackCooldownTicks` | 30    | ±6        | 0.5 s. Prevents mashing; makes barrier approach a timing decision |
-
-## Tracks and ramps
-
-| Key                | Value | Tolerance | Rationale                                                                                                                                                                               |
-| ------------------ | ----- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `branchThickness`  | 18    | ±4        | Vertical extent of a `low` obstacle's bough. A bough is a slab, not an infinite ceiling: it can be ducked under OR cleared from above, which is what lets the upper track sail over one |
-| `kickerImpulseMax` | 8.0   | ±1.0      | Ceiling on a ramp launch, so a maximum tuck into a ramp cannot fling the skier past every shelf on the course                                                                           |
-
-`branchThickness` is a shared constant rather than per-obstacle data on purpose:
-CV-14 compares it against every ledge height, and a per-obstacle thickness would
-turn that from one comparison into a search whose failure mode is a single bough
-somewhere on the course that the upper track clips.
+`attackReach` and `attackCooldownTicks` are removed from `tuning.json` by
+feature 002's FR-114, along with the verb and the barriers it acted on. They
+were 22 units and 30 ticks. Restoring the verb restores both keys.
 
 ## Course validation constants
 
@@ -86,7 +73,11 @@ These are the Principle III criteria and are asserted by tests, not by eye:
 
 - **AC-1**: Input to visible response ≤ 2 simulation frames for all three inputs (FR-031)
 - **AC-2**: A run at `baseSpeed` with no crouch completes the official course in 45–75 s
-- **AC-3**: A full rotation is achievable from a full-charge launch and not from a zero-charge launch
+- **AC-3**: A full rotation is achievable from a full-charge launch and not from a
+  zero-charge launch. **Asserted by `tests/sim/rotation.test.ts`.** It had no test
+  until feature 002 and was false for the whole of 1.0.0 and 1.1.0: at
+  `rotationRateMax` 0.115 no launch bought a complete turn, so the trick bonus
+  was unreachable by anyone
 - **AC-4**: `crouchHeight` clears every obstacle marked `low` in both courses
 - **AC-7**: A pilot who holds a tuck on the open piste rides every shelf on the
   official course; a pilot who never tucks rides none of them, and both finish.

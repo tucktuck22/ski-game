@@ -46,7 +46,6 @@ describe('scoring dominance (FR-034)', () => {
     const suicide: RunInput[] = Array.from({ length: 600 }, () => ({
       crouch: false as const,
       rotate: 1 as const,
-      attack: false as const,
     }));
     const r = runTrace(official, tuning, scoring, 19860214, suicide);
     expect(r.score).toBeGreaterThanOrEqual(0);

@@ -28,6 +28,14 @@ export interface DerivedTuning {
   cosToleranceForgiving: number;
 }
 
+/**
+ * How much faster distance-based points accrue on the upper track (FR-094).
+ *
+ * A constant rather than a tuning value: this is the shape of the reward, not a
+ * knob for feel, and CV-8's dominance arithmetic is checked against it.
+ */
+export const UPPER_TRACK_PROGRESS_RATE = 2;
+
 export const derive = (t: Tuning): DerivedTuning => ({
   cosTolerance: cosDet(t.landingAngleTolerance),
   cosToleranceForgiving: cosDet(t.landingAngleToleranceForgiving),
@@ -55,22 +63,17 @@ export function initialState(course: Course, tuning: Tuning, seed: number): RunS
     crouchCharge: 0,
     crouchProfile: 0,
     landingGraceTicks: 0,
-    attackCooldown: 0,
     score: 0,
     maxX: 0,
+    progress: 0,
     pickupsTaken: new Uint8Array(course.pickups.length),
-    barriersBroken: new Uint8Array(course.barriers.length),
     outcome: 'running',
     wipeoutReason: null,
   };
 }
 
 export function cloneState(s: RunState): RunState {
-  return {
-    ...s,
-    pickupsTaken: s.pickupsTaken.slice(),
-    barriersBroken: s.barriersBroken.slice(),
-  };
+  return { ...s, pickupsTaken: s.pickupsTaken.slice() };
 }
 
 const wipeout = (s: RunState, reason: NonNullable<RunState['wipeoutReason']>): RunState => {
@@ -98,7 +101,6 @@ export function step(
   const prevY = prev.y;
   s.tick += 1;
   if (s.landingGraceTicks > 0) s.landingGraceTicks -= 1;
-  if (s.attackCooldown > 0) s.attackCooldown -= 1;
 
   // 1. Crouch, and the release edge that launches.
   const launch = resolveCrouch(s, input, tuning, course);
@@ -116,7 +118,15 @@ export function step(
   // 3. Integrate (semi-implicit: velocity was updated first).
   s.x += s.vx;
   s.y += s.vy;
-  if (s.x > s.maxX) s.maxX = s.x;
+  if (s.x > s.maxX) {
+    // FR-094: ground covered on the upper track is worth double. Credited only
+    // for the stretch beyond maxX, so riding back and forth over one shelf pays
+    // exactly once - the farming protection maxX exists for, preserved through
+    // the multiplier rather than replaced by it. `s.ledge` here is the track he
+    // entered the tick on, which is the track he covered the ground on.
+    s.progress += (s.x - s.maxX) * (s.ledge >= 0 ? UPPER_TRACK_PROGRESS_RATE : 1);
+    s.maxX = s.x;
+  }
 
   // 3b. Ride off the end of the upper track. Nothing catches you at x1: the
   // ledge simply stops and you are in the air over the piste, holding the slope
@@ -146,33 +156,7 @@ export function step(
     s.y = surfaceYAt(course, s.x, s.ledge);
   }
 
-  // 5. Attack, then barriers.
-  if (input.attack && s.attackCooldown === 0) {
-    s.attackCooldown = tuning.attackCooldownTicks;
-    for (let i = 0; i < course.barriers.length; i++) {
-      const b = course.barriers[i]!;
-      if (s.barriersBroken[i] === 1) continue;
-      if (b.x >= s.x && b.x <= s.x + tuning.attackReach) {
-        s.barriersBroken[i] = 1;
-        s.score += scoring.barrierBroken;
-      }
-    }
-  }
-  // A barrier blocks the ground line only. Going over it is the bypass FR-081
-  // and CV-6 assume exists - breaking through is faster and scores, jumping it
-  // costs the setup ticks. An unconditional wall would leave no "around", which
-  // is what CV-6 measures against.
-  for (let i = 0; i < course.barriers.length; i++) {
-    const b = course.barriers[i]!;
-    if (s.barriersBroken[i] === 1) continue;
-    // A barrier stands on the piste. Riding the upper track carries you clean
-    // over it - which is the point of the upper track, and is why breaking
-    // through still has to beat the bypass on the lower line (CV-6).
-    if (s.grounded && s.ledge < 0 && s.x >= b.x && s.x < b.x + b.width)
-      return wipeout(s, 'struck_barrier');
-  }
-
-  // 6. Obstacles, with real vertical extent on both axes.
+  // 5. Obstacles, with real vertical extent on both axes.
   //
   // y increases downward, the skier's feet are at s.y and his head at
   // s.y - height. A `low` obstacle is an overhanging bough: a slab occupying
@@ -199,7 +183,7 @@ export function step(
     return wipeout(s, 'struck_obstacle');
   }
 
-  // 7. Pickups.
+  // 6. Pickups.
   for (let i = 0; i < course.pickups.length; i++) {
     if (s.pickupsTaken[i] === 1) continue;
     const p = course.pickups[i]!;
@@ -212,7 +196,7 @@ export function step(
     s.score += pickupValue(scoring, p);
   }
 
-  // 8. Finish.
+  // 7. Finish.
   if (s.x >= course.length) {
     s.x = course.length;
     s.outcome = 'finished';

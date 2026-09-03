@@ -29,7 +29,7 @@ export function runTrace(
 ): RunResult {
   const derived = derive(tuning);
   let state = initialState(course, tuning, seed);
-  const hold: RunInput = { crouch: false, rotate: 0, attack: false };
+  const hold: RunInput = { crouch: false, rotate: 0 };
 
   let i = 0;
   while (state.outcome === 'running' && state.tick < maxTicks) {
@@ -67,7 +67,18 @@ export function stateHash(s: RunState): string {
   };
 
   mix(s.tick);
-  for (const v of [s.x, s.y, s.vx, s.vy, s.ox, s.oy, s.rotationAccum, s.crouchProfile, s.maxX])
+  for (const v of [
+    s.x,
+    s.y,
+    s.vx,
+    s.vy,
+    s.ox,
+    s.oy,
+    s.rotationAccum,
+    s.crouchProfile,
+    s.maxX,
+    s.progress,
+  ])
     mixFloat(v);
   mix(s.score);
   mix(s.crouchCharge);
@@ -77,6 +88,5 @@ export function stateHash(s: RunState): string {
   mix(s.ledge + 1);
   mix(s.outcome === 'finished' ? 1 : s.outcome === 'wiped_out' ? 2 : 0);
   for (const b of s.pickupsTaken) mix(b);
-  for (const b of s.barriersBroken) mix(b);
   return h.toString(16).padStart(8, '0');
 }

@@ -69,12 +69,6 @@ export interface Kicker {
   power: number;
 }
 
-export interface Barrier {
-  x: number;
-  width: number;
-  bypassCostTicks: number;
-}
-
 export type PickupValue = 'small' | 'large';
 
 export interface Pickup {
@@ -90,7 +84,6 @@ export interface Course {
   length: number;
   terrain: TerrainPoint[];
   obstacles: Obstacle[];
-  barriers: Barrier[];
   pickups: Pickup[];
   ledges: Ledge[];
   kickers: Kicker[];
@@ -115,8 +108,6 @@ export interface Tuning {
   standHeight: number;
   crouchHeight: number;
   crouchTransitionTicks: number;
-  attackReach: number;
-  attackCooldownTicks: number;
   safeReleaseWindowMin: number;
   /** Vertical extent of a `low` obstacle's bough, hanging below its clearance. */
   branchThickness: number;
@@ -134,23 +125,24 @@ export interface Scoring {
   pickupLarge: number;
   /** Per full rotation landed cleanly. */
   trickPerRotation: number;
-  barrierBroken: number;
 }
 
-/** The three inputs of contracts/controls.md. */
+/**
+ * The inputs of contracts/controls.md.
+ *
+ * Two, not three: the attack verb is withdrawn (FR-114) along with the barriers
+ * it acted on. Crouch-and-release plus rotate is the whole control surface.
+ */
 export interface RunInput {
   /** Held state. The RELEASE edge is what launches (FR-078). */
   crouch: boolean;
   /** -1, 0 or +1. Airborne only. */
   rotate: -1 | 0 | 1;
-  /** Edge-triggered. */
-  attack: boolean;
 }
 
 export type Outcome = 'running' | 'finished' | 'wiped_out';
 
-export type WipeoutReason =
-  'launched_into_obstacle' | 'bad_landing' | 'struck_obstacle' | 'struck_barrier' | null;
+export type WipeoutReason = 'launched_into_obstacle' | 'bad_landing' | 'struck_obstacle' | null;
 
 export interface RunState {
   tick: number;
@@ -174,12 +166,20 @@ export interface RunState {
   /** 0 = standing, 1 = fully crouched. Transitions over crouchTransitionTicks. */
   crouchProfile: number;
   landingGraceTicks: number;
-  attackCooldown: number;
   score: number;
   /** Furthest x reached, so progress score cannot be farmed by oscillating. */
   maxX: number;
+  /**
+   * Distance credited so far, with the upper track's multiplier already applied.
+   *
+   * Progress cannot simply be read back from maxX any more: the same ground is
+   * worth twice as much when it is covered on the upper track (FR-094), so what
+   * a run earned depends on where it was, not only on how far it got. Only
+   * newly covered ground is ever added, which is what keeps the doubling from
+   * reopening the farming hole maxX was introduced to close.
+   */
+  progress: number;
   pickupsTaken: Uint8Array;
-  barriersBroken: Uint8Array;
   outcome: Outcome;
   wipeoutReason: WipeoutReason;
 }

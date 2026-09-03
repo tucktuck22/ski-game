@@ -92,14 +92,32 @@ rather than leaving to inference.
   skill gate and is a plausible reading of the request, so it is recorded in
   Assumptions rather than silently decided in either direction.
 
-### Requirements not yet implemented
+### Third validation pass — after the withdrawal and rebalancing amendments
 
-The Content Quality and Requirement Completeness sections above assess the
-document. They do not assess whether the code matches it, and for FR-094,
-FR-111, FR-112 and FR-113 it does not. The spec's Context section carries the
-table. Under Principle I a spec that disagrees with shipped behavior is a
-defect, so this checklist is not evidence that the feature is done — only that
-the specification is fit to plan against.
+FR-114 (attack withdrawn) and FR-115 (rotation rate) were added, and FR-094 and
+FR-111 to FR-113 were implemented, closing the gap the previous pass recorded.
+Two findings:
+
+1. **FR-114 contradicts a ratified requirement of another feature, and saying so
+   is the whole point of the entry.** Feature 001's FR-081 requires the attack
+   verb and its barriers; this feature removes both. The requirement is written
+   as a suspension rather than a deletion, names FR-081 explicitly, and records
+   what has to come back with the verb (CV-6, the barrier entity, two tuning
+   keys). Feature 001's controls, course-data and tuning contracts are amended
+   in the same change set rather than left describing a verb the game no longer
+   has, as Principle I requires.
+2. **FR-115 is not a new requirement and should not have read like one.** It is
+   AC-3 of feature 001's tuning contract, which had never been tested and had
+   been false since 1.0.0 — at the old rotation rate no launch bought a complete
+   turn, so the trick bonus was unreachable by any player. The entry says so,
+   and the criterion now has a test rather than only a raised number.
+
+### Implementation status
+
+All requirements in the spec are built, and the spec's Context section says so.
+That closes the Principle I defect this checklist recorded in its previous pass;
+it does not undo the process deviation noted below, which is about the order the
+work happened in, not about whether the two artifacts now agree.
 
 ### Process deviation
 

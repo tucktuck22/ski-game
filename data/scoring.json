@@ -4,6 +4,5 @@
   "progressPerUnit": 1,
   "pickupSmall": 250,
   "pickupLarge": 750,
-  "trickPerRotation": 1200,
-  "barrierBroken": 500
+  "trickPerRotation": 1200
 }

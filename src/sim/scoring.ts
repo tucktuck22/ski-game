@@ -12,22 +12,28 @@ import { TAU } from './trig.js';
 export const pickupValue = (s: Scoring, p: Pickup): number =>
   p.value === 'large' ? s.pickupLarge : s.pickupSmall;
 
-/** Progress score, computed from furthest x reached so it cannot be farmed. */
-export const progressScore = (s: Scoring, maxX: number): number =>
-  Math.floor(maxX * s.progressPerUnit);
+/**
+ * Progress score, from the distance already credited in RunState.progress.
+ *
+ * It used to be computed here from maxX. It cannot be any more: the upper track
+ * pays double for the same ground (FR-094), so what a run earned depends on
+ * where it was ridden, and only the simulation knows that. The farming
+ * protection did not move with it - step() credits newly covered ground only.
+ */
+export const progressScore = (s: Scoring, progress: number): number =>
+  Math.floor(progress * s.progressPerUnit);
 
 /** Trick score for a cleanly landed air. Partial rotations pay nothing. */
 export const trickScore = (s: Scoring, rotationAccum: number): number =>
   Math.floor(rotationAccum / TAU) * s.trickPerRotation;
 
 /**
- * The maximum a single run could possibly earn in bonuses — every pickup, every
- * barrier, and a generous ceiling on tricks. Used to prove FR-034 holds.
+ * The maximum a single run could possibly earn in bonuses — every pickup and a
+ * generous ceiling on tricks. Used to prove FR-034 holds.
  */
 export function maxAchievableBonus(course: Course, s: Scoring, trickCeiling: number): number {
   let total = 0;
   for (const p of course.pickups) total += pickupValue(s, p);
-  total += course.barriers.length * s.barrierBroken;
   total += trickCeiling * s.trickPerRotation;
   return total;
 }
@@ -35,5 +41,5 @@ export function maxAchievableBonus(course: Course, s: Scoring, trickCeiling: num
 /** Final score for a completed run. */
 export function finalScore(state: RunState, s: Scoring): number {
   const base = state.outcome === 'finished' ? s.completionBase : 0;
-  return base + state.score + progressScore(s, state.maxX);
+  return base + state.score + progressScore(s, state.progress);
 }

@@ -9,7 +9,7 @@
   "launchImpulseMin": 3.4,
   "launchImpulseMax": 7.2,
   "chargeTicksToMax": 45,
-  "rotationRateMax": 0.115,
+  "rotationRateMax": 0.2,
   "airControlFactor": 0.25,
   "landingAngleTolerance": 0.42,
   "landingAngleToleranceForgiving": 0.58,
@@ -17,8 +17,6 @@
   "standHeight": 16,
   "crouchHeight": 9,
   "crouchTransitionTicks": 4,
-  "attackReach": 22,
-  "attackCooldownTicks": 30,
   "safeReleaseWindowMin": 140,
   "branchThickness": 18,
   "kickerImpulseMax": 8.0

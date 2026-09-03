@@ -81,12 +81,6 @@ describe('validator rules fire on deliberately broken courses', () => {
     expect(rulesFired(c)).toContain('CV-5');
   });
 
-  it('CV-6: a barrier that costs nothing to bypass', () => {
-    const c = clone(warmup);
-    c.barriers.push({ x: 500, width: 30, bypassCostTicks: 0 });
-    expect(rulesFired(c)).toContain('CV-6');
-  });
-
   it('CV-7: a solid obstacle overlapping a low one leaves no survivable line', () => {
     const c = clone(warmup);
     const first = c.obstacles.find((o) => o.kind === 'low') as Obstacle;

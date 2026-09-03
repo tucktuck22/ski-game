@@ -30,15 +30,16 @@ interface Result {
  * bump rulesVersion, because scores under different rules are not comparable
  * (FR-023). Do not "just update the numbers" to make this pass.
  *
- * Last regenerated for rulesVersion 1.1.0, which added the upper track: ramps,
- * ledges, and boughs with a real top edge. Every one of those changes what a
- * given input trace does, so all three values moved together — a change that
- * moved only one of them would be the divergence this test is looking for.
+ * Last regenerated for rulesVersion 1.2.0, which withdrew the attack verb,
+ * doubled progress accrual on the upper track, and raised the rotation rate.
+ * Any one of those changes what a given input trace does, so all three values
+ * moved together — a change that moved only one of them would be the divergence
+ * this test is looking for.
  */
 const GOLDEN: Result[] = [
-  { seed: '5eed', score: 1875, ticks: 333, hash: '0175d1af' },
-  { seed: '1986', score: 400, ticks: 123, hash: 'efe69ef3' },
-  { seed: 'beef', score: 841, ticks: 159, hash: '8edb9c1b' },
+  { seed: '5eed', score: 1501, ticks: 271, hash: '6198c882' },
+  { seed: '1986', score: 467, ticks: 134, hash: '8d82e92f' },
+  { seed: 'beef', score: 235, ticks: 63, hash: 'c234c9b9' },
 ];
 
 test('the simulation reproduces the golden run exactly on this engine', async ({

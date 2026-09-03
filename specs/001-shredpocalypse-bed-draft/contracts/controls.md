@@ -1,18 +1,24 @@
 # Contract: Controls
 
-**Governs**: FR-029 to FR-032, FR-078, FR-080, FR-081, FR-085
+**Governs**: FR-029 to FR-032, FR-078, FR-080, FR-085
 
-Three inputs, deliberately. Collapsing jump and crouch into one charge-and-release
-verb is what makes one-handed phone play possible (FR-085) and is the game's core
-skill (FR-088).
+Two inputs. Collapsing jump and crouch into one charge-and-release verb is what
+makes one-handed phone play possible (FR-085) and is the game's core skill
+(FR-088).
+
+> **Attack is withdrawn.** This contract described three verbs until feature
+> 002's FR-114 removed the attack verb and the destructible barriers it acted
+> on. FR-081 is suspended, not deleted — the row below records what the verb was
+> so that restoring it does not have to be reconstructed from git history, and
+> whoever restores it needs CV-6 and the barrier entity back at the same time.
 
 ## The verbs
 
-| Verb                | Keyboard (default)  | Touch                                 | Simulation effect                                                                                                                                                                        |
-| ------------------- | ------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Crouch / launch** | Space or Down, held | Hold anywhere on the lower two-thirds | Held + grounded: accelerate toward `tuckSpeedMax`, lower profile. Released + grounded: launch scaled by charge (FR-078). Released under a low obstacle: launch into it, wipeout (FR-088) |
-| **Rotate**          | Left / Right, held  | Drag left or right, or tilt zones     | Airborne only: angular velocity toward ±`rotationRateMax` (FR-079)                                                                                                                       |
-| **Attack**          | Shift or Up, tapped | Tap the upper third                   | Destroys a barrier within `attackReach`; cooldown applies (FR-081)                                                                                                                       |
+| Verb                | Keyboard (default)  | Touch                             | Simulation effect                                                                                                                                                                        |
+| ------------------- | ------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Crouch / launch** | Space or Down, held | Hold anywhere on the screen       | Held + grounded: accelerate toward `tuckSpeedMax`, lower profile. Released + grounded: launch scaled by charge (FR-078). Released under a low obstacle: launch into it, wipeout (FR-088) |
+| **Rotate**          | Left / Right, held  | Drag left or right, or tilt zones | Airborne only: angular velocity toward ±`rotationRateMax` (FR-079)                                                                                                                       |
+| ~~**Attack**~~      | ~~Shift or Up~~     | ~~Tap the upper third~~           | _Withdrawn by FR-114._ Destroyed a barrier within `attackReach`, with a cooldown (FR-081)                                                                                                |
 
 ## Parity requirements
 

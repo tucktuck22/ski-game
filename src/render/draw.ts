@@ -15,6 +15,7 @@ import { terrainYAt, surfaceYAt } from '../sim/terrain.js';
 import { PALETTE, type PaletteToken } from './palette.js';
 import { INTERNAL_HEIGHT, INTERNAL_WIDTH } from './stage.js';
 import type { MotionSettings } from './reducedMotion.js';
+import type { Shake } from './landing.js';
 import { FULL_MOTION } from './reducedMotion.js';
 
 const css = (t: PaletteToken): string => {
@@ -629,8 +630,16 @@ export function drawRun(
   course: Course,
   tuning: Tuning,
   motion: MotionSettings = FULL_MOTION,
+  shake: Shake = { x: 0, y: 0 },
+  flashAlpha = 0,
 ): void {
   const cam = cameraFor(state);
+  // The kick is applied to the CAMERA, not to the finished frame. Translating
+  // the buffer afterwards would drag the sky with it and leave a bare strip at
+  // the edge; moving the camera shakes the world inside a frame that still
+  // fills.
+  cam.x += shake.x;
+  cam.y += shake.y;
 
   // Sky: purple to blue, style bible P-3.
   const sky = ctx.createLinearGradient(0, 0, 0, INTERNAL_HEIGHT);
@@ -714,26 +723,6 @@ export function drawRun(
     }
   }
 
-  // Barriers — orange, hazard colour P-4. Marked with a break line so they read
-  // as destructible rather than solid, which P-5 requires: not colour alone.
-  for (let i = 0; i < course.barriers.length; i++) {
-    if (state.barriersBroken[i] === 1) continue;
-    const b = course.barriers[i]!;
-    const px = b.x - cam.x;
-    if (px < -40 || px > INTERNAL_WIDTH + 40) continue;
-    const groundY = terrainYAt(course.terrain, b.x) - cam.y;
-    ctx.fillStyle = css('orange');
-    ctx.fillRect(px, groundY - 20, b.width, 20);
-    ctx.strokeStyle = css('ink');
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(px, groundY - 10);
-    ctx.lineTo(px + b.width, groundY - 10);
-    ctx.stroke();
-    ctx.fillStyle = css('snow');
-    ctx.fillRect(px, groundY - 20, b.width, 2);
-  }
-
   // Obstacles.
   for (const o of course.obstacles) {
     const px = o.x - cam.x;
@@ -745,6 +734,13 @@ export function drawRun(
   }
 
   drawSkier(ctx, state, course, tuning, cam, motion);
+
+  // FR-111's whiteout, over everything and after the skier. Capped well below a
+  // full white frame and rate-limited by the caller (FR-057).
+  if (flashAlpha > 0) {
+    ctx.fillStyle = rgba('snow', flashAlpha);
+    ctx.fillRect(0, 0, INTERNAL_WIDTH, INTERNAL_HEIGHT);
+  }
 }
 
 function drawSkier(

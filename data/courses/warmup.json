@@ -1,6 +1,6 @@
 {
   "id": "warmup",
-  "rulesVersion": "1.1.0",
+  "rulesVersion": "1.2.0",
   "length": 3200,
   "terrain": [
     {
@@ -94,13 +94,12 @@
       "kind": "solid",
       "width": 24,
       "clearance": 0
-    }
-  ],
-  "barriers": [
+    },
     {
       "x": 2700,
-      "width": 30,
-      "bypassCostTicks": 18
+      "kind": "solid",
+      "width": 24,
+      "clearance": 0
     }
   ],
   "pickups": [
@@ -131,47 +130,47 @@
     },
     {
       "x": 300,
-      "y": -9,
+      "y": -4,
       "value": "small"
     },
     {
       "x": 620,
-      "y": -6,
+      "y": -9,
       "value": "small"
     },
     {
       "x": 940,
-      "y": -8,
+      "y": -6,
       "value": "small"
     },
     {
       "x": 1260,
-      "y": -9,
+      "y": -8,
       "value": "small"
     },
     {
       "x": 1580,
-      "y": -11,
-      "value": "small"
-    },
-    {
-      "x": 1900,
-      "y": -10,
-      "value": "small"
-    },
-    {
-      "x": 2220,
       "y": -9,
       "value": "small"
     },
     {
+      "x": 1900,
+      "y": -11,
+      "value": "small"
+    },
+    {
+      "x": 2220,
+      "y": -10,
+      "value": "small"
+    },
+    {
       "x": 2540,
-      "y": -5,
+      "y": -9,
       "value": "small"
     },
     {
       "x": 2860,
-      "y": -11,
+      "y": -5,
       "value": "small"
     }
   ],
