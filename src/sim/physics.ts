@@ -12,8 +12,15 @@
  */
 import type { Course, RunState, RunInput, Tuning } from './types.js';
 import { approach, clamp } from './math.js';
-import { sinDet, cosDet } from './trig.js';
-import { slopeAt, terrainYAt, overheadClearanceAt } from './terrain.js';
+import { sinDet, cosDet, TAU } from './trig.js';
+import {
+  slopeAt,
+  terrainYAt,
+  surfaceYAt,
+  onLedgeSpan,
+  iceIndexAt,
+  overheadClearanceAt,
+} from './terrain.js';
 
 export interface LaunchOutcome {
   launched: boolean;
@@ -56,7 +63,11 @@ export function resolveCrouch(
 
   // FR-088: releasing under a low obstacle launches into it. No clearance check,
   // no charge threshold, no suppressed jump. The timing IS the skill.
-  const clearance = overheadClearanceAt(course, state.x);
+  //
+  // Only on the piste. A skier riding the upper track is above every bough by
+  // construction (CV-14), so the boughs below him are not his ceiling and
+  // standing up there is simply standing up.
+  const clearance = state.ledge < 0 ? overheadClearanceAt(course, state.x) : Infinity;
   if (clearance < tuning.standHeight) {
     state.crouchCharge = 0;
     return { launched: false, intoObstacle: true };
@@ -68,9 +79,54 @@ export function resolveCrouch(
 
   state.vy -= impulse; // up is -y
   state.grounded = false;
+  state.ledge = -1;
   state.crouchCharge = 0;
   state.rotationAccum = 0;
   return { launched: true, intoObstacle: false };
+}
+
+/**
+ * Applies a kicker launch if the skier crossed a ramp lip this tick.
+ *
+ * The impulse is proportional to carried speed, which is what makes a kicker
+ * read as a ramp rather than as a second jump button: approach it in a tuck and
+ * it throws you to the upper track, coast into it and it gives you a hop. No
+ * per-kicker state is needed because a grounded skier's x is strictly
+ * increasing - FR-077 puts a floor under speed and the piste always runs
+ * downhill - so a lip can be crossed at most once.
+ *
+ * Called BEFORE integration, for the same reason the crouch release is: an
+ * impulse applied after the position update leaves the skier still standing on
+ * the ramp, and the ground contact resolved later in the same tick snaps him
+ * back down and scrubs the whole launch. So the lip test looks at where this
+ * tick's velocity is ABOUT to put him rather than where he already is.
+ *
+ * Returns true when a launch happened.
+ */
+export function applyKickers(state: RunState, course: Course, tuning: Tuning): boolean {
+  if (!state.grounded) return false;
+  // A ramp is built on the piste. Sailing over one on the upper track is not a
+  // launch, it is scenery.
+  if (state.ledge >= 0) return false;
+
+  const nextX = state.x + state.vx;
+  let impulse = 0;
+  for (const k of course.kickers) {
+    const lip = k.x + k.width;
+    if (state.x >= lip || nextX < lip) continue;
+    const carried = currentSpeed(state);
+    const scaled = k.power * carried;
+    const capped = scaled > tuning.kickerImpulseMax ? tuning.kickerImpulseMax : scaled;
+    if (capped > impulse) impulse = capped;
+  }
+  if (impulse <= 0) return false;
+
+  state.vy -= impulse;
+  state.grounded = false;
+  state.ledge = -1;
+  state.crouchCharge = 0;
+  state.rotationAccum = 0;
+  return true;
 }
 
 /** Grounded motion: speed toward the tuck or base target, plus slope acceleration. */
@@ -94,23 +150,61 @@ export function applyGroundedMotion(state: RunState, course: Course, tuning: Tun
   state.oy = slope.uy;
 }
 
-/** Airborne motion: gravity, and rotation if the player is spinning. */
+/**
+ * Airborne motion: gravity, and the spin if one is turning.
+ *
+ * Rotation is a COMMITTED ANIMATION, not a rate the player steers. A press
+ * starts one whole turn in the pressed direction; it then runs for exactly
+ * `spinDurationTicks` and cannot be stopped, reversed or shortened, and touching
+ * down before it finishes ends the run (FR-124).
+ *
+ * This replaced a free-rotation model where the player nudged his orientation a
+ * little every tick and had to arrive at the ground within a tolerance of the
+ * slope. That asked him to judge a continuous quantity he could barely see at
+ * 320x180, at speed, and the answer was usually "don't rotate at all". A
+ * committed spin asks one question instead - is there time? - and the player can
+ * actually answer it.
+ */
 export function applyAirborneMotion(state: RunState, input: RunInput, tuning: Tuning): void {
   state.vy += tuning.gravity;
 
-  if (input.rotate !== 0) {
-    const delta = tuning.rotationRateMax * input.rotate;
-    const c = cosDet(delta);
-    const s = sinDet(delta);
-    const ox = state.ox * c - state.oy * s;
-    const oy = state.ox * s + state.oy * c;
-    state.ox = ox;
-    state.oy = oy;
-    state.rotationAccum += delta < 0 ? -delta : delta;
-
-    // Air control is deliberately weak: committing to a rotation costs you the line.
-    state.vx += tuning.airControlFactor * input.rotate * 0.01;
+  // On the PRESS, and only when nothing is already turning. Holding the key
+  // does not chain spins: a chain restarts the moment one finishes, so the last
+  // one is always incomplete on landing and holding becomes a way to die.
+  const pressed = input.rotate !== 0 && state.rotateHeld === 0;
+  if (pressed && state.spinTicksLeft === 0) {
+    state.spinTicksLeft = tuning.spinDurationTicks;
+    state.spinDir = input.rotate;
+    state.spinFromOx = state.ox;
+    state.spinFromOy = state.oy;
   }
+
+  if (state.spinTicksLeft === 0) return;
+
+  state.spinTicksLeft -= 1;
+
+  if (state.spinTicksLeft === 0) {
+    // A whole turn ends where it began, exactly. Restored rather than rotated
+    // the last step, so no drift survives the trick.
+    state.ox = state.spinFromOx;
+    state.oy = state.spinFromOy;
+    state.rotationAccum += TAU;
+    state.spinDir = 0;
+    return;
+  }
+
+  // Rebuilt from the starting orientation each tick rather than nudged on from
+  // the last one, so the error is bounded by one rotation instead of compounding
+  // across fifteen.
+  const elapsed = tuning.spinDurationTicks - state.spinTicksLeft;
+  const angle = ((TAU * elapsed) / tuning.spinDurationTicks) * state.spinDir;
+  const c = cosDet(angle);
+  const sn = sinDet(angle);
+  state.ox = state.spinFromOx * c - state.spinFromOy * sn;
+  state.oy = state.spinFromOx * sn + state.spinFromOy * c;
+
+  // Air control is deliberately weak: committing to a rotation costs you the line.
+  state.vx += tuning.airControlFactor * state.spinDir * 0.01;
 }
 
 export const currentSpeed = (state: RunState): number => {
@@ -126,25 +220,62 @@ export const currentSpeed = (state: RunState): number => {
  * Returns true when the landing was clean. A landing is clean when the skier's
  * orientation is within tolerance of the slope — compared as a dot product,
  * because both are unit vectors (FR-079).
+ *
+ * Two surfaces can catch him. Ledges are ONE-WAY: they catch only a descending
+ * skier who crossed the shelf between `prevY` and now, so riding up through one
+ * from below is free and standing under one is not a collision. The piste
+ * underneath is solid and always catches. Checking the ledges first is what
+ * makes the upper track a track rather than a decoration.
  */
+export type Contact = 'airborne' | 'landed' | 'misaligned';
+
 export function resolveLanding(
   state: RunState,
   course: Course,
   tuning: Tuning,
   cosTolerance: number,
   cosToleranceForgiving: number,
-): boolean {
-  const groundY = terrainYAt(course.terrain, state.x);
-  if (state.y < groundY) return true; // still airborne, nothing to resolve
-
-  state.y = groundY;
+  prevY: number,
+): Contact {
   const slope = slopeAt(course.terrain, state.x);
+
+  let landedOn = -2; // -2 = nothing, -1 = piste, >= 0 = ledge index
+  let surfaceY = 0;
+
+  if (state.vy > 0) {
+    // Descending. Take the topmost shelf crossed this tick: with overlapping
+    // ledges banned by CV-12 there is at most one, but resolving by height
+    // rather than by index keeps the result independent of file ordering.
+    const brokenHere = iceIndexAt(course, state.x);
+    // A shelf with a hole in it is not a surface. This is also what stops the
+    // tick after a break from putting the player straight back on the ice.
+    const holed = brokenHere >= 0 && state.iceBroken[brokenHere] === 1;
+    for (let i = 0; !holed && i < course.ledges.length; i++) {
+      if (!onLedgeSpan(course, state.x, i)) continue;
+      const ly = surfaceYAt(course, state.x, i);
+      if (prevY > ly || state.y < ly) continue; // did not cross it going down
+      if (landedOn === -2 || ly < surfaceY) {
+        landedOn = i;
+        surfaceY = ly;
+      }
+    }
+  }
+
+  if (landedOn === -2) {
+    const groundY = terrainYAt(course.terrain, state.x);
+    if (state.y < groundY) return 'airborne'; // nothing to resolve
+    landedOn = -1;
+    surfaceY = groundY;
+  }
+
+  state.y = surfaceY;
   const alignment = state.ox * slope.ux + state.oy * slope.uy;
   const threshold = state.landingGraceTicks > 0 ? cosToleranceForgiving : cosTolerance;
 
-  if (alignment < threshold) return false;
+  if (alignment < threshold) return 'misaligned';
 
   state.grounded = true;
+  state.ledge = landedOn;
   state.ox = slope.ux;
   state.oy = slope.uy;
   state.landingGraceTicks = 15;
@@ -157,5 +288,5 @@ export function resolveLanding(
   const settled = clamp(along, tuning.baseSpeed, tuning.tuckSpeedMax);
   state.vx = settled * slope.ux;
   state.vy = settled * slope.uy;
-  return true;
+  return 'landed';
 }

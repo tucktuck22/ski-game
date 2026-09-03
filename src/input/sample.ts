@@ -15,24 +15,25 @@ export interface InputSource {
 }
 
 export class InputSampler {
-  private latched = false;
   constructor(private readonly sources: InputSource[]) {}
 
-  /** Combines every source. Touch and keyboard are equal citizens (FR-029). */
+  /**
+   * Combines every source. Touch and keyboard are equal citizens (FR-029).
+   *
+   * Both remaining verbs are held states, so the sampler no longer latches
+   * anything: the one edge the game cares about is the crouch RELEASE, and
+   * resolveCrouch derives that from the simulation's own previous tick rather
+   * than from here.
+   */
   sample(): RunInput {
     let crouch = false;
     let rotate: -1 | 0 | 1 = 0;
-    let attack = false;
     for (const s of this.sources) {
       const i = s.read();
       crouch = crouch || i.crouch;
       if (i.rotate !== 0) rotate = i.rotate;
-      attack = attack || i.attack;
     }
-    // Attack is edge-triggered: holding the button must not machine-gun it.
-    const attackEdge = attack && !this.latched;
-    this.latched = attack;
-    return { crouch, rotate, attack: attackEdge };
+    return { crouch, rotate };
   }
 
   destroy(): void {

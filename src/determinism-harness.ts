@@ -29,7 +29,7 @@ function traceFromSeed(seed: number, ticks: number): RunInput[] {
   for (let i = 0; i < ticks; i++) {
     if (next() < 0.06) crouch = !crouch;
     const r = next();
-    trace.push({ crouch, rotate: r < 0.12 ? -1 : r > 0.88 ? 1 : 0, attack: next() < 0.05 });
+    trace.push({ crouch, rotate: r < 0.12 ? -1 : r > 0.88 ? 1 : 0 });
   }
   return trace;
 }

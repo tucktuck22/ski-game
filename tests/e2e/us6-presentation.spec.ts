@@ -57,6 +57,38 @@ test.describe('US6: presentation and accessibility', () => {
     }
   });
 
+  test('a wipeout holds the mountain before it shows the results (FR-131)', async ({ page }) => {
+    // A player who never crouches is stopped by the first bough — the case
+    // tests/sim/golden.test.ts pins down — so this needs no input at all to
+    // produce a death.
+    await page.goto('/');
+    await page.locator('button[data-claim]').first().click();
+    await page.locator('#practice').click();
+    await expect(page.locator('#screen')).toBeVisible();
+
+    const died = page.locator('.you-died');
+    await expect(died).toBeVisible({ timeout: 90_000 });
+
+    // The whole point: the run is over and the mountain is still on screen.
+    // Before FR-131 this frame did not exist — the results panel replaced the
+    // canvas on the tick the run ended.
+    await expect(page.locator('#screen')).toBeVisible();
+    await expect(died).toContainText('YOU DIED');
+    await expect(page.locator('.panel')).toHaveCount(0);
+
+    // And it does end, rather than stranding the player on his own corpse.
+    await expect(page.locator('.sfx')).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('a wipeout can be skipped by anyone who has seen it before', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('button[data-claim]').first().click();
+    await page.locator('#practice').click();
+    await expect(page.locator('.you-died')).toBeVisible({ timeout: 90_000 });
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.sfx')).toBeVisible({ timeout: 3_000 });
+  });
+
   test('the deadline is shown so nobody has to guess how long is left', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('.row').first()).toContainText(/left|FINAL/);

@@ -26,7 +26,7 @@ Eight colours. Nothing outside this set appears in any asset.
 | `magenta` | `#FF2D95` | Primary accent. Player, active state, title lettering  |
 | `cyan`    | `#22E8F5` | Secondary accent. Terrain edge, pickups, confirmations |
 | `blue`    | `#4361FF` | Tertiary. Sky gradient top, inactive UI                |
-| `orange`  | `#FC6008` | Warning. Obstacles, barriers, hazard edges             |
+| `orange`  | `#FC6008` | Warning. Obstacle and hazard edges                     |
 | `yellow`  | `#FFD23F` | Alert and score. Wipeout lettering, HUD score          |
 | `snow`    | `#F2F0FF` | Body text, snow surface, high-contrast marks           |
 
@@ -61,8 +61,14 @@ Eight colours. Nothing outside this set appears in any asset.
 - **LW-2** — Every sprite carries a full outline in `ink` or `snow`. No open silhouettes.
 - **LW-3** — The player silhouette reads at 16 × 16 with no interior detail. Interior
   detail is a bonus at rest, never a requirement in motion.
-- **LW-4** — Terrain gets a 1px `cyan` top edge over an `ink` fill. That edge is the
-  contact line the physics actually uses; it must never be decorative.
+- **LW-4** — Terrain gets a 1px `cyan` top edge. That edge is the contact line the
+  physics actually uses; it must never be decorative. Beneath it sits a `snow`
+  band of a few pixels — the snowpack — and beneath that the `ink` body. The
+  band was added when the mountain was a black wedge that read as a cliff; the
+  cyan edge is unchanged and still wins against anything drawn near it.
+- **LW-5** — The upper track gets the same 1px `cyan` treatment on both its top
+  edge and its underside, and a visible cut face at each end. A shelf whose ends
+  the player cannot see is a shelf he rides off without warning.
 
 ---
 
@@ -80,13 +86,91 @@ Eight colours. Nothing outside this set appears in any asset.
 
 ---
 
+## 3a. The mountain (rules TR-*)
+
+The run is a side-on cut through a mountainside at dusk. Everything in this
+section serves one hierarchy: **the two contact lines and the hazards on them
+outrank every other mark on screen.** Backdrop exists to say where you are, not
+to be looked at.
+
+- **TR-0** — The sky carries one sunset disc: a `yellow` → `magenta` gradient
+  (P-3) slit by widening `purple` bars, low and to one side, occluded by the
+  ridge in front of it. One per frame. It is the period's most recognisable mark
+  and it costs six rectangles; a second one would cost the frame its subject.
+- **TR-1** — Depth is built from five ranks, each anchored to the piste ON SCREEN
+  and lifted above it: a capped ridge, a far pine rank, a near ridge, a mid pine
+  rank, and a near pine rank standing on the piste itself. Anchoring to the
+  visible slope rather than to terrain sampled at the rank's own parallax is not
+  a shortcut — the piste descends thousands of world units over a run, and a
+  rank sampled at its own offset leaves the frame within seconds.
+- **TR-2** — Obstacles are trees, and each reads as its own kind of tree from its
+  silhouette alone. A `low` obstacle is an overhanging bough: a tapered limb with
+  filled needle wedges hanging to the collision floor, so the shape the player
+  sees IS the shape he has to get under. A `solid` obstacle is deadfall: a
+  snow-capped log with its end grain out. Neither may be drawn as a rectangle,
+  which is what both were before this rule existed.
+- **TR-3** — Hazards keep `orange` (P-4) as an edge on the surface that actually
+  kills — the underside of a bough, the body of a log — never as a fill over the
+  whole silhouette. A tree painted entirely `orange` reads as a warning sign
+  rather than as a tree, and loses the shape TR-2 is buying.
+- **TR-4** — A ramp is never drawn in `snow` alone. Snow on snow is invisible, and
+  a ramp is the one object that launches the player without being asked, so it
+  carries `yellow` hazard stripes, chevrons, and a marked lip.
+- **TR-5** — Snowfall is three parallax depths of 1–2px `snow` marks on fixed
+  world columns. It is dropped entirely under reduced motion, not slowed: a slow
+  blizzard is still a blizzard in front of the things the player must read (L-0,
+  T-5).
+- **TR-6** — Scenery positions come from a hash of the feature's own slot, never
+  from a running RNG. A forest re-rolled each frame boils.
+- **TR-7** — Nothing in this section may be derived from run state beyond the
+  camera and the tick. Backdrop that reacted to score or outcome would be a
+  second, unverifiable channel of gameplay information (A-4's argument, applied
+  to pixels).
+- **TR-8** — The upper track's hazards must read from across the frame, because
+  the decision about each is made before the player reaches it. Ice is drawn as a
+  different material from snow — opaque `cyan`, not a tint over the shelf — and
+  marked at both ends with `orange` posts standing proud of the shelf. The posts
+  are what actually carry: the shelf is six pixels seen edge-on, and a tint on
+  six pixels is invisible at speed, which is how the first version shipped a
+  hazard nobody could see coming.
+- **TR-9** — A rock is a vertical dark wedge with an `orange` crest; deadfall is
+  a horizontal `orange` barrel. They are the two obstacles a player clears the
+  same way, so they are drawn as differently as the palette allows — at speed,
+  two hazards that answer to the same verb must still never trade places in his
+  head (P-5).
+- **TR-10** — Ice that has given way is drawn as nothing at all. The simulation
+  will not catch anybody there, and a picture that disagreed would be worse than
+  no picture: the player would aim a landing at snow that is not there.
+
+---
+
 ## 4. Lettering (rules LT-*)
 
 - **LT-1** — Titles are chrome: `snow` core, `cyan` upper bevel, `magenta` lower
   bevel, `ink` outline. Titles only — never body copy.
 - **LT-2** — Body and HUD text is a 5 × 7 pixel face in `snow`, unbevelled, unbloomed.
-- **LT-3** — Sound-effect lettering (WIPEOUT, SEND IT) is `yellow` on `ink` with a
-  hard `magenta` drop at 1px offset.
+- **LT-3** — Sound-effect lettering (WIPEOUT, SEND IT, and the trick badges —
+  NICE, COOL, SICK, WHOA) is `yellow` on `ink` with a hard `magenta` drop at 1px
+  offset. The points beside a badge are `snow` and the multiplier note `cyan`:
+  the shout is the loudest thing on the badge, and the figures are read after
+  it, not instead of it.
+- **LT-7** — The wipeout lettering is the one place this game borrows a
+  convention wholesale: wide-tracked capitals on a dark band across the middle
+  of the frame, arriving slowly and holding, in the manner of a modern
+  action-RPG death screen. What is borrowed is the STAGING; the colours are
+  ours. The letters are `magenta` — the player's own colour everywhere else in
+  this game, and therefore the right one for the moment he stops being a player
+  — on an `ink` band that fades out at both ends rather than filling the frame,
+  so the mountain stays visible behind it (FR-131).
+
+  This is also the only serif in the product, and the only text not set in the
+  pixel face of LT-2. Both are deliberate and both are confined to these two
+  words. O-1 permits the convention and forbids the reproduction: a staging is
+  an idiom, a typeface and a palette are property.
+
+- **LT-6** — Score feedback survives reduced motion. A badge or indicator that
+  carries points is information, not decoration, so what is dropped is its
+  movement and never its message (FR-130, and feature 001's FR-056).
 - **LT-4** — Insult copy is R-rated in register and never uses slurs or content
   targeting protected characteristics (FR-059). Profane, not hateful.
 - **LT-5** — Minimum rendered text height is 7 device pixels post-upscale.

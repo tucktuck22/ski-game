@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { validateCourse } from '../../src/course/validate.js';
 import { parseCourse, parseScoring, parseTuning } from '../../src/data/load.js';
-import type { Course, Obstacle } from '../../src/sim/types.js';
+import type { Course, IceSection, Kicker, Ledge, Obstacle, Rock } from '../../src/sim/types.js';
 
 const read = (p: string): unknown =>
   JSON.parse(readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8'));
@@ -81,12 +81,6 @@ describe('validator rules fire on deliberately broken courses', () => {
     expect(rulesFired(c)).toContain('CV-5');
   });
 
-  it('CV-6: a barrier that costs nothing to bypass', () => {
-    const c = clone(warmup);
-    c.barriers.push({ x: 500, width: 30, bypassCostTicks: 0 });
-    expect(rulesFired(c)).toContain('CV-6');
-  });
-
   it('CV-7: a solid obstacle overlapping a low one leaves no survivable line', () => {
     const c = clone(warmup);
     const first = c.obstacles.find((o) => o.kind === 'low') as Obstacle;
@@ -109,5 +103,102 @@ describe('validator rules fire on deliberately broken courses', () => {
     const c = clone(warmup);
     c.pickups.push({ x: 400, y: -500, value: 'large' });
     expect(rulesFired(c)).toContain('CV-9');
+  });
+
+  it('CV-12: two ledges overlapping, so a landing has two answers', () => {
+    const c = clone(warmup);
+    const l = c.ledges[0] as Ledge;
+    c.ledges.push({ x0: l.x0 + 20, x1: l.x1 + 20, height: l.height });
+    expect(rulesFired(c)).toContain('CV-12');
+  });
+
+  it('CV-12: a ledge higher than any launch could ever reach', () => {
+    const c = clone(warmup);
+    (c.ledges[0] as Ledge).height = 400;
+    expect(rulesFired(c)).toContain('CV-12');
+  });
+
+  it('CV-13: a ledge with no ramp before it is scenery, not a track', () => {
+    const c = clone(warmup);
+    c.kickers = [];
+    expect(rulesFired(c)).toContain('CV-13');
+  });
+
+  it('CV-13: a ramp strong enough to throw a base-speed skier onto the shelf', () => {
+    // The trap this rule exists for. The course still validates on every other
+    // rule; what it has quietly done is take the cautious pilot's line away.
+    const c = clone(warmup);
+    (c.kickers[0] as Kicker).power = 6;
+    expect(rulesFired(c)).toContain('CV-13');
+  });
+
+  it('CV-13: a ramp too weak to reach the shelf even at full tuck', () => {
+    const c = clone(warmup);
+    (c.kickers[0] as Kicker).power = 0.4;
+    expect(rulesFired(c)).toContain('CV-13');
+  });
+
+  it('CV-14: a shelf that runs into the bough it crosses', () => {
+    const c = clone(warmup);
+    const l = c.ledges[0] as Ledge;
+    // A bough placed under the shelf, hanging above the shelf's own surface.
+    c.obstacles.push({ x: l.x0 + 100, kind: 'low', width: 40, clearance: 12 });
+    l.height = 20;
+    expect(rulesFired(c)).toContain('CV-14');
+  });
+
+  it("CV-15: a ramp inside a bough's safe release window", () => {
+    const c = clone(warmup);
+    const bough = c.obstacles.find((o) => o.kind === 'low') as Obstacle;
+    c.kickers.push({ x: bough.x + bough.width + 10, width: 40, power: 1.9 });
+    expect(rulesFired(c)).toContain('CV-15');
+  });
+
+  it('CV-15: a ramp built inside a deadfall log', () => {
+    const c = clone(warmup);
+    const log = c.obstacles.find((o) => o.kind === 'solid') as Obstacle;
+    c.kickers.push({ x: log.x - 5, width: 30, power: 1.9 });
+    expect(rulesFired(c)).toContain('CV-15');
+  });
+
+  it('CV-16: a rock standing on nothing', () => {
+    const c = clone(warmup);
+    c.rocks.push({ x: 50, width: 10, height: 8 });
+    expect(rulesFired(c)).toContain('CV-16');
+  });
+
+  it('CV-17: a rock too tall for anything on the shelf to clear', () => {
+    const c = clone(warmup);
+    (c.rocks[0] as Rock).height = 90;
+    expect(rulesFired(c)).toContain('CV-17');
+  });
+
+  it('CV-18: ice too long to escape, so the countdown is decoration', () => {
+    const c = clone(warmup);
+    const ice = c.ice[0] as IceSection;
+    ice.x1 = ice.x0 + 400;
+    expect(rulesFired(c)).toContain('CV-18');
+  });
+
+  it('CV-18: ice short enough to ride across, so the ice is decoration', () => {
+    // The other half. A hazard nobody can trigger is as broken as one nobody
+    // can survive, and only one of the two looks wrong in a course file.
+    const c = clone(warmup);
+    const ice = c.ice[0] as IceSection;
+    ice.x1 = ice.x0 + 5;
+    expect(rulesFired(c)).toContain('CV-18');
+  });
+
+  it('CV-19: ice that drops the player onto a log', () => {
+    const c = clone(warmup);
+    const ice = c.ice[0] as IceSection;
+    c.obstacles.push({ x: ice.x0 + 10, kind: 'solid', width: 24, clearance: 0 });
+    expect(rulesFired(c)).toContain('CV-19');
+  });
+
+  it('CV-20: a rock in the shelf landing zone, before the player can read it', () => {
+    const c = clone(warmup);
+    c.rocks.push({ x: (c.ledges[0] as Ledge).x0 + 20, width: 10, height: 8 });
+    expect(rulesFired(c)).toContain('CV-20');
   });
 });

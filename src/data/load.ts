@@ -23,7 +23,7 @@ const REQUIRED_TUNING_KEYS: ReadonlyArray<keyof Tuning> = [
   'launchImpulseMin',
   'launchImpulseMax',
   'chargeTicksToMax',
-  'rotationRateMax',
+  'spinDurationTicks',
   'airControlFactor',
   'landingAngleTolerance',
   'landingAngleToleranceForgiving',
@@ -31,9 +31,10 @@ const REQUIRED_TUNING_KEYS: ReadonlyArray<keyof Tuning> = [
   'standHeight',
   'crouchHeight',
   'crouchTransitionTicks',
-  'attackReach',
-  'attackCooldownTicks',
   'safeReleaseWindowMin',
+  'branchThickness',
+  'kickerImpulseMax',
+  'iceCrumbleTicks',
 ];
 
 const REQUIRED_SCORING_KEYS: ReadonlyArray<keyof Scoring> = [
@@ -42,7 +43,6 @@ const REQUIRED_SCORING_KEYS: ReadonlyArray<keyof Scoring> = [
   'pickupSmall',
   'pickupLarge',
   'trickPerRotation',
-  'barrierBroken',
 ];
 
 export function parseTuning(raw: unknown): Tuning {
@@ -76,8 +76,15 @@ export function parseCourse(raw: unknown): Course {
     length: o.length,
     terrain: o.terrain,
     obstacles: o.obstacles ?? [],
-    barriers: o.barriers ?? [],
     pickups: o.pickups ?? [],
+    // Both default to empty: a course with no upper track and no ramps is still
+    // a valid course, and the warm-up deliberately has fewer of each.
+    ledges: o.ledges ?? [],
+    kickers: o.kickers ?? [],
+    // Both are upper-track features, so a course with no shelves has none of
+    // either and the validator says nothing about them.
+    rocks: o.rocks ?? [],
+    ice: o.ice ?? [],
   };
 }
 

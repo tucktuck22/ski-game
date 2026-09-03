@@ -194,3 +194,194 @@ th {
     transition: none !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Trick badges and the scoring-zone indicator (FR-128, FR-129).
+   --------------------------------------------------------------------------- */
+
+.hud .score-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+/* The zone the player is scoring in, standing for as long as it lasts. P-5: it
+   says "2×" in words as well as sitting in its own colour, so nothing here is
+   carried by hue alone. */
+.hud .mult {
+  color: var(--yellow);
+  border: 1px solid var(--yellow);
+  padding: 0 3px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  background: var(--ink);
+}
+
+.badges {
+  position: absolute;
+  top: 34%;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+/* LT-3: sound-effect lettering is yellow on ink with a hard magenta drop at 1px
+   offset. A landed trick is exactly that kind of shout. */
+.badge {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 10px;
+  background: var(--ink);
+  border: 1px solid var(--purple);
+  animation: badge-pop 1.1s ease-out forwards;
+}
+
+.badge-word {
+  color: var(--yellow);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-shadow: 1px 1px 0 var(--magenta);
+}
+
+.badge-points {
+  color: var(--snow);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.badge-mult {
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+@keyframes badge-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.85);
+  }
+  14% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  72% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-14px) scale(1);
+  }
+}
+
+/* FR-056 and T-5: reduced motion drops the movement, never the message. The
+   badge still appears, still says the same thing, and still holds long enough
+   to read — it is score feedback, and a player who turned off animation did not
+   ask to stop being told what he scored. */
+.badge-still {
+  animation: badge-hold 1.1s steps(1, end) forwards;
+}
+
+@keyframes badge-hold {
+  0%,
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge {
+    animation: badge-hold 1.1s steps(1, end) forwards;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   The wipeout screen (FR-131). Style bible LT-7.
+
+   The staging is borrowed — wide-tracked capitals on a band across the middle,
+   arriving slowly and holding — and the palette is not. O-1 permits the
+   convention and forbids the reproduction, so the letters are `magenta`, which
+   is the player's own colour throughout this game and therefore the right one
+   for the moment he stops being a player.
+   --------------------------------------------------------------------------- */
+
+.you-died {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  /* Set from the sequence driving the canvas, so words and body settle together. */
+  --death-delay: 400ms;
+  --death-fade: 800ms;
+}
+
+.you-died-band {
+  width: 100%;
+  padding: 4% 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    to right,
+    rgba(11, 6, 22, 0) 0%,
+    rgba(11, 6, 22, 0.93) 18%,
+    rgba(11, 6, 22, 0.93) 82%,
+    rgba(11, 6, 22, 0) 100%
+  );
+  opacity: 0;
+  animation: you-died-in var(--death-fade) ease-out var(--death-delay) forwards;
+}
+
+.you-died-text {
+  /* The one serif in the game, and the single strongest signal of the
+     reference. A system stack, so nothing is fetched and it works offline. */
+  font-family: Georgia, 'Times New Roman', 'Nimbus Roman', serif;
+  font-size: clamp(26px, 7.5vw, 62px);
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  /* The tracking is applied to the right of each letter, which pushes the whole
+     line off-centre by one space unless it is pulled back. */
+  text-indent: 0.22em;
+  color: var(--magenta);
+  text-shadow: 0 0 18px rgba(255, 45, 149, 0.45);
+  white-space: nowrap;
+}
+
+@keyframes you-died-in {
+  from {
+    opacity: 0;
+    letter-spacing: 0.5em;
+  }
+  to {
+    opacity: 1;
+    letter-spacing: 0.22em;
+  }
+}
+
+/* FR-056 and T-5: reduced motion keeps the words and drops the arrival. The
+   sequence is shorter too — see REDUCED_TOTAL in src/render/death.ts. */
+.you-died-still .you-died-band {
+  animation: none;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .you-died-band {
+    animation: none;
+    opacity: 1;
+  }
+}

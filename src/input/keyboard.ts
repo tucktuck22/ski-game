@@ -6,14 +6,12 @@ export interface KeyBindings {
   crouch: string[];
   rotateLeft: string[];
   rotateRight: string[];
-  attack: string[];
 }
 
 export const DEFAULT_BINDINGS: KeyBindings = {
   crouch: ['Space', 'ArrowDown', 'KeyS'],
   rotateLeft: ['ArrowLeft', 'KeyA'],
   rotateRight: ['ArrowRight', 'KeyD'],
-  attack: ['ShiftLeft', 'ArrowUp', 'KeyW'],
 };
 
 import { safeLocal } from '../state/safeStorage.js';
@@ -58,7 +56,6 @@ export function keyboardSource(bindings: KeyBindings = loadBindings()): InputSou
     read: (): RunInput => ({
       crouch: any(bindings.crouch),
       rotate: any(bindings.rotateLeft) ? -1 : any(bindings.rotateRight) ? 1 : 0,
-      attack: any(bindings.attack),
     }),
     destroy() {
       window.removeEventListener('keydown', down);

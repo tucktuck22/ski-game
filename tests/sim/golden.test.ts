@@ -20,11 +20,7 @@ export function traceFromSeed(seed: number, ticks: number): RunInput[] {
   for (let i = 0; i < ticks; i++) {
     if (next() < 0.06) crouch = !crouch;
     const r = next();
-    trace.push({
-      crouch,
-      rotate: r < 0.12 ? -1 : r > 0.88 ? 1 : 0,
-      attack: next() < 0.05,
-    });
+    trace.push({ crouch, rotate: r < 0.12 ? -1 : r > 0.88 ? 1 : 0 });
   }
   return trace;
 }
@@ -53,16 +49,7 @@ function runCautious(course: typeof official, seed: number): ReturnType<typeof r
     const gap = nextSolid ? nextSolid.x - state.x : Infinity;
     const chargingJump = gap < CHARGE_FROM && gap > RELEASE_WITHIN;
 
-    const barrierAhead = course.barriers.some(
-      (b, i) =>
-        state.barriersBroken[i] === 0 && b.x >= state.x && b.x <= state.x + tuning.attackReach,
-    );
-
-    const input: RunInput = {
-      crouch: duckNow || chargingJump,
-      rotate: 0,
-      attack: barrierAhead,
-    };
+    const input: RunInput = { crouch: duckNow || chargingJump, rotate: 0 };
     state = step(state, input, course, tuning, scoring, derived);
   }
   return { state, score: finalScore(state, scoring), ticks: state.tick };
@@ -109,7 +96,6 @@ describe('golden run (FR-026)', () => {
     const neutral: RunInput[] = Array.from({ length: 18_000 }, () => ({
       crouch: false as const,
       rotate: 0 as const,
-      attack: false as const,
     }));
     const result = runTrace(official, tuning, scoring, 19860214, neutral);
     expect(result.state.outcome).toBe('wiped_out');

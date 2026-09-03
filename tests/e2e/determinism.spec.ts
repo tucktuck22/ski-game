@@ -29,11 +29,18 @@ interface Result {
  * If a deliberate physics or tuning change moves these, that is a rules change:
  * bump rulesVersion, because scores under different rules are not comparable
  * (FR-023). Do not "just update the numbers" to make this pass.
+ *
+ * Last regenerated for rulesVersion 1.5.0, which made the upper track's 2x a
+ * zone that persists through the air. Scores and tick counts are unchanged from
+ * 1.4.0 and only the hashes moved: these traces never reach a shelf, so the
+ * multiplier they carry is 1 from start to finish — but the state they hash now
+ * records it. Scores moving here would have meant the zone was leaking onto the
+ * lower line.
  */
 const GOLDEN: Result[] = [
-  { seed: '5eed', score: 1501, ticks: 299, hash: 'be1550b1' },
-  { seed: '1986', score: 400, ticks: 123, hash: '448a3b83' },
-  { seed: 'beef', score: 591, ticks: 159, hash: '4b738960' },
+  { seed: '5eed', score: 2925, ticks: 145, hash: 'ed3db63e' },
+  { seed: '1986', score: 138, ticks: 48, hash: '0e950d20' },
+  { seed: 'beef', score: 235, ticks: 63, hash: 'd2b14cf2' },
 ];
 
 test('the simulation reproduces the golden run exactly on this engine', async ({

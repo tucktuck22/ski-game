@@ -76,3 +76,50 @@ export function overheadClearanceAt(course: Course, x: number): number {
   }
   return clearance;
 }
+
+/**
+ * Surface height at x for a given track.
+ *
+ * `ledge` is -1 for the piste, otherwise an index into course.ledges. Because a
+ * ledge is a constant offset above the piste, this is one subtraction — and the
+ * slope of a ledge is the slope of the piste, so slopeAt needs no track
+ * argument at all. That symmetry is the reason ledges were modelled this way
+ * rather than as free polylines (see the Ledge doc comment).
+ */
+export function surfaceYAt(course: Course, x: number, ledge: number): number {
+  const base = terrainYAt(course.terrain, x);
+  if (ledge < 0) return base;
+  const l = course.ledges[ledge];
+  return l === undefined ? base : base - l.height;
+}
+
+/** True while x lies within the ledge's span. Half-open, like every footprint here. */
+export function onLedgeSpan(course: Course, x: number, ledge: number): boolean {
+  if (ledge < 0) return false;
+  const l = course.ledges[ledge];
+  return l !== undefined && x >= l.x0 && x < l.x1;
+}
+
+/**
+ * Index of the ledge spanning x, or -1 where none does.
+ *
+ * Rocks and ice are anchored to "the shelf here" rather than to a named ledge,
+ * which is only unambiguous because CV-12 forbids ledges from overlapping. The
+ * validator earns this function.
+ */
+export function ledgeIndexAt(course: Course, x: number): number {
+  for (let i = 0; i < course.ledges.length; i++) {
+    const l = course.ledges[i] as { x0: number; x1: number };
+    if (x >= l.x0 && x < l.x1) return i;
+  }
+  return -1;
+}
+
+/** Index of the ice section containing x, or -1. */
+export function iceIndexAt(course: Course, x: number): number {
+  for (let i = 0; i < course.ice.length; i++) {
+    const sec = course.ice[i] as { x0: number; x1: number };
+    if (x >= sec.x0 && x < sec.x1) return i;
+  }
+  return -1;
+}
