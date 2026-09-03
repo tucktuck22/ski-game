@@ -68,6 +68,14 @@ OPEN DEVIATIONS (Principle VI requires these be stated, not implied)
   An amendment that adds an obligation without adding its gate leaves the obligation
   in this list. It does not get to be described as enforced.
 
+  Remediation sequencing, agreed 2026-09-03: deviations 1 and 2 are built once the
+  deployed game is confirmed playable end to end by the organizer, so the gate is
+  written against a known-good baseline rather than a moving target. This defers the
+  stop condition in Development Workflow & Quality Gates by one step and does not
+  waive it: the gate is the next deliverable after the game works, ahead of any
+  further feature work. Deviation 3 has no date. Deviation 4 awaits a decision on
+  ADR-0005.
+
 Deferred TODOs:
   TODO(PRODUCT_TITLE): "Ski Game" is a working name. Final product title is a
     deferred naming decision and does not block governance.
