@@ -7,7 +7,7 @@
  */
 import { assembleGameData, type GameData } from './data/load.js';
 import { LocalDraftStore } from './state/localDraft.js';
-import { DraftStore, type DraftSnapshot } from './state/supabase.js';
+import { DraftStore, discoverDraft, type DraftSnapshot } from './state/supabase.js';
 import { Outbox, type OutboxStore, type PendingCommit } from './state/outbox.js';
 import { availability, courseFor, PRACTICE_RUNS, type RunKind } from './state/runEconomy.js';
 import { renderLeaderboard, escapeHtml } from './ui/leaderboard.js';
@@ -51,14 +51,22 @@ const config = resolveConfig(
 );
 const isLocal = config.kind === 'local';
 
-const DRAFT_ID = new URLSearchParams(location.search).get('draft') ?? 'local-draft';
+// May be absent: the bare site URL is what people bookmark and re-share once
+// the query string is lost. bootstrap() then asks the database which draft is
+// meant rather than failing on a fallback id nobody chose.
+const DRAFT_ID_FROM_URL = new URLSearchParams(location.search).get('draft');
+let DRAFT_ID = DRAFT_ID_FROM_URL ?? 'local-draft';
 // FR-006: organizer controls appear only for a holder of the organizer URL.
 // Secrecy, not authentication - see src/state/links.ts.
 const isOrganizer = organizerSecretFromUrl(location.search) !== null;
 const localDeadlineIso = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
 
-const backend: Backend =
-  config.kind === 'configured'
+// Assigned in bootstrap(), once DRAFT_ID is settled. Every read of it happens
+// inside a handler that cannot run before then.
+let backend!: Backend;
+
+function makeBackend(): Backend {
+  return config.kind === 'configured'
     ? new DraftStore(config.url, config.anonKey, DRAFT_ID)
     : new LocalDraftStore({
         id: DRAFT_ID,
@@ -67,6 +75,7 @@ const backend: Backend =
         rulesVersion: data.official.rulesVersion,
         finalizedAt: null,
       });
+}
 
 // The outbox needs somewhere to persist. In local mode it is in memory, because
 // a local session is already not a real draft.
@@ -85,7 +94,7 @@ const outbox = new Outbox(store, (c) => backend.submitCommit(c));
 let snapshot: DraftSnapshot;
 // Guarded: an unguarded read here threw when site data was blocked, which
 // killed module initialisation and rendered a blank page. See safeStorage.ts.
-let myEntryId: string | null = safeSession.get(`claim:${DRAFT_ID}`);
+let myEntryId: string | null = null;
 let game: GameView | null = null;
 let commitStatus: 'idle' | 'pending' | 'confirmed' | 'rejected' = 'idle';
 let commitMessage = '';
@@ -467,6 +476,34 @@ async function bootstrap(): Promise<void> {
   if (config.kind === 'invalid') {
     throw new Error(`${config.problem}\n\n${config.fix}`);
   }
+
+  // A link with no ?draft= is the common case, not an error case. Ask the
+  // database which draft is meant before deciding anything has gone wrong.
+  if (config.kind === 'configured' && DRAFT_ID_FROM_URL === null) {
+    const found = await discoverDraft(config.url, config.anonKey);
+    if (found.kind === 'none') {
+      throw new Error(
+        'There is no draft in the database yet. Run supabase/seed-draft.sql in the ' +
+          'Supabase SQL editor to create one — it prints the link to share.',
+      );
+    }
+    if (found.kind === 'many') {
+      const list = found.drafts.map((d) => `?draft=${d.id}  (deadline ${d.deadline})`).join('\n');
+      throw new Error(
+        `This database holds ${found.drafts.length} drafts, so the bare link is ` +
+          `ambiguous. Add one of these to the URL:\n\n${list}`,
+      );
+    }
+    DRAFT_ID = found.id;
+    // Keep the address bar honest, so a copied link carries the draft with it.
+    const url = new URL(location.href);
+    url.searchParams.set('draft', DRAFT_ID);
+    history.replaceState(null, '', url.toString());
+  }
+
+  backend = makeBackend();
+  myEntryId = safeSession.get(`claim:${DRAFT_ID}`);
+
   if (isLocal) {
     for (const n of ['Tucker', 'Dave', 'Sam', 'Al', 'Zach', 'Marty', 'Rob', 'Cheeks']) {
       await (backend as LocalDraftStore).seedOrganizerEntry(n);

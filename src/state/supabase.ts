@@ -34,6 +34,40 @@ export function classifyError(err: { code?: string; message?: string } | null): 
   return { kind: 'retry' };
 }
 
+/**
+ * Finds the draft when the link carries no `?draft=`.
+ *
+ * The bare site URL is what people actually type and bookmark, and what gets
+ * pasted back into a group chat once the query string is lost. Failing it with
+ * "no draft found for local-draft" blames the player for the organizer's link
+ * hygiene. There is almost always exactly one draft, so look.
+ *
+ * Not a security boundary: the draft id was never secret (FR-040 makes the
+ * board public to link holders), and the organizer secret is a separate
+ * revoked column.
+ */
+export async function discoverDraft(
+  url: string,
+  anonKey: string,
+): Promise<
+  | { kind: 'found'; id: string }
+  | { kind: 'none' }
+  | { kind: 'many'; drafts: { id: string; deadline: string }[] }
+> {
+  const db = createClient(url, anonKey, { auth: { persistSession: false } });
+  const { data, error } = await db
+    .from('draft')
+    .select('id, deadline')
+    .order('created_at', { ascending: false })
+    .limit(10);
+  if (error) throw error;
+
+  const drafts = (data ?? []).map((d) => ({ id: d.id as string, deadline: d.deadline as string }));
+  if (drafts.length === 0) return { kind: 'none' };
+  if (drafts.length === 1) return { kind: 'found', id: drafts[0]!.id };
+  return { kind: 'many', drafts };
+}
+
 export class DraftStore {
   private readonly db: SupabaseClient;
 
