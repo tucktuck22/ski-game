@@ -7,6 +7,24 @@
 
 begin;
 
+-- Running this file twice creates a second draft, and a database holding more
+-- than one makes the bare site link ambiguous: the app cannot tell which draft
+-- the player means, and refuses to guess. Debugging a setup problem naturally
+-- involves re-running the seed, so this guard exists to make that safe.
+--
+-- To deliberately create a second draft, delete this block first, and expect to
+-- hand out ?draft=<id> links from then on.
+do $$
+begin
+  if exists (select 1 from draft) then
+    raise exception
+      'A draft already exists. Re-running this file would create a second one '
+      'and make the bare site link ambiguous. To reprint the links for the '
+      'draft you already have, run supabase/show-links.sql. To start over, run '
+      'supabase/cleanup-drafts.sql first.';
+  end if;
+end $$;
+
 insert into draft (deadline, course_seed, rules_version, organizer_secret)
 values (
   -- CHANGE ME: your deadline, in UTC. After this the board freezes as FINAL

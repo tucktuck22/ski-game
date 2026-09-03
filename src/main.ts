@@ -491,7 +491,10 @@ async function bootstrap(): Promise<void> {
       const list = found.drafts.map((d) => `?draft=${d.id}  (deadline ${d.deadline})`).join('\n');
       throw new Error(
         `This database holds ${found.drafts.length} drafts, so the bare link is ` +
-          `ambiguous. Add one of these to the URL:\n\n${list}`,
+          `ambiguous — the app will not guess which one eight people meant.\n\n` +
+          `To use the bare link, run supabase/cleanup-drafts.sql to leave exactly ` +
+          `one draft. To carry on without cleaning up, add one of these to the URL:` +
+          `\n\n${list}`,
       );
     }
     DRAFT_ID = found.id;
