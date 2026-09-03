@@ -18,6 +18,7 @@ import { deadlineState, canStartOfficialRun, formatRemaining } from './state/dea
 import { organizerSecretFromUrl } from './state/links.js';
 import { renderOrganizer, removalConfirmationText } from './ui/organizer.js';
 import { safeSession } from './state/safeStorage.js';
+import { showFatalError, installGlobalErrorHandlers } from './ui/errorBoundary.js';
 
 import tuningJson from '../data/tuning.json';
 import scoringJson from '../data/scoring.json';
@@ -427,7 +428,16 @@ async function endRun(report: RunReport): Promise<void> {
   };
 }
 
-backend.subscribe(() => {
-  void refresh();
-});
-await refresh();
+installGlobalErrorHandlers();
+
+// Startup is wrapped so a failure shows a readable panel rather than a blank
+// page. Every asset 404, init throw and denied-storage error looks identical
+// from outside - white nothing - which is why this exists.
+try {
+  backend.subscribe(() => {
+    void refresh();
+  });
+  await refresh();
+} catch (error) {
+  showFatalError('The game could not load its data or reach shared storage.', error);
+}
