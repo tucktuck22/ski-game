@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { validateCourse } from '../../src/course/validate.js';
 import { parseCourse, parseScoring, parseTuning } from '../../src/data/load.js';
-import type { Course, Kicker, Ledge, Obstacle } from '../../src/sim/types.js';
+import type { Course, IceSection, Kicker, Ledge, Obstacle, Rock } from '../../src/sim/types.js';
 
 const read = (p: string): unknown =>
   JSON.parse(readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8'));
@@ -159,5 +159,46 @@ describe('validator rules fire on deliberately broken courses', () => {
     const log = c.obstacles.find((o) => o.kind === 'solid') as Obstacle;
     c.kickers.push({ x: log.x - 5, width: 30, power: 1.9 });
     expect(rulesFired(c)).toContain('CV-15');
+  });
+
+  it('CV-16: a rock standing on nothing', () => {
+    const c = clone(warmup);
+    c.rocks.push({ x: 50, width: 10, height: 8 });
+    expect(rulesFired(c)).toContain('CV-16');
+  });
+
+  it('CV-17: a rock too tall for anything on the shelf to clear', () => {
+    const c = clone(warmup);
+    (c.rocks[0] as Rock).height = 90;
+    expect(rulesFired(c)).toContain('CV-17');
+  });
+
+  it('CV-18: ice too long to escape, so the countdown is decoration', () => {
+    const c = clone(warmup);
+    const ice = c.ice[0] as IceSection;
+    ice.x1 = ice.x0 + 400;
+    expect(rulesFired(c)).toContain('CV-18');
+  });
+
+  it('CV-18: ice short enough to ride across, so the ice is decoration', () => {
+    // The other half. A hazard nobody can trigger is as broken as one nobody
+    // can survive, and only one of the two looks wrong in a course file.
+    const c = clone(warmup);
+    const ice = c.ice[0] as IceSection;
+    ice.x1 = ice.x0 + 5;
+    expect(rulesFired(c)).toContain('CV-18');
+  });
+
+  it('CV-19: ice that drops the player onto a log', () => {
+    const c = clone(warmup);
+    const ice = c.ice[0] as IceSection;
+    c.obstacles.push({ x: ice.x0 + 10, kind: 'solid', width: 24, clearance: 0 });
+    expect(rulesFired(c)).toContain('CV-19');
+  });
+
+  it('CV-20: a rock in the shelf landing zone, before the player can read it', () => {
+    const c = clone(warmup);
+    c.rocks.push({ x: (c.ledges[0] as Ledge).x0 + 20, width: 10, height: 8 });
+    expect(rulesFired(c)).toContain('CV-20');
   });
 });

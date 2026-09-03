@@ -30,16 +30,18 @@ interface Result {
  * bump rulesVersion, because scores under different rules are not comparable
  * (FR-023). Do not "just update the numbers" to make this pass.
  *
- * Last regenerated for rulesVersion 1.2.0, which withdrew the attack verb,
- * doubled progress accrual on the upper track, and raised the rotation rate.
- * Any one of those changes what a given input trace does, so all three values
- * moved together — a change that moved only one of them would be the divergence
- * this test is looking for.
+ * Last regenerated for rulesVersion 1.3.0, which put rocks and crumbling ice on
+ * the upper track. The scores and tick counts are unchanged from 1.2.0 and only
+ * the hashes moved, which is exactly right and worth stating: these traces are
+ * random input that never gets onto a shelf, so no upper-track hazard touches
+ * them — but the state they hash now carries the broken-ice record, so every
+ * hash differs. A run where the scores had moved too would mean the new hazards
+ * had reached the lower line.
  */
 const GOLDEN: Result[] = [
-  { seed: '5eed', score: 1501, ticks: 271, hash: '6198c882' },
-  { seed: '1986', score: 467, ticks: 134, hash: '8d82e92f' },
-  { seed: 'beef', score: 235, ticks: 63, hash: 'c234c9b9' },
+  { seed: '5eed', score: 1501, ticks: 271, hash: 'c49f3182' },
+  { seed: '1986', score: 467, ticks: 134, hash: 'f7f32caf' },
+  { seed: 'beef', score: 235, ticks: 63, hash: 'd5f81a39' },
 ];
 
 test('the simulation reproduces the golden run exactly on this engine', async ({

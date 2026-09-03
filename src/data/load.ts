@@ -34,6 +34,7 @@ const REQUIRED_TUNING_KEYS: ReadonlyArray<keyof Tuning> = [
   'safeReleaseWindowMin',
   'branchThickness',
   'kickerImpulseMax',
+  'iceCrumbleTicks',
 ];
 
 const REQUIRED_SCORING_KEYS: ReadonlyArray<keyof Scoring> = [
@@ -80,6 +81,10 @@ export function parseCourse(raw: unknown): Course {
     // a valid course, and the warm-up deliberately has fewer of each.
     ledges: o.ledges ?? [],
     kickers: o.kickers ?? [],
+    // Both are upper-track features, so a course with no shelves has none of
+    // either and the validator says nothing about them.
+    rocks: o.rocks ?? [],
+    ice: o.ice ?? [],
   };
 }
 

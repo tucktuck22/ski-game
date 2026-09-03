@@ -40,11 +40,25 @@ warm-up rehearses everything except the terrain, so it cannot differ in kind.
     // by power * carried speed, capped at `kickerImpulseMax`.
     { "x": 1400, "width": 56, "power": 1.9 },
   ],
+  "rocks": [
+    // stands proud of the shelf it sits on. Jumped, never ducked.
+    { "x": 2076, "width": 16, "height": 12 },
+  ],
+  "ice": [
+    // a stretch of shelf that gives way underfoot after `iceCrumbleTicks`,
+    // dropping the player to the piste. Not fatal - it costs the line.
+    { "x0": 1876, "x1": 1924 },
+  ],
 }
 ```
 
-`ledges` and `kickers` both default to `[]`. A course with neither is still a
-valid course — it simply has one line down the mountain instead of two.
+`ledges`, `kickers`, `rocks` and `ice` all default to `[]`. A course with no
+shelves is still a valid course — it simply has one line down the mountain
+instead of two, and the rules below say nothing about it.
+
+Rocks and ice name no ledge. They belong to whichever shelf spans their x, which
+is unambiguous only because CV-12 forbids shelves from overlapping — the
+validator is what earns the shorthand.
 
 Nothing here is random. Where the spec calls for seeded randomness (FR-024), the
 seed selects among declared variants — it never generates geometry, so every
@@ -82,6 +96,12 @@ violation.** These are executable requirements, not review guidance.
 | CV-13    | **Every ledge is reachable at `tuckSpeedMax` and unreachable at `baseSpeed`**                                                                  | **FR-035, SC-015** |
 | CV-14    | Every ledge clears the top of every bough it crosses, with margin                                                                              | FR-035             |
 | CV-15    | No kicker sits inside a `low` obstacle's safe release window or overlaps a `solid` one                                                         | FR-088             |
+
+**CV-18 has two halves for the same reason CV-13 does.** Ice too long to escape
+makes the countdown decoration; ice short enough to ride across makes the ice
+decoration. Only the first failure looks wrong in a course file — the second
+produces a course that validates, plays, and quietly contains a hazard that
+fires on nobody. The first draft of the shipped courses had exactly that.
 
 **CV-13 is the upper track's version of the same trap, and it is why the rule has
 two halves rather than one.** A ramp too weak to reach the shelf makes the upper

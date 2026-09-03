@@ -79,13 +79,11 @@ rather than leaving to inference.
 
 ### Open items, deliberately not blocking
 
-- **Whether the upper track should carry a cost as well as a reward.** Recorded
-  in Assumptions rather than as a [NEEDS CLARIFICATION] marker, because a
-  defensible default exists and is specified. The doubled accrual rate of FR-094
-  widens the gap this item is about: the high line is now better per unit of
-  ground as well as carrying the valuable pickups, and is still the safer of the
-  two. Resolving it would amend FR-094 and add an acceptance scenario to User
-  Story 1; it would not restructure the spec.
+- ~~**Whether the upper track should carry a cost as well as a reward.**~~
+  **Closed** by FR-116 to FR-123. The shelf now carries ice that costs the line
+  and rocks that cost the run, so the doubled accrual rate is a risk premium
+  rather than a bonus for taking the better road. Whether the two lines are
+  _balanced_ is a separate, open, playtest question — not a specification one.
 - **Whether releasing the crouch at the lip is required or merely sufficient.**
   Acceptance scenario 2 names it as the technique; FR-091 still admits a player
   who only holds a tuck. Making the timed release mandatory would tighten the
@@ -111,6 +109,38 @@ Two findings:
    been false since 1.0.0 — at the old rotation rate no launch bought a complete
    turn, so the trick bonus was unreachable by any player. The entry says so,
    and the criterion now has a test rather than only a raised number.
+
+### Fourth validation pass — after the upper-track hazards
+
+FR-116 to FR-123 add crumbling ice and rocks to the shelf. Three findings, two
+of them caught by the validator and the tests rather than by reading:
+
+1. **The generator produced an unfair course and CV-19 rejected it.** The first
+   placement dropped a player through the ice directly onto a deadfall log on
+   the piste below. Falling through is involuntary — no input the player gave
+   chose it — so an obstacle in the fall zone turns an unavoidable transition
+   into a death. The rule fired on the shipped course before anyone played it,
+   which is exactly what the validator is for.
+2. **The first version of the ice fired on nobody, and looked completely
+   correct.** A 48-unit stretch against a 20-tick countdown meant a player
+   crossed it a tick or two before it gave way. CV-18 gained a second half —
+   ice may not be short enough to ride across — so this class of failure is now
+   caught in data rather than found by playing. It is the mirror of CV-13, and
+   for the same reason: a hazard nobody can trigger is as broken as one nobody
+   can survive.
+3. **The ice was invisible from more than a few metres.** A translucent tint on
+   six pixels of shelf, seen edge-on, read as white. The whole design of the
+   countdown is that the player decides to hop the ice BEFORE reaching it, so an
+   unreadable hazard makes the decision impossible. Style bible TR-8 now
+   requires the ice to be a different material, with marker posts standing off
+   the shelf to carry at distance.
+
+The open item this checklist carried from its first pass — whether the upper
+track should cost anything — is **closed** by these requirements, and the
+Assumptions entry has been rewritten from a question into a record of how it was
+answered. What is deliberately not claimed is that the two lines are now
+balanced; SC-032 asserts only that the high line can be played badly enough to
+lose, and leaves the tuning to playtest evidence.
 
 ### Implementation status
 

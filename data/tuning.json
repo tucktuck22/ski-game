@@ -19,5 +19,6 @@
   "crouchTransitionTicks": 4,
   "safeReleaseWindowMin": 140,
   "branchThickness": 18,
-  "kickerImpulseMax": 8.0
+  "kickerImpulseMax": 8.0,
+  "iceCrumbleTicks": 10
 }

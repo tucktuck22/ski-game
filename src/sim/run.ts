@@ -88,5 +88,6 @@ export function stateHash(s: RunState): string {
   mix(s.ledge + 1);
   mix(s.outcome === 'finished' ? 1 : s.outcome === 'wiped_out' ? 2 : 0);
   for (const b of s.pickupsTaken) mix(b);
+  for (const b of s.iceBroken) mix(b);
   return h.toString(16).padStart(8, '0');
 }

@@ -79,6 +79,17 @@ ridden high and ridden low.
 4. **Given** a player riding the upper track, **When** distance-based points
    accrue, **Then** they accrue at twice the rate they would on the piste
    beneath him.
+   4a. **Given** a player riding onto a stretch of crumbling ice, **When** he stays
+   on it, **Then** it gives way and drops him to the piste below, and his run
+   continues.
+   4b. **Given** a player riding onto a stretch of crumbling ice, **When** he
+   launches off it before it gives way, **Then** he stays on the upper track.
+   4c. **Given** a stretch of ice that has already given way, **When** any player
+   passes over it again, **Then** there is nothing there to stand on.
+   4d. **Given** a rock standing on the upper track, **When** the player launches
+   over it, **Then** he passes cleanly; **when** he rides into it, the run ends.
+   4e. **Given** a rock or a stretch of ice on the upper track, **When** a player
+   on the piste passes underneath it, **Then** neither touches him.
 5. **Given** a player riding the upper track, **When** he passes over a hazard
    that sits on the piste below, **Then** it does not touch him.
 6. **Given** a player riding the upper track, **When** he reaches the end of the
@@ -293,6 +304,35 @@ that every hazard and both tracks remain readable in each.
 - **FR-110**: This feature MUST bump the rules version, because a score set
   under it is not comparable to one set before it (feature 001's FR-023).
 
+#### Hazards on the upper track
+
+- **FR-116**: A stretch of the upper track MAY be **crumbling ice**. Standing on
+  it for a short, fixed time MUST drop the player through to the piste below,
+  and that drop MUST NOT end his run — it costs him the line, not the descent.
+- **FR-117**: Ice that has given way MUST stay given way. Nothing may stand on
+  it again for the rest of the run.
+- **FR-118**: The time between setting foot on ice and falling through MUST be
+  long enough for a player who reacts to launch clear of the stretch, and every
+  stretch MUST be short enough that one weak launch clears it. Together these
+  make the ice a decision rather than a toll.
+- **FR-119**: No stretch of ice may be so short that a player at full speed
+  simply crosses it before it gives way. A hazard that fires on nobody is not a
+  hazard, and unlike the opposite failure it looks completely correct in a
+  course file.
+- **FR-120**: The piste beneath a stretch of ice, and the ground the player
+  covers while falling, MUST be clear of obstacles. Falling through is
+  involuntary — no input the player gave chose it — so it must never be the
+  thing that kills him.
+- **FR-121**: The upper track MAY carry **rocks** standing proud of its surface.
+  A rock MUST be passable by launching over it and MUST NOT be passable by
+  ducking, since ducking lowers the head and never the feet.
+- **FR-122**: Neither rocks nor ice may affect a player on the piste beneath
+  them. He did not choose the upper track and cannot be expected to answer for
+  what is on it.
+- **FR-123**: Upper-track hazards MUST be far enough into a shelf that a player
+  arriving on it can land, recover and read them, and far enough apart that each
+  is answered on its own.
+
 #### Withdrawals and rebalancing
 
 - **FR-114**: The attack verb is **withdrawn**, and the destructible barriers it
@@ -368,25 +408,31 @@ that every hazard and both tracks remain readable in each.
   cannot from a zero-charge one.
 - **SC-030**: No run can reach a state in which the attack verb would have
   applied — there is no hazard on either course that only breaking could pass.
+- **SC-031**: A player who rides onto crumbling ice and does nothing ends up on
+  the piste, still running. A player who launches off it stays on the shelf.
+- **SC-032**: Taking the upper line and playing its hazards badly scores worse
+  than never having left the piste, so the high line is a bet and not a bonus.
 
 ## Assumptions
 
-- **The upper track is a reward, not a gamble — and the gap has widened.** The
-  description asked for multiple paths and did not say what the upper path
-  should cost. The default taken is that it costs the skill of getting onto it
-  and nothing else: it is safer than the piste (the hazards below pass beneath
-  the player) as well as better scoring. **This remains the one design decision
-  here worth revisiting before approval**, and FR-094's doubled accrual rate
-  makes it sharper than it was: the high line now pays more per unit of ground
-  as well as carrying the valuable pickups, while still being the safer of the
-  two. A path that is both safer and more valuable is strictly dominant for any
-  player able to reach it, which makes it a skill gate rather than a decision.
-  Giving the upper track a real downside — a harder landing, a shorter run-out,
-  fewer chances to recover — would turn it into the choice the feature
-  description asks for, and the doubled rate would then be the premium paid for
-  taking a risk rather than a bonus for taking the better option. FR-094
-  deliberately specifies only the reward, so that adding a cost later amends
-  this spec rather than contradicting it.
+- **The upper track is a gamble, and this is the change that made it one.**
+  Through three revisions of this spec the high line was strictly dominant: it
+  was safer than the piste (its hazards passed harmlessly beneath) and better
+  scoring, so for any player who could reach it there was no decision to make —
+  only a skill check at the ramp. The entry recorded here used to say that was
+  the one thing worth revisiting before approval.
+
+  FR-116 to FR-123 revisit it. The shelf now has hazards the piste does not:
+  ice that costs the line, and rocks that cost the run. What was a bonus for
+  taking the better road is now the premium paid for taking the riskier one,
+  which is what "multiple paths" asked for in the first place. FR-094's doubled
+  rate did not change; what changed is that there is now something to lose.
+
+  What is deliberately NOT claimed is that the two lines are balanced. Nobody
+  has measured that, and it is a playtest question rather than a specification
+  one. SC-032 states the weakest thing that must be true — that the high line
+  can be played badly enough to lose — and leaves the tuning to evidence.
+
 - **Entry is by crouch-and-release at the lip, and tucking alone also suffices.**
   Acceptance scenario 2 names the technique the feature description asks for:
   approach crouched, release at the top. Because feature 001's crouch both

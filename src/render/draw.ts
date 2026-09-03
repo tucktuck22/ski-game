@@ -11,7 +11,7 @@
  * confused with anything the simulation cares about.
  */
 import type { Course, RunState, Tuning } from '../sim/types.js';
-import { terrainYAt, surfaceYAt } from '../sim/terrain.js';
+import { terrainYAt, surfaceYAt, iceIndexAt } from '../sim/terrain.js';
 import { PALETTE, type PaletteToken } from './palette.js';
 import { INTERNAL_HEIGHT, INTERNAL_WIDTH } from './stage.js';
 import type { MotionSettings } from './reducedMotion.js';
@@ -354,8 +354,26 @@ function drawPiste(ctx: CanvasRenderingContext2D, course: Course, cam: Camera): 
   ctx.stroke();
 }
 
-/** The upper track: a snow shelf with an iced underside. */
-function drawLedges(ctx: CanvasRenderingContext2D, course: Course, cam: Camera): void {
+/**
+ * The upper track: a snow shelf with an iced underside.
+ *
+ * Drawn in runs rather than as one slab, because ice that has given way leaves
+ * a hole and the shelf must not be painted across it. The simulation will not
+ * catch anybody over a broken section either — a picture that disagreed with
+ * that would be worse than no picture, since the player would aim a landing at
+ * snow that is not there.
+ */
+function drawLedges(
+  ctx: CanvasRenderingContext2D,
+  course: Course,
+  cam: Camera,
+  state: RunState,
+): void {
+  const holed = (worldX: number): boolean => {
+    const i = iceIndexAt(course, worldX);
+    return i >= 0 && state.iceBroken[i] === 1;
+  };
+
   for (const l of course.ledges) {
     if (l.x1 - cam.x < -8 || l.x0 - cam.x > INTERNAL_WIDTH + 8) continue;
     const from = Math.max(0, Math.floor(l.x0 - cam.x));
@@ -364,25 +382,48 @@ function drawLedges(ctx: CanvasRenderingContext2D, course: Course, cam: Camera):
     const yAt = (px: number): number => terrainYAt(course.terrain, cam.x + px) - l.height - cam.y;
     const THICK = 6;
 
-    ctx.beginPath();
-    ctx.moveTo(from, yAt(from));
-    for (let px = from; px <= to; px++) ctx.lineTo(px, yAt(px));
-    for (let px = to; px >= from; px--) ctx.lineTo(px, yAt(px) + THICK);
-    ctx.closePath();
-    ctx.fillStyle = css('snow');
-    ctx.fill();
-
-    // Iced underside, so the shelf reads as a solid thing with a bottom rather
-    // than as a floating line.
-    ctx.beginPath();
+    // Contiguous stretches of shelf that still exist.
+    const runs: Array<[number, number]> = [];
+    let runStart: number | null = null;
     for (let px = from; px <= to; px++) {
-      const y = yAt(px) + THICK;
-      if (px === from) ctx.moveTo(px, y);
-      else ctx.lineTo(px, y);
+      const solid = !holed(cam.x + px);
+      if (solid && runStart === null) runStart = px;
+      if (!solid && runStart !== null) {
+        runs.push([runStart, px - 1]);
+        runStart = null;
+      }
     }
-    ctx.strokeStyle = css('cyan');
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    if (runStart !== null) runs.push([runStart, to]);
+
+    for (const [a, b] of runs) {
+      if (b <= a) continue;
+      ctx.beginPath();
+      ctx.moveTo(a, yAt(a));
+      for (let px = a; px <= b; px++) ctx.lineTo(px, yAt(px));
+      for (let px = b; px >= a; px--) ctx.lineTo(px, yAt(px) + THICK);
+      ctx.closePath();
+      ctx.fillStyle = css('snow');
+      ctx.fill();
+
+      // Iced underside, so the shelf reads as a solid thing with a bottom
+      // rather than as a floating line.
+      ctx.beginPath();
+      for (let px = a; px <= b; px++) {
+        const y = yAt(px) + THICK;
+        if (px === a) ctx.moveTo(px, y);
+        else ctx.lineTo(px, y);
+      }
+      ctx.strokeStyle = css('cyan');
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // The torn edge where a section gave way.
+      for (const edge of [a, b]) {
+        if (!holed(cam.x + edge - 1) && !holed(cam.x + edge + 1)) continue;
+        ctx.fillStyle = css('cyan');
+        ctx.fillRect(Math.round(edge), Math.round(yAt(edge)), 1, THICK);
+      }
+    }
 
     // Icicles. Spaced on the world grid so they belong to the shelf, not the
     // camera.
@@ -390,6 +431,7 @@ function drawLedges(ctx: CanvasRenderingContext2D, course: Course, cam: Camera):
     for (let wx = Math.ceil(l.x0 / 14) * 14; wx < l.x1; wx += 14) {
       const px = wx - cam.x;
       if (px < -2 || px > INTERNAL_WIDTH + 2) continue;
+      if (holed(wx)) continue;
       const drop = 2 + Math.floor(hash(wx) * 4);
       ctx.fillRect(Math.round(px), Math.round(yAt(px) + THICK), 1, drop);
     }
@@ -399,6 +441,131 @@ function drawLedges(ctx: CanvasRenderingContext2D, course: Course, cam: Camera):
     if (l.x0 - cam.x >= 0) ctx.fillRect(Math.round(from), Math.round(yAt(from)), 1, THICK);
     if (l.x1 - cam.x <= INTERNAL_WIDTH)
       ctx.fillRect(Math.round(to) - 1, Math.round(yAt(to)), 1, THICK);
+  }
+}
+
+/**
+ * Crumbling ice, drawn over the shelf it is part of.
+ *
+ * It has to read from across the frame, because the whole point of the
+ * countdown is that a player can decide to hop it — and he cannot decide about
+ * something he only sees once he is standing on it. So the section is a
+ * different material rather than a marked one: translucent cyan over the ink
+ * below instead of packed snow, cross-hatched with fractures.
+ */
+function drawIce(
+  ctx: CanvasRenderingContext2D,
+  course: Course,
+  state: RunState,
+  cam: Camera,
+): void {
+  for (let i = 0; i < course.ice.length; i++) {
+    const sec = course.ice[i]!;
+    if (sec.x1 - cam.x < -8 || sec.x0 - cam.x > INTERNAL_WIDTH + 8) continue;
+    // A broken section is a hole: nothing is drawn, because nothing is there
+    // and the simulation will not catch anybody here either.
+    if (state.iceBroken[i] === 1) continue;
+    const shelf = course.ledges.findIndex((l) => sec.x0 >= l.x0 && sec.x0 < l.x1);
+    if (shelf < 0) continue;
+
+    const from = Math.max(-2, Math.floor(sec.x0 - cam.x));
+    const to = Math.min(INTERNAL_WIDTH + 2, Math.ceil(sec.x1 - cam.x));
+    const yAt = (px: number): number => surfaceYAt(course, cam.x + px, shelf) - cam.y;
+    const THICK = 6;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(from, yAt(from));
+    for (let px = from; px <= to; px++) ctx.lineTo(px, yAt(px));
+    for (let px = to; px >= from; px--) ctx.lineTo(px, yAt(px) + THICK);
+    ctx.closePath();
+    // Opaque, not a tint. Translucent cyan laid over the shelf's packed snow
+    // came out a shade of white and was invisible from more than a few metres
+    // away - fatal for a hazard whose entire design is that the player decides
+    // to hop it BEFORE he reaches it. Ice is a different material from snow, so
+    // it is drawn as one.
+    ctx.fillStyle = css('cyan');
+    ctx.fill();
+    ctx.clip();
+
+    // Fractures, widening while the countdown runs: the last warning is the one
+    // the player is standing on.
+    const standing = state.crumbleTicks > 0 && state.x >= sec.x0 && state.x < sec.x1;
+    ctx.strokeStyle = css('ink');
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let wx = Math.ceil(sec.x0 / 7) * 7; wx < sec.x1; wx += 7) {
+      const px = wx - cam.x;
+      const lean = (hash(wx) - 0.5) * 5;
+      ctx.moveTo(px, yAt(px) - 1);
+      ctx.lineTo(px + lean, yAt(px) + THICK + 1);
+      if (standing) {
+        ctx.moveTo(px - 3, yAt(px) + 2);
+        ctx.lineTo(px + 3, yAt(px) + 3);
+      }
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // A marker post at each end, standing proud of the shelf in the hazard
+    // colour (P-4). This is the part that carries at distance: the ice itself
+    // is only six pixels of shelf edge-on, but a post breaks the shelf's
+    // silhouette and reads as far as the shelf does. P-5 is satisfied by the
+    // shape, not the colour - nothing else on the upper track stands up off it.
+    for (const edge of [sec.x0, sec.x1]) {
+      const px = Math.round(edge - cam.x);
+      if (px < -1 || px > INTERNAL_WIDTH + 1) continue;
+      const y = Math.round(yAt(px));
+      ctx.fillStyle = css('orange');
+      ctx.fillRect(px, y - 7, 1, 7 + THICK);
+      ctx.fillRect(px - 1, y - 7, 3, 2);
+    }
+  }
+}
+
+/**
+ * A rock breaking up through the shelf. Ink mass, orange hazard edge (P-4),
+ * snow caught on the windward face.
+ *
+ * Deliberately unlike the deadfall it rhymes with: the log is a horizontal
+ * orange barrel and this is a vertical dark wedge, so at speed the two never
+ * trade places in the player's head (P-5, style bible TR-2).
+ */
+function drawRocks(ctx: CanvasRenderingContext2D, course: Course, cam: Camera): void {
+  for (const rock of course.rocks) {
+    const px = rock.x - cam.x;
+    if (px < -30 || px > INTERNAL_WIDTH + 30) continue;
+    const shelf = course.ledges.findIndex((l) => rock.x >= l.x0 && rock.x < l.x1);
+    if (shelf < 0) continue;
+    const baseY = surfaceYAt(course, rock.x, shelf) - cam.y;
+    const top = baseY - rock.height;
+    const w = rock.width;
+
+    ctx.fillStyle = css('ink');
+    ctx.beginPath();
+    ctx.moveTo(px - 1, baseY + 1);
+    ctx.lineTo(px + w * 0.24, top + rock.height * 0.18);
+    ctx.lineTo(px + w * 0.52, top);
+    ctx.lineTo(px + w * 0.78, top + rock.height * 0.3);
+    ctx.lineTo(px + w + 1, baseY + 1);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = css('orange');
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(px - 1, baseY + 0.5);
+    ctx.lineTo(px + w * 0.52, top + 0.5);
+    ctx.lineTo(px + w + 1, baseY + 0.5);
+    ctx.stroke();
+
+    // Snow packed against the uphill face, which also marks where the rock
+    // meets the shelf.
+    ctx.strokeStyle = css('snow');
+    ctx.beginPath();
+    ctx.moveTo(px + w * 0.52, top + 1.5);
+    ctx.lineTo(px + w * 0.8, top + rock.height * 0.45);
+    ctx.stroke();
   }
 }
 
@@ -695,7 +862,9 @@ export function drawRun(
 
   drawPiste(ctx, course, cam);
   drawKickers(ctx, course, cam);
-  drawLedges(ctx, course, cam);
+  drawLedges(ctx, course, cam, state);
+  drawIce(ctx, course, state, cam);
+  drawRocks(ctx, course, cam);
 
   // Pickups. Shape differs by value as well as colour (P-5): a small pickup is
   // a square, a large one a diamond, so the two are told apart without hue.

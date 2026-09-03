@@ -56,7 +56,30 @@ interface Built {
   pickups: { x: number; y: number; value: 'small' | 'large' }[];
   ledges: { x0: number; x1: number; height: number }[];
   kickers: { x: number; width: number; power: number }[];
+  rocks: { x: number; width: number; height: number }[];
+  ice: { x0: number; x1: number }[];
 }
+
+/**
+ * Upper-track hazards, laid out from the shelf's own start.
+ *
+ * The shelf is 900 long and a player lands somewhere around 140 into it, so the
+ * run-in CV-20 demands is already spent by the time these begin. Ice comes
+ * first because it is the cheaper mistake - falling through costs the line, not
+ * the run - and the rock comes after, once he has seen what the shelf does.
+ *
+ * Neither offset is free to move. The ice sits PAST the deadfall on the piste
+ * below and lands the player short of the next bough, because CV-19 will not
+ * accept an involuntary drop onto either; the first cut put it at 300 and the
+ * validator rejected the course for dropping him straight onto a log. Its
+ * length is bounded by CV-18: 48 is inside the ~55 a minimum-charge launch
+ * covers at base speed, so a player who reacts can always hop it.
+ */
+const SHELF_ICE_AT = 380;
+const SHELF_ICE_LENGTH = 48;
+const SHELF_ROCK_AT = 580;
+const SHELF_ROCK_WIDTH = 16;
+const SHELF_ROCK_HEIGHT = 12;
 
 /**
  * Shape of one repeating stretch of mountain, measured from the bough that
@@ -102,6 +125,8 @@ function build(
   const pickups: Built['pickups'] = [];
   const ledges: Built['ledges'] = [];
   const kickers: Built['kickers'] = [];
+  const rocks: Built['rocks'] = [];
+  const ice: Built['ice'] = [];
 
   // Boughs are the course's punctuation, not its texture. Spacing is now far
   // wider than safeReleaseWindowMin (140) rather than merely clear of it: the
@@ -136,6 +161,15 @@ function build(
     kickers.push({ x: rampX, width: RAMP_WIDTH, power: RAMP_POWER });
     ledges.push({ x0, x1, height: SHELF_HEIGHT });
 
+    // What the upper line costs. Ice first, then a rock: the shelf is no longer
+    // a free ride over the piste's hazards, it has its own.
+    ice.push({ x0: x0 + SHELF_ICE_AT, x1: x0 + SHELF_ICE_AT + SHELF_ICE_LENGTH });
+    rocks.push({
+      x: x0 + SHELF_ROCK_AT,
+      width: SHELF_ROCK_WIDTH,
+      height: SHELF_ROCK_HEIGHT,
+    });
+
     // The reward for taking the upper line, spread along it so it pays for the
     // whole shelf rather than for one hop onto it.
     for (let k = 1; k <= 5; k++) {
@@ -154,13 +188,15 @@ function build(
 
   return {
     id,
-    rulesVersion: '1.2.0',
+    rulesVersion: '1.3.0',
     length,
     terrain: terrain(length, seed),
     obstacles,
     pickups,
     ledges,
     kickers,
+    rocks,
+    ice,
   };
 }
 
@@ -177,6 +213,7 @@ writeFileSync(resolve(out, 'official.json'), JSON.stringify(official, null, 2) +
 for (const c of [warmup, official]) {
   console.log(
     `${c.id}: ${c.terrain.length} pts, ${c.obstacles.length} obstacles, ` +
-      `${c.pickups.length} pickups, ${c.ledges.length} ledges, ${c.kickers.length} ramps`,
+      `${c.pickups.length} pickups, ${c.ledges.length} ledges, ${c.kickers.length} ramps, ` +
+      `${c.rocks.length} rocks, ${c.ice.length} ice`,
   );
 }

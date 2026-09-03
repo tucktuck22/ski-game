@@ -11,7 +11,7 @@
  */
 import type { Course, RunInput, RunState, Scoring, Tuning } from './types.js';
 import { cosDet } from './trig.js';
-import { terrainYAt, surfaceYAt, onLedgeSpan } from './terrain.js';
+import { terrainYAt, surfaceYAt, onLedgeSpan, iceIndexAt, ledgeIndexAt } from './terrain.js';
 import {
   resolveCrouch,
   applyGroundedMotion,
@@ -63,17 +63,19 @@ export function initialState(course: Course, tuning: Tuning, seed: number): RunS
     crouchCharge: 0,
     crouchProfile: 0,
     landingGraceTicks: 0,
+    crumbleTicks: 0,
     score: 0,
     maxX: 0,
     progress: 0,
     pickupsTaken: new Uint8Array(course.pickups.length),
+    iceBroken: new Uint8Array(course.ice.length),
     outcome: 'running',
     wipeoutReason: null,
   };
 }
 
 export function cloneState(s: RunState): RunState {
-  return { ...s, pickupsTaken: s.pickupsTaken.slice() };
+  return { ...s, pickupsTaken: s.pickupsTaken.slice(), iceBroken: s.iceBroken.slice() };
 }
 
 const wipeout = (s: RunState, reason: NonNullable<RunState['wipeoutReason']>): RunState => {
@@ -156,6 +158,28 @@ export function step(
     s.y = surfaceYAt(course, s.x, s.ledge);
   }
 
+  // 4b. Crumbling ice.
+  //
+  // Only underfoot, and only on a shelf: ice is a property of the upper track,
+  // and a player flying over it has not stood on it. Leaving the ice clears the
+  // countdown outright rather than pausing it, which is what makes hopping
+  // across a long field a real way through instead of a stay of execution.
+  const iceHere = s.grounded && s.ledge >= 0 ? iceIndexAt(course, s.x) : -1;
+  if (iceHere >= 0 && s.iceBroken[iceHere] === 0) {
+    if (s.crumbleTicks === 0) s.crumbleTicks = tuning.iceCrumbleTicks;
+    else s.crumbleTicks -= 1;
+    if (s.crumbleTicks === 0) {
+      // Through it. Not a wipeout - he keeps the run and loses the line. The
+      // shelf and the piste share a slope, so what he lands on below is an
+      // angle he was already riding (see the Ledge doc comment).
+      s.iceBroken[iceHere] = 1;
+      s.grounded = false;
+      s.ledge = -1;
+    }
+  } else {
+    s.crumbleTicks = 0;
+  }
+
   // 5. Obstacles, with real vertical extent on both axes.
   //
   // y increases downward, the skier's feet are at s.y and his head at
@@ -194,6 +218,23 @@ export function step(
     if (dy < -8 || dy > 8) continue;
     s.pickupsTaken[i] = 1;
     s.score += pickupValue(scoring, p);
+  }
+
+  // 5b. Rocks on the upper track.
+  //
+  // Tested by position rather than by track, so a player skimming just above a
+  // shelf hits the rock standing on it exactly as a player riding the shelf
+  // does. The `s.y <= ledgeY` half is what keeps it honest in the other
+  // direction: a shelf is a one-way platform, so someone passing UNDER it must
+  // not be stopped by something sitting on top of it.
+  for (const rock of course.rocks) {
+    if (s.x < rock.x || s.x >= rock.x + rock.width) continue;
+    const shelf = ledgeIndexAt(course, s.x);
+    if (shelf < 0) continue;
+    const ledgeY = surfaceYAt(course, s.x, shelf);
+    if (s.y > ledgeY) continue; // below the shelf entirely
+    if (s.y <= ledgeY - rock.height) continue; // feet above the rock
+    return wipeout(s, 'struck_obstacle');
   }
 
   // 7. Finish.

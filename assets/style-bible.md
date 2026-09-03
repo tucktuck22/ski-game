@@ -126,6 +126,21 @@ to be looked at.
   camera and the tick. Backdrop that reacted to score or outcome would be a
   second, unverifiable channel of gameplay information (A-4's argument, applied
   to pixels).
+- **TR-8** — The upper track's hazards must read from across the frame, because
+  the decision about each is made before the player reaches it. Ice is drawn as a
+  different material from snow — opaque `cyan`, not a tint over the shelf — and
+  marked at both ends with `orange` posts standing proud of the shelf. The posts
+  are what actually carry: the shelf is six pixels seen edge-on, and a tint on
+  six pixels is invisible at speed, which is how the first version shipped a
+  hazard nobody could see coming.
+- **TR-9** — A rock is a vertical dark wedge with an `orange` crest; deadfall is
+  a horizontal `orange` barrel. They are the two obstacles a player clears the
+  same way, so they are drawn as differently as the palette allows — at speed,
+  two hazards that answer to the same verb must still never trade places in his
+  head (P-5).
+- **TR-10** — Ice that has given way is drawn as nothing at all. The simulation
+  will not catch anybody there, and a picture that disagreed would be worse than
+  no picture: the player would aim a landing at snow that is not there.
 
 ---
 

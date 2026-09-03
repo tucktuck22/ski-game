@@ -61,6 +61,40 @@ export interface Ledge {
  * makes the upper track approachable: FR-078's crouch-release is still the
  * skill ceiling, but a kicker is the floor.
  */
+/**
+ * A rock breaking up through the surface of an upper-track shelf.
+ *
+ * Anchored to the shelf rather than to the piste, and therefore to whichever
+ * ledge spans its x - ledges cannot overlap (CV-12), so that is never
+ * ambiguous. It is the shelf's answer to deadfall: too tall to ride through,
+ * short enough to launch over, and no use ducking because ducking lowers the
+ * head, not the feet.
+ */
+export interface Rock {
+  x: number;
+  width: number;
+  /** How far it stands proud of the shelf. Jumpable, never duckable (CV-17). */
+  height: number;
+}
+
+/**
+ * A stretch of an upper-track shelf that gives way underfoot.
+ *
+ * Standing on it starts a short countdown; when that expires the shelf drops
+ * the player onto the piste below. He does not die - the piste runs at the same
+ * angle as the shelf above it, so the landing is clean - he loses the upper
+ * line and the scoring that comes with it.
+ *
+ * The countdown is the whole design. Ice that broke on contact would be a
+ * punishment for having taken the high line at all; ice that gives the player a
+ * beat to launch off it is a decision he can win, and CV-18 keeps every span
+ * short enough that a hop actually clears it.
+ */
+export interface IceSection {
+  x0: number;
+  x1: number;
+}
+
 export interface Kicker {
   /** Left edge of the ramp. The lip is at x + width. */
   x: number;
@@ -87,6 +121,8 @@ export interface Course {
   pickups: Pickup[];
   ledges: Ledge[];
   kickers: Kicker[];
+  rocks: Rock[];
+  ice: IceSection[];
 }
 
 /** Every value governing feel. Loaded from data/tuning.json — see contracts/tuning-data.md. */
@@ -113,6 +149,8 @@ export interface Tuning {
   branchThickness: number;
   /** Ceiling on a kicker launch, so a tucked approach cannot fling you off-course. */
   kickerImpulseMax: number;
+  /** Ticks between setting foot on crumbling ice and falling through it. */
+  iceCrumbleTicks: number;
 }
 
 export interface Scoring {
@@ -166,6 +204,12 @@ export interface RunState {
   /** 0 = standing, 1 = fully crouched. Transitions over crouchTransitionTicks. */
   crouchProfile: number;
   landingGraceTicks: number;
+  /**
+   * Ticks left before the ice underfoot gives way, or 0 when not standing on
+   * any. Reset the moment the player leaves the ice, so a chain of hops across
+   * a long field is a legitimate way through rather than a slow death.
+   */
+  crumbleTicks: number;
   score: number;
   /** Furthest x reached, so progress score cannot be farmed by oscillating. */
   maxX: number;
@@ -180,6 +224,17 @@ export interface RunState {
    */
   progress: number;
   pickupsTaken: Uint8Array;
+  /**
+   * Which ice sections have already given way.
+   *
+   * Ice that crumbled leaves a hole, and a hole cannot catch anybody. Without
+   * this the shelf re-caught the player on the very next tick after dropping
+   * him through it: he leaves the surface at exactly the surface's height, and
+   * the piste descends faster than a one-unit nudge, so every "is he falling
+   * past the shelf" test said no. Recording the break is both the honest model
+   * and the fix.
+   */
+  iceBroken: Uint8Array;
   outcome: Outcome;
   wipeoutReason: WipeoutReason;
 }

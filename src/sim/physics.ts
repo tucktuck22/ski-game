@@ -13,7 +13,14 @@
 import type { Course, RunState, RunInput, Tuning } from './types.js';
 import { approach, clamp } from './math.js';
 import { sinDet, cosDet } from './trig.js';
-import { slopeAt, terrainYAt, surfaceYAt, onLedgeSpan, overheadClearanceAt } from './terrain.js';
+import {
+  slopeAt,
+  terrainYAt,
+  surfaceYAt,
+  onLedgeSpan,
+  iceIndexAt,
+  overheadClearanceAt,
+} from './terrain.js';
 
 export interface LaunchOutcome {
   launched: boolean;
@@ -199,7 +206,11 @@ export function resolveLanding(
     // Descending. Take the topmost shelf crossed this tick: with overlapping
     // ledges banned by CV-12 there is at most one, but resolving by height
     // rather than by index keeps the result independent of file ordering.
-    for (let i = 0; i < course.ledges.length; i++) {
+    const brokenHere = iceIndexAt(course, state.x);
+    // A shelf with a hole in it is not a surface. This is also what stops the
+    // tick after a break from putting the player straight back on the ice.
+    const holed = brokenHere >= 0 && state.iceBroken[brokenHere] === 1;
+    for (let i = 0; !holed && i < course.ledges.length; i++) {
       if (!onLedgeSpan(course, state.x, i)) continue;
       const ly = surfaceYAt(course, state.x, i);
       if (prevY > ly || state.y < ly) continue; // did not cross it going down

@@ -99,3 +99,27 @@ export function onLedgeSpan(course: Course, x: number, ledge: number): boolean {
   const l = course.ledges[ledge];
   return l !== undefined && x >= l.x0 && x < l.x1;
 }
+
+/**
+ * Index of the ledge spanning x, or -1 where none does.
+ *
+ * Rocks and ice are anchored to "the shelf here" rather than to a named ledge,
+ * which is only unambiguous because CV-12 forbids ledges from overlapping. The
+ * validator earns this function.
+ */
+export function ledgeIndexAt(course: Course, x: number): number {
+  for (let i = 0; i < course.ledges.length; i++) {
+    const l = course.ledges[i] as { x0: number; x1: number };
+    if (x >= l.x0 && x < l.x1) return i;
+  }
+  return -1;
+}
+
+/** Index of the ice section containing x, or -1. */
+export function iceIndexAt(course: Course, x: number): number {
+  for (let i = 0; i < course.ice.length; i++) {
+    const sec = course.ice[i] as { x0: number; x1: number };
+    if (x >= sec.x0 && x < sec.x1) return i;
+  }
+  return -1;
+}

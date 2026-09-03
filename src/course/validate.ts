@@ -10,7 +10,7 @@
  * saying the game is broken, after the draft had already started.
  */
 import type { Course, Obstacle, Scoring, TerrainPoint, Tuning } from '../sim/types.js';
-import { overheadClearanceAt } from '../sim/terrain.js';
+import { overheadClearanceAt, ledgeIndexAt } from '../sim/terrain.js';
 import { maxAchievableBonus } from '../sim/scoring.js';
 
 export interface Violation {
@@ -43,6 +43,12 @@ const LEDGE_BRANCH_MARGIN = 8;
 
 /** How far past a ramp's lip a shelf may begin and still be enterable (CV-13). */
 const LEDGE_ENTRY_REACH = 220;
+
+/** Clear shelf a player must get after arriving on it before the first hazard. */
+const SHELF_RUN_IN = 200;
+
+/** Clear shelf required between two upper-track hazards, so each reads alone. */
+const SHELF_HAZARD_GAP = 120;
 
 export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring): Violation[] {
   const v: Violation[] = [];
@@ -316,6 +322,135 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
       if (k.x < o.x + o.width && k.x + k.width > o.x)
         v.push({ rule: 'CV-15', message: `ramp at x=${k.x} overlaps the deadfall at x=${o.x}` });
     }
+  }
+
+  // CV-16: rocks and ice belong to a shelf. Anything outside one is anchored to
+  // a surface that is not there - it would be drawn in mid-air and collide with
+  // nothing, or worse, with a player on the piste who has no way to see why.
+  for (const rock of course.rocks) {
+    if (ledgeIndexAt(course, rock.x) < 0 || ledgeIndexAt(course, rock.x + rock.width - 1) < 0)
+      v.push({
+        rule: 'CV-16',
+        message: `rock at x=${rock.x} is not wholly on a shelf: it has nothing to stand on`,
+      });
+  }
+  for (const sec of course.ice) {
+    if (sec.x1 <= sec.x0)
+      v.push({
+        rule: 'CV-16',
+        message: `ice at x=${sec.x0} ends at ${sec.x1}: zero or negative span`,
+      });
+    if (ledgeIndexAt(course, sec.x0) < 0 || ledgeIndexAt(course, sec.x1 - 1) < 0)
+      v.push({
+        rule: 'CV-16',
+        message: `ice ${sec.x0}..${sec.x1} is not wholly on a shelf: there is no surface for it to be part of`,
+      });
+    if (ledgeIndexAt(course, sec.x0) !== ledgeIndexAt(course, sec.x1 - 1))
+      v.push({
+        rule: 'CV-16',
+        message: `ice ${sec.x0}..${sec.x1} spans two shelves`,
+      });
+  }
+
+  // CV-17: a rock must be jumpable and must not be duckable. Ducking lowers the
+  // head, never the feet, so a rock the player could crouch under would be a
+  // rock he simply rides through - and one taller than a launch clears is a
+  // wall on a track he cannot leave except by falling off it.
+  for (const rock of course.rocks) {
+    if (rock.height <= 0 || rock.width <= 0)
+      v.push({ rule: 'CV-17', message: `rock at x=${rock.x} has no extent` });
+    if (rock.height > tuning.standHeight)
+      v.push({
+        rule: 'CV-17',
+        message:
+          `rock at x=${rock.x} stands ${rock.height} above the shelf, over standHeight ` +
+          `${tuning.standHeight}. Nothing on the upper track could clear it.`,
+      });
+  }
+
+  // CV-18: a stretch of ice must be escapable and must not be outrunnable.
+  //
+  // Both halves, for the same reason CV-13 has two. Too long and a player who
+  // reacts correctly still goes through, which makes the countdown decoration.
+  // Too SHORT and he simply rides across before it gives way, which makes the
+  // ice decoration instead - the first cut had exactly that, a 48-unit span
+  // against a 20-tick countdown, and the shelf's only real hazard fired on
+  // nobody. The span has to sit in the window between what the countdown lets
+  // him cover and what one weak launch lets him clear.
+  const escapeAir = (2 * tuning.launchImpulseMin) / tuning.gravity;
+  const escapeReach = escapeAir * tuning.baseSpeed;
+  const outrunReach = tuning.iceCrumbleTicks * tuning.tuckSpeedMax;
+  for (const sec of course.ice) {
+    const span = sec.x1 - sec.x0;
+    if (span > escapeReach)
+      v.push({
+        rule: 'CV-18',
+        message:
+          `ice ${sec.x0}..${sec.x1} is ${span} long, past the ${escapeReach.toFixed(0)} ` +
+          'a minimum-charge launch covers at base speed. A player who reacts correctly still ' +
+          'goes through it, which makes the countdown decoration.',
+      });
+    if (span <= outrunReach)
+      v.push({
+        rule: 'CV-18',
+        message:
+          `ice ${sec.x0}..${sec.x1} is only ${span} long, inside the ${outrunReach.toFixed(0)} ` +
+          `a player at tuck speed covers in the ${tuning.iceCrumbleTicks} ticks before it gives ` +
+          'way. He rides straight across and the hazard fires on nobody.',
+      });
+  }
+
+  // CV-19: the piste under a stretch of ice must be clear.
+  //
+  // Falling through is involuntary and unannounced - the player gave no input
+  // that chose it. Dropping him onto a bough or a log would make an unavoidable
+  // transition fatal, which is the same unfairness CV-4 and CV-15 exist to
+  // prevent, arriving from above instead.
+  for (const sec of course.ice) {
+    const shelf = ledgeIndexAt(course, sec.x0);
+    const height = shelf >= 0 ? (course.ledges[shelf] as { height: number }).height : 0;
+    // How far he travels while falling the height of the shelf.
+    const fallTicks = Math.sqrt((2 * height) / tuning.gravity);
+    const landsBy = sec.x1 + fallTicks * tuning.tuckSpeedMax;
+    for (const o of course.obstacles) {
+      if (o.x + o.width < sec.x0 || o.x > landsBy) continue;
+      v.push({
+        rule: 'CV-19',
+        message:
+          `ice ${sec.x0}..${sec.x1} drops the player onto the ${o.kind} obstacle at x=${o.x}. ` +
+          'Falling through is not a choice he made, so it must not be a choice that kills him.',
+      });
+    }
+  }
+
+  // CV-20: upper-track hazards must be spaced, and must never greet a player at
+  // the moment he arrives. A rock in the landing zone of a ramp is a rock he is
+  // committed to before he can see it.
+  const shelfHazards = [
+    ...course.rocks.map((r) => ({ x0: r.x, x1: r.x + r.width, what: `rock at x=${r.x}` })),
+    ...course.ice.map((i) => ({ x0: i.x0, x1: i.x1, what: `ice at x=${i.x0}` })),
+  ].sort((a, b) => a.x0 - b.x0);
+  for (const h of shelfHazards) {
+    const shelf = ledgeIndexAt(course, h.x0);
+    if (shelf < 0) continue;
+    const l = course.ledges[shelf] as { x0: number };
+    if (h.x0 - l.x0 < SHELF_RUN_IN)
+      v.push({
+        rule: 'CV-20',
+        message:
+          `${h.what} sits ${h.x0 - l.x0} into the shelf that starts at x=${l.x0}, inside the ` +
+          `${SHELF_RUN_IN} of run-in a player needs to land, recover and read it.`,
+      });
+  }
+  for (let i = 1; i < shelfHazards.length; i++) {
+    const prev = shelfHazards[i - 1]!;
+    const cur = shelfHazards[i]!;
+    if (ledgeIndexAt(course, prev.x0) !== ledgeIndexAt(course, cur.x0)) continue;
+    if (cur.x0 - prev.x1 < SHELF_HAZARD_GAP)
+      v.push({
+        rule: 'CV-20',
+        message: `${prev.what} and ${cur.what} are ${cur.x0 - prev.x1} apart, under ${SHELF_HAZARD_GAP}`,
+      });
   }
 
   // CV-8: FR-034 dominance — a finish must beat any wipeout

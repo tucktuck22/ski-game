@@ -1,6 +1,6 @@
 {
   "id": "warmup",
-  "rulesVersion": "1.2.0",
+  "rulesVersion": "1.3.0",
   "length": 3200,
   "terrain": [
     {
@@ -186,6 +186,19 @@
       "x": 1100,
       "width": 56,
       "power": 1.9
+    }
+  ],
+  "rocks": [
+    {
+      "x": 1776,
+      "width": 16,
+      "height": 12
+    }
+  ],
+  "ice": [
+    {
+      "x0": 1576,
+      "x1": 1624
     }
   ]
 }
