@@ -19,6 +19,7 @@ import { organizerSecretFromUrl } from './state/links.js';
 import { renderOrganizer, removalConfirmationText } from './ui/organizer.js';
 import { safeSession } from './state/safeStorage.js';
 import { showFatalError, installGlobalErrorHandlers } from './ui/errorBoundary.js';
+import { resolveConfig, describeUnreachable, isNetworkFailure } from './state/config.js';
 
 import tuningJson from '../data/tuning.json';
 import scoringJson from '../data/scoring.json';
@@ -42,9 +43,13 @@ const data: GameData = assembleGameData({
   insults: insultsJson,
 });
 
-const url = import.meta.env['VITE_SUPABASE_URL'] as string | undefined;
-const key = import.meta.env['VITE_SUPABASE_ANON_KEY'] as string | undefined;
-const isLocal = !url || !key;
+// Validated up front: a bad URL otherwise surfaces as an opaque
+// "TypeError: Failed to fetch" that names neither the cause nor the fix.
+const config = resolveConfig(
+  import.meta.env['VITE_SUPABASE_URL'],
+  import.meta.env['VITE_SUPABASE_ANON_KEY'],
+);
+const isLocal = config.kind === 'local';
 
 const DRAFT_ID = new URLSearchParams(location.search).get('draft') ?? 'local-draft';
 // FR-006: organizer controls appear only for a holder of the organizer URL.
@@ -52,15 +57,16 @@ const DRAFT_ID = new URLSearchParams(location.search).get('draft') ?? 'local-dra
 const isOrganizer = organizerSecretFromUrl(location.search) !== null;
 const localDeadlineIso = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
 
-const backend: Backend = isLocal
-  ? new LocalDraftStore({
-      id: DRAFT_ID,
-      deadline: localDeadlineIso,
-      courseSeed: 19860214,
-      rulesVersion: data.official.rulesVersion,
-      finalizedAt: null,
-    })
-  : new DraftStore(url, key, DRAFT_ID);
+const backend: Backend =
+  config.kind === 'configured'
+    ? new DraftStore(config.url, config.anonKey, DRAFT_ID)
+    : new LocalDraftStore({
+        id: DRAFT_ID,
+        deadline: localDeadlineIso,
+        courseSeed: 19860214,
+        rulesVersion: data.official.rulesVersion,
+        finalizedAt: null,
+      });
 
 // The outbox needs somewhere to persist. In local mode it is in memory, because
 // a local session is already not a real draft.
@@ -456,6 +462,11 @@ async function endRun(report: RunReport): Promise<void> {
  * failure lands in the catch and reaches the screen.
  */
 async function bootstrap(): Promise<void> {
+  // Misconfiguration is a setup mistake, not a runtime fault: say which secret
+  // is wrong and how to fix it rather than letting fetch fail opaquely later.
+  if (config.kind === 'invalid') {
+    throw new Error(`${config.problem}\n\n${config.fix}`);
+  }
   if (isLocal) {
     for (const n of ['Tucker', 'Dave', 'Sam', 'Al', 'Zach', 'Marty', 'Rob', 'Cheeks']) {
       await (backend as LocalDraftStore).seedOrganizerEntry(n);
@@ -468,5 +479,11 @@ async function bootstrap(): Promise<void> {
 }
 
 void bootstrap().catch((error: unknown) => {
-  showFatalError('The game could not load its data or reach shared storage.', error);
+  // "Failed to fetch" carries no status and no Postgres code — the request
+  // never reached a server — so it needs translating into something actionable.
+  if (config.kind === 'configured' && isNetworkFailure(error)) {
+    showFatalError('Shared storage is unreachable.', new Error(describeUnreachable(config.url)));
+    return;
+  }
+  showFatalError('The game could not start.', error);
 });
