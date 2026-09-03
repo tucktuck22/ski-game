@@ -30,6 +30,52 @@ Resolved TODOs:
   TODO(TARGET_PLATFORM_BASELINE): resolved 2026-09-01. Evergreen mobile web, no
     game engine, 2022-era mid-range phone as reference hardware, budgets fixed.
 
+Version change: 1.1.0 → 1.2.0
+Rationale: Two principles added after the first deployment week produced six
+consecutive corrective changes, none of which was a simulation, scoring, or storage
+defect. Every one sat in the seam between the code and the human operating it:
+deployment configuration, module bootstrap, error rendering, entry URLs, and setup
+instructions. That seam was under no automated obligation. Two principles added, so
+MINOR per the versioning policy.
+Decision record: docs/adr/0008-verify-the-real-thing.md
+
+Added principles:
+  VI. The Shipped Artifact Is the Unit of Truth (NON-NEGOTIABLE)
+  VII. Operator Instructions Are Deliverables Under Test (NON-NEGOTIABLE)
+
+Modified sections:
+  Technical Standards & Constraints — performance budget and reference-hardware
+    clauses corrected: both described CI enforcement that does not exist. Now stated
+    as obligations with their unmet status recorded, per Principle VI.
+  Development Workflow & Quality Gates — "Trunk is always playable" now defines
+    playable mechanically; Definition of Done gains items 7-9; a stop condition added
+    for repeated fix-forward.
+
+OPEN DEVIATIONS (Principle VI requires these be stated, not implied)
+  The following are REQUIRED by this document and NOT YET ENFORCED. Each is a
+  deviation under the Governance compliance-review clause, owned by the maintainer,
+  for remediation before the deadline in specs/001-shredpocalypse-bed-draft.
+    1. No smoke gate. CI never runs `npm run build` and never loads the built
+       artifact in a browser. Required by Principle VI. This is why the base-path
+       and blank-page defects were structurally invisible to a green CI.
+    2. User-journey e2e specs (us1, us3, us6, error-boundary) exist but no CI job
+       runs them; only determinism.spec.ts runs under Playwright in CI.
+    3. No performance budget job: no frame-time, heap, payload, or time-to-
+       interactive check, and no CPU or network throttling. Required by Technical
+       Standards & Constraints since v1.1.0 and never implemented.
+    4. Principle V remains knowingly violated pending ADR-0005, which is still
+       Proposed. Recorded in the spec's Constitutional Compliance Notes.
+  An amendment that adds an obligation without adding its gate leaves the obligation
+  in this list. It does not get to be described as enforced.
+
+  Remediation sequencing, agreed 2026-09-03: deviations 1 and 2 are built once the
+  deployed game is confirmed playable end to end by the organizer, so the gate is
+  written against a known-good baseline rather than a moving target. This defers the
+  stop condition in Development Workflow & Quality Gates by one step and does not
+  waive it: the gate is the next deliverable after the game works, ahead of any
+  further feature work. Deviation 3 has no date. Deviation 4 awaits a decision on
+  ADR-0005.
+
 Deferred TODOs:
   TODO(PRODUCT_TITLE): "Ski Game" is a working name. Final product title is a
     deferred naming decision and does not block governance.
@@ -138,6 +184,57 @@ Rationale: Competitive integrity is a technical property, not a policy statement
 is achievable only if determinism and replay capture are designed in from the start —
 they cannot be retrofitted onto a nondeterministic simulation.
 
+### VI. The Shipped Artifact Is the Unit of Truth (NON-NEGOTIABLE)
+
+Verification performed against a convenient approximation of the product is not
+verification of the product.
+
+- Every claim that a change works MUST be established against the built artifact,
+  served at its production base path, entered through the URL a player actually uses.
+  A development server at a different path, a unit test of an extracted function, or a
+  locally run subset of the suite MUST NOT be offered as evidence that the deployed
+  product works.
+- CI MUST build the artifact and drive it in a real browser through, at minimum: a
+  cold load at the production base path, the bare entry URL carrying no parameters,
+  and the primary player journey end to end.
+- Every failure state a player can reach MUST be produced deliberately in a test and
+  asserted to render a message naming the cause and the remedy. A failure path that
+  has never been executed is untested however carefully it was written.
+- Where the environment verified differs from the player's, the difference MUST be
+  stated at review as an explicit gap. An unstated difference is an untested one.
+
+Rationale: every defect that reached a player in this project's first deployment week
+— asset paths resolved against the wrong base, a top-level await that halted module
+evaluation, an error object rendered as "[object Object]", an entry URL with no draft
+— was invisible to a green local suite and visible within seconds of loading the
+deployed page. The principles here that have held are the ones with a machine
+enforcing them against the real thing. The ones that failed were prose.
+
+### VII. Operator Instructions Are Deliverables Under Test (NON-NEGOTIABLE)
+
+Anything a human is told to run, paste, edit, or copy is part of the product and
+carries the same burden of proof as code.
+
+- Setup scripts, example environment files, SQL an operator pastes, README command
+  blocks, and any link the system generates MUST be executed verbatim in CI, on the
+  platform the operator actually uses.
+- CI MUST assert on the output of those artifacts, not merely on their exit status. A
+  script that succeeds while printing something unusable has failed.
+- A placeholder MUST NOT appear inside a string that also carries required syntax.
+  Editable values MUST be isolated so that substituting one cannot destroy the rest.
+- Values that MUST NOT be interchanged MUST be distinguishable at the point of use,
+  and the consequence of confusing them MUST be stated where the choice is made.
+- No document may instruct a human to perform a step the project has never executed.
+
+Rationale: three separate setup traps reached the organizer — a placeholder URL that
+produced an opaque network error, a secret key presented indistinguishably from the
+publishable one and published in a browser bundle, and a link query whose placeholder
+sat inside the string carrying the required parameter, so substituting it silently
+deleted the parameter. The last of these passed a CI step that asserted the script
+inserted eight rows while ignoring the unusable links it printed. Setup is where this
+project has spent nearly all of its defect budget, and it was the only area under no
+automated obligation at all.
+
 ## Technical Standards & Constraints
 
 **Simulation architecture.** The simulation MUST be separated from rendering and
@@ -154,7 +251,10 @@ MUST be declared in versioned, human-readable data files, loadable without a cod
 change or recompile.
 
 **Performance budgets.** Each release MUST declare and enforce a frame-time budget, a
-memory ceiling, and a load-time ceiling on reference hardware, verified in CI.
+memory ceiling, and a load-time ceiling on reference hardware, verified in CI. This
+obligation is currently UNMET: no budget job exists. Recorded as an open deviation in
+the Sync Impact Report rather than left stated as though it were in force, per
+Principle VI.
 
 **Accessibility.** Controls MUST be fully remappable. Information MUST NEVER be
 conveyed by color alone. A reduced-motion option and subtitles for narrative and
@@ -171,9 +271,10 @@ simulation, physics, and game loop are written directly, because general-purpose
 engines are not built to produce bit-identical results across browser engines.
 
 **Reference hardware.** A 2022-era mid-range phone — Pixel 6a, Galaxy A54, or iPhone
-SE 3rd gen class. CI approximates it with headless Chromium under 4× CPU throttling
-and Fast 3G network emulation. This approximation is for catching regressions; it
-does not replace the human playtest required by Definition of Done item 6.
+SE 3rd gen class. CI MUST approximate it with headless Chromium under 4× CPU
+throttling and Fast 3G network emulation. This approximation is for catching
+regressions; it does not replace the human playtest required by the Definition of
+Done. This approximation is NOT YET IMPLEMENTED — see the open deviations.
 
 **Budgets.** On reference hardware: simulation step MUST NOT exceed 2.0 ms per 60 Hz
 tick; frame time MUST NOT exceed 16.7 ms at the 95th percentile, sustaining at least
@@ -197,7 +298,10 @@ on any multi-part feature.
 
 **Trunk is always playable.** The main branch MUST build and reach a playable run at
 every commit. A change that leaves the game unplayable MUST be reverted rather than
-fixed forward.
+fixed forward. "Playable" means the built artifact, served at its production base
+path, reaches an interactive state in a real browser — proven by the smoke gate
+required by Principle VI. A build command that exits zero is not evidence of this and
+MUST NOT be cited as such.
 
 **Definition of Done.** A task is done only when all of the following hold:
 
@@ -208,6 +312,15 @@ fixed forward.
 4. Any new asset has passed style-bible review.
 5. Tuning values are in data files, not code.
 6. A human has played the result and recorded findings.
+7. The change has been exercised against the built artifact at its production base
+   path, and the change description names the command run and the environment it ran
+   in. "Verified" without a named command and environment is not a claim, and MUST be
+   treated at review as unverified.
+8. CI is green on the head commit, checked rather than assumed. Citing a check that
+   did not run, or that does not exist, is a defect of the same severity as the bug it
+   conceals, and MUST be handled as one.
+9. Any operator-facing instruction the change adds or alters has been executed
+   verbatim and its output inspected, per Principle VII.
 
 **Review.** Every change MUST be reviewed against this constitution. Reviewers MUST
 explicitly confirm principle compliance and reject changes that trade a principle for
@@ -216,6 +329,12 @@ alternative.
 
 **Playtest cadence.** Playtesting MUST occur at feature completion, not solely at
 milestone boundaries. Findings MUST be recorded against the governing spec.
+
+**Repeated fix-forward is a stop condition.** Where two consecutive changes attempt to
+fix the same user-visible failure, work on a third MUST NOT begin until the missing
+gate has been identified and added. The defect is then the absence of the gate, not
+the bug, and the gate is the deliverable. A sequence of corrective changes that adds
+no gate is evidence the root cause has not been found.
 
 ## Governance
 
@@ -245,4 +364,4 @@ reviewed at the next milestone.
 a project-root `CLAUDE.md` and MUST remain consistent with this constitution. Where
 the two disagree, this constitution governs and the guidance file MUST be corrected.
 
-**Version**: 1.1.0 | **Ratified**: 2026-09-01 | **Last Amended**: 2026-09-01
+**Version**: 1.2.0 | **Ratified**: 2026-09-01 | **Last Amended**: 2026-09-03

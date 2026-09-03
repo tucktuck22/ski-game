@@ -31,15 +31,24 @@ from unnest(array[
 
 commit;
 
--- Your two links. Replace YOUR-SITE with wherever the game is deployed
--- (for GitHub Pages that is https://tucktuck22.github.io/ski-game).
+-- Your two links.
+--
+-- The site address is the ONLY editable value, and it is on its own line below.
+-- Everything after it — the "/?draft=" and the id — is built for you. An
+-- earlier version of this file asked you to substitute a placeholder inside the
+-- link string itself, and substituting it swallowed the "?draft=" part, which
+-- produces a 404 rather than the game.
 --
 -- Share the PLAYER link. Keep the ORGANIZER one to yourself - anyone who has
 -- it can change the deadline, remove entries, and reset the whole draft.
+with site as (
+  -- CHANGE ME only if the game is deployed somewhere else. No trailing slash.
+  select 'https://tucktuck22.github.io/ski-game' as base
+)
 select
-  'https://YOUR-SITE/?draft=' || id                                   as player_link,
-  'https://YOUR-SITE/?draft=' || id || '&organizer=' || organizer_secret as organizer_link,
-  deadline
-from draft
-order by created_at desc
+  site.base || '/?draft=' || d.id                                          as player_link,
+  site.base || '/?draft=' || d.id || '&organizer=' || d.organizer_secret   as organizer_link,
+  d.deadline
+from draft d, site
+order by d.created_at desc
 limit 1;
