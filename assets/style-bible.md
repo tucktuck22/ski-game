@@ -154,6 +154,20 @@ to be looked at.
   offset. The points beside a badge are `snow` and the multiplier note `cyan`:
   the shout is the loudest thing on the badge, and the figures are read after
   it, not instead of it.
+- **LT-7** — The wipeout lettering is the one place this game borrows a
+  convention wholesale: wide-tracked capitals on a dark band across the middle
+  of the frame, arriving slowly and holding, in the manner of a modern
+  action-RPG death screen. What is borrowed is the STAGING; the colours are
+  ours. The letters are `magenta` — the player's own colour everywhere else in
+  this game, and therefore the right one for the moment he stops being a player
+  — on an `ink` band that fades out at both ends rather than filling the frame,
+  so the mountain stays visible behind it (FR-131).
+
+  This is also the only serif in the product, and the only text not set in the
+  pixel face of LT-2. Both are deliberate and both are confined to these two
+  words. O-1 permits the convention and forbids the reproduction: a staging is
+  an idiom, a typeface and a palette are property.
+
 - **LT-6** — Score feedback survives reduced motion. A badge or indicator that
   carries points is information, not decoration, so what is dropped is its
   movement and never its message (FR-130, and feature 001's FR-056).

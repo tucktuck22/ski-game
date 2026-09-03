@@ -13,6 +13,7 @@ import { availability, courseFor, PRACTICE_RUNS, type RunKind } from './state/ru
 import { renderLeaderboard, escapeHtml } from './ui/leaderboard.js';
 import { GameView, type RunReport } from './ui/game.js';
 import { popTrickBadge } from './ui/trickBadge.js';
+import { showYouDied } from './ui/youDied.js';
 import { Synth } from './audio/synth.js';
 import { resolveMotion, setMotion, REDUCED_MOTION } from './render/reducedMotion.js';
 import { deadlineState, canStartOfficialRun, formatRemaining } from './state/deadline.js';
@@ -363,6 +364,7 @@ async function startRun(kind: RunKind): Promise<void> {
       void endRun(report);
     },
     (trick) => popTrickBadge(badges, trick, motion),
+    () => showYouDied(app, motion),
   );
   game.start();
 
@@ -382,10 +384,18 @@ async function startRun(kind: RunKind): Promise<void> {
 }
 
 async function endRun(report: RunReport): Promise<void> {
+  // The view stays alive and stays on screen while the wipeout plays out.
+  // `game` is deliberately NOT cleared yet: refresh() treats a live run as
+  // owning the screen, and clearing it here would let a background refresh
+  // paint over the mountain mid-sequence.
+  const view = game;
+  const finale = view?.finale ?? Promise.resolve();
   const me = myEntry();
-  game?.destroy();
-  game = null;
-  if (!me) return;
+  if (!me) {
+    view?.destroy();
+    game = null;
+    return;
+  }
 
   const insult = data.insults[Math.floor(Math.random() * data.insults.length)] as string;
   // FR-058: the cue has a visible equivalent - the headline and the insult -
@@ -418,6 +428,11 @@ async function endRun(report: RunReport): Promise<void> {
       commitStatus = 'pending';
     }
   }
+
+  // Everything above committed the run. Only the screen waits.
+  await finale;
+  view?.destroy();
+  game = null;
 
   app.innerHTML = `
     <div class="panel">

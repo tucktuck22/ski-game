@@ -14,6 +14,7 @@ import { applyCrt, resetCrt } from '../render/filters/crt.js';
 import { resolveMotion, type MotionSettings } from '../render/reducedMotion.js';
 import { drawRun, resetSceneryCache } from '../render/draw.js';
 import { LandingEffect } from '../render/landing.js';
+import { DeathSequence } from '../render/death.js';
 import { startLoop, type LoopHandle } from '../render/loop.js';
 import { InputSampler } from '../input/sample.js';
 import { keyboardSource } from '../input/keyboard.js';
@@ -37,7 +38,18 @@ export class GameView {
   private prevState: RunState;
   private finished = false;
   private readonly motion: MotionSettings;
+  private skipListener: (() => void) | null = null;
   private readonly landing = new LandingEffect();
+  private readonly death = new DeathSequence();
+  private resolveFinale: () => void = () => {};
+  /**
+   * Resolves when the mountain is finished being looked at.
+   *
+   * The caller commits the run the moment it ends and awaits this only to know
+   * when to change the screen, so a wipeout holds the frame without holding the
+   * score (feature 001's FR-020).
+   */
+  readonly finale: Promise<void>;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -49,6 +61,8 @@ export class GameView {
     private readonly onEnd: (r: RunReport) => void,
     /** Fired the moment a trick is paid, so the HUD can say so (FR-128). */
     private readonly onTrick: (t: TrickEvent) => void = () => {},
+    /** Fired once when a run ends in a wipeout, so the caller can letter it. */
+    private readonly onDeath: () => void = () => {},
   ) {
     const motion = resolveMotion();
     this.motion = motion;
@@ -59,14 +73,44 @@ export class GameView {
     this.derived = derive(tuning);
     this.state = initialState(course, tuning, seed);
     this.prevState = this.state;
+    this.finale = new Promise<void>((resolve) => {
+      this.resolveFinale = resolve;
+    });
   }
 
   start(): void {
     this.loop = startLoop({
+      // The loop outlives the simulation. Once the run has ended the tick stops
+      // advancing state and only drives the wipeout's timing, which is what
+      // keeps the frame on the mountain instead of cutting away from it.
       isRunning: () => !this.finished,
       tick: () => this.tick(),
-      render: () => this.render(),
+      render: () => {
+        if (this.finished) {
+          this.death.advance();
+          if (this.death.done) this.resolveFinale();
+        }
+        this.render();
+      },
     });
+  }
+
+  /**
+   * Any input during the wipeout cuts it short.
+   *
+   * The beat is for the first few runs. By the twentieth it is a wait, and a
+   * player who is already reaching for the keyboard has said as much.
+   */
+  private armSkip(): void {
+    const skip = (): void => {
+      this.death.skip();
+      this.resolveFinale();
+      window.removeEventListener('keydown', skip);
+      window.removeEventListener('pointerdown', skip);
+    };
+    this.skipListener = skip;
+    window.addEventListener('keydown', skip);
+    window.addEventListener('pointerdown', skip);
   }
 
   private tick(): void {
@@ -101,6 +145,13 @@ export class GameView {
 
     if (this.state.outcome !== 'running' && !this.finished) {
       this.finished = true;
+      if (this.state.outcome === 'wiped_out') {
+        this.death.start(this.motion);
+        this.onDeath();
+        this.armSkip();
+      } else {
+        this.resolveFinale();
+      }
       this.onEnd({
         outcome: this.state.outcome,
         score: finalScore(this.state, this.scoring),
@@ -120,6 +171,7 @@ export class GameView {
       this.motion,
       this.landing.shake(),
       this.landing.flashAlpha(),
+      this.death.tumble(),
     );
     this.stage.present();
   }
@@ -141,5 +193,12 @@ export class GameView {
     this.loop?.stop();
     this.sampler.destroy();
     this.stage.destroy();
+    if (this.skipListener) {
+      window.removeEventListener('keydown', this.skipListener);
+      window.removeEventListener('pointerdown', this.skipListener);
+      this.skipListener = null;
+    }
+    // Nothing may be left waiting on a view that has been torn down.
+    this.resolveFinale();
   }
 }

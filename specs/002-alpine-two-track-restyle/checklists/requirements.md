@@ -189,6 +189,29 @@ carries the upper track's 2x through the air. Two findings:
    asks for a run that stays scoreable with effects off, not one that goes
    silent. Only their movement is dropped.
 
+### Seventh validation pass — after the wipeout sequence
+
+FR-131 to FR-134 hold the frame after a crash. Two findings, one of them the
+kind that would have been a real defect:
+
+1. **The obvious implementation would have delayed the commit.** The natural way
+   to build this is to wait out the sequence and then run the end-of-run
+   handler, which is where the commit lives. That would mean an official run
+   whose player closed the tab during the crash animation never committed at
+   all — turning a scored wipeout into an abandoned run, and silently breaking
+   feature 001's FR-020. FR-132 states the constraint, and the implementation
+   fires the commit immediately and awaits the sequence only to decide when to
+   change the screen. SC-038 pins it.
+2. **Reduced motion had to shorten the hold rather than skip it.** Skipping
+   returns the player to the instant cut this requirement exists to remove, so
+   FR-134 asks for a shorter beat without the movement. A player who asked for
+   less motion did not ask for a worse transition.
+
+Also recorded, in the style bible rather than here: the death lettering borrows
+its staging from a well-known death screen, and is the only serif and the only
+non-pixel text in the product. LT-7 states what is borrowed (a convention) and
+what is not (a typeface and a palette), which is the line O-1 draws.
+
 ### Implementation status
 
 All requirements in the spec are built, and the spec's Context section says so.

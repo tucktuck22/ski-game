@@ -28,7 +28,7 @@ catching a bad requirement while it is still cheap.
 
 **Implementation status**: every requirement in this document is built. FR-094
 and FR-111 to FR-113 were specified ahead of implementation and have since been
-closed; FR-114 to FR-130 were added after the changes they describe and carry
+closed; FR-114 to FR-134 were added after the changes they describe and carry
 the same Principle I deviation as the rest of the feature.
 
 ## Clarifications
@@ -383,6 +383,32 @@ that every hazard and both tracks remain readable in each.
   requires a run to remain fully playable and scoreable with effects off, not
   silent. What reduced motion removes is their movement.
 
+#### Ending a run
+
+- **FR-131**: A run that ends in a wipeout MUST hold on the mountain for a few
+  seconds before the results appear. The skier MUST be seen to crash, and the
+  screen MUST say so in lettering over the still-running view rather than by
+  replacing it.
+
+  The run used to cut to the results panel on the frame it ended, discarding the
+  one moment the player most wants to see: the crash he just caused. The
+  simulation has already stopped by then, so the hold costs nothing except the
+  time itself.
+
+- **FR-132**: The hold MUST NOT delay the commit. An official run commits the
+  instant it ends (feature 001's FR-020), and a player who closes the tab during
+  the sequence MUST still have his score. The commit and the hold run
+  concurrently; only the change of screen waits.
+
+- **FR-133**: Any input during the hold MUST end it early. The beat is for the
+  first few runs; by the twentieth it is a wait, and a player already reaching
+  for the keyboard has said so.
+
+- **FR-134**: Reduced motion MUST shorten the hold and drop the movement, and
+  MUST NOT remove it. Cutting straight to the panel is the jarring transition
+  this requirement exists to remove, so removing the sequence for a player who
+  asked for less movement would hand him back the problem.
+
 #### Withdrawals and rebalancing
 
 - **FR-114**: The attack verb is **withdrawn**, and the destructible barriers it
@@ -491,6 +517,10 @@ that every hazard and both tracks remain readable in each.
   landed on the piste, and a trick thrown from the piste never does.
 - **SC-036**: Every trick that pays out is announced with the points it paid,
   and the announced figure always equals the change in the score.
+- **SC-037**: After a wipeout the mountain is still on screen, with the crashed
+  skier on it, at the moment the death lettering is readable.
+- **SC-038**: An official run that ends in a wipeout commits no later than one
+  that ends at the finish line.
 
 ## Assumptions
 

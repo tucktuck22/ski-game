@@ -11,11 +11,12 @@
  * confused with anything the simulation cares about.
  */
 import type { Course, RunState, Tuning } from '../sim/types.js';
-import { terrainYAt, surfaceYAt, iceIndexAt } from '../sim/terrain.js';
+import { terrainYAt, surfaceYAt, iceIndexAt, slopeAt } from '../sim/terrain.js';
 import { PALETTE, type PaletteToken } from './palette.js';
 import { INTERNAL_HEIGHT, INTERNAL_WIDTH } from './stage.js';
 import type { MotionSettings } from './reducedMotion.js';
 import type { Shake } from './landing.js';
+import type { Tumble } from './death.js';
 import { FULL_MOTION } from './reducedMotion.js';
 
 const css = (t: PaletteToken): string => {
@@ -799,6 +800,7 @@ export function drawRun(
   motion: MotionSettings = FULL_MOTION,
   shake: Shake = { x: 0, y: 0 },
   flashAlpha = 0,
+  tumble: Tumble = { spin: 0, slide: 0 },
 ): void {
   const cam = cameraFor(state);
   // The kick is applied to the CAMERA, not to the finished frame. Translating
@@ -902,7 +904,7 @@ export function drawRun(
     else drawDeadfall(ctx, px, o.width, groundY, tuning.standHeight);
   }
 
-  drawSkier(ctx, state, course, tuning, cam, motion);
+  drawSkier(ctx, state, course, tuning, cam, motion, tumble);
 
   // FR-111's whiteout, over everything and after the skier. Capped well below a
   // full white frame and rate-limited by the caller (FR-057).
@@ -919,16 +921,21 @@ function drawSkier(
   tuning: Tuning,
   cam: Camera,
   motion: MotionSettings,
+  tumble: Tumble,
 ): void {
-  const px = state.x - cam.x;
-  const py = state.y - cam.y;
+  // A wipeout carries the body a little further down the slope before it
+  // stops. The slide follows the ground rather than the screen, so he ends up
+  // lying on the snow instead of drifting off it.
+  const slope = slopeAt(course.terrain, state.x);
+  const px = state.x - cam.x + slope.ux * tumble.slide;
+  const py = state.y - cam.y + slope.uy * tumble.slide;
   const height =
     tuning.standHeight - (tuning.standHeight - tuning.crouchHeight) * state.crouchProfile;
 
   // Rooster tail. Only while carving, only behind him, and only at the depth of
   // the surface he is actually on — spray coming off the piste while he is on
   // the shelf would be a lie about which track he is riding.
-  if (state.grounded && motion.parallax) {
+  if (state.grounded && motion.parallax && tumble.slide === 0) {
     ctx.fillStyle = rgba('snow', 0.75);
     for (let i = 0; i < 7; i++) {
       const age = ((state.tick * 1.7 + i * 5) % 18) / 18;
@@ -943,7 +950,7 @@ function drawSkier(
   ctx.translate(px, py);
   // Orientation is a unit vector; atan2 is fine HERE because rendering is not
   // the simulation and nothing here feeds back into the score.
-  ctx.rotate(Math.atan2(state.oy, state.ox));
+  ctx.rotate(Math.atan2(state.oy, state.ox) + tumble.spin);
 
   // Body — magenta, the player colour (P-4: hazards are never magenta).
   ctx.fillStyle = css('magenta');
