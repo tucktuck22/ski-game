@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -33,35 +33,46 @@
 
 ### Iteration 1 — 2026-09-03
 
-**Three [NEEDS CLARIFICATION] markers remain, deliberately.** They sit on FR-135,
-FR-146 and FR-147 and correspond to Q1, Q2 and Q3 in the spec. Each was left open
-rather than defaulted because the plausible-looking default would commit the project
-to a position its own governing documents forbid:
+Three `[NEEDS CLARIFICATION]` markers, on FR-135, FR-146 and FR-147. Each was left
+open rather than defaulted because the plausible-looking default would have committed
+the project to a position its own governing documents forbid: style-bible A-1 bans
+sampled audio "of any kind"; the supplied masters are 7.09 MiB against a 2 MB gzipped
+ceiling; and "landing music" and "the loading screen" name different screens in the
+shipped app.
 
-| Marker | Question                                  | Why not defaulted                                                                                                                                                            |
-| ------ | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FR-147 | Q1 — provenance and the A-1/A-2 amendment | Style bible A-1 forbids sampled audio "of any kind"; FR-053 and O-1 forbid third-party music. Only the owner knows the tracks' provenance and whether to amend or deviate.   |
-| FR-146 | Q2 — the payload budget                   | 7.09 MiB against a 2 MB gzipped ceiling. Lazy loading, re-encoding, trimming and amending the budget are all defensible and produce materially different features.           |
-| FR-135 | Q3 — what "the loading screen" means      | The request says "landing music" and "loading screen" in consecutive sentences; in the shipped app these are different screens and the literal loading screen is sub-second. |
+### Iteration 2 — 2026-09-03 (all items pass)
 
-Q3 has an assumed answer recorded (option A, the whole front-end) so the rest of the
-spec is coherent and reviewable; Q1 and Q2 have no assumed answer because either
-would pre-empt a governance decision.
+All three answered and folded into the spec:
 
-**Terminology hazard noted**: "track" is overloaded in this repository. Feature 002
-uses it for the upper and lower ski lines down the mountain; this feature uses it for
-a piece of music. The spec says "music track" or names the file wherever the context
-is not obvious. Planning should keep that discipline.
+| Was    | Question                             | Answer                                                                                                      |
+| ------ | ------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| FR-147 | Provenance and the A-1/A-2 amendment | Original works the project owns. Amend A-1/A-2 to permit original recorded music; ADR records the reversal. |
+| FR-146 | The payload budget                   | Re-encode to mono ~96 kbps **and** fetch on demand. Budget not amended. New FR-150 and SC-049 pin the size. |
+| FR-135 | What "the loading screen" means      | Everything that is not a run — boot shell, board, confirmation, results — as one continuous piece.          |
 
-**Content Quality — a note on the third item.** The Governance conflicts section
-names specific rule identifiers (A-1, A-2, FR-053, O-1) and cites the payload budget
-in megabytes. That is not implementation detail leaking in: those are the project's
-own governing constraints and the whole reason this feature is not a
-straightforward change. A non-technical stakeholder needs exactly that section to
-make the three decisions the spec is blocked on. The requirements themselves remain
-free of technology choices — no file formats, no audio APIs, no loading strategies
-are prescribed.
+Requirements renumbered into sequence after FR-150 was added; FR-135 through FR-150
+now read in order.
 
-**Blocking status**: this spec is NOT ready for `/speckit-plan`. Run
-`/speckit-clarify`, or answer Q1–Q3 directly, then re-validate. Q1 in particular can
-block the feature entirely rather than merely shaping it.
+**Content Quality — a note on the third item.** The Governance impact section names
+specific rule identifiers (A-1, A-2, FR-053, O-1) and cites the payload budget in
+megabytes. That is not implementation detail leaking in: those are the project's own
+governing constraints and the reason this feature is not a straightforward change. A
+non-technical stakeholder needs exactly that section to understand what approving the
+spec approves. The requirements themselves remain free of technology choices — no
+audio APIs, no loading mechanisms, no file layouts are prescribed. FR-150 names an
+encoding target (mono, ~96 kbps) because it is the substance of a product decision
+about fidelity, not a technique for achieving one.
+
+**Terminology hazard, now handled in the spec.** "Track" is overloaded in this
+repository: feature 002 uses it for the upper and lower ski lines down the mountain.
+The Context section says so explicitly and the document says "music track" or names
+the piece throughout. Planning should keep that discipline.
+
+**Two hard dependencies to carry into planning.** Neither is optional and neither is
+code: the style-bible amendment plus its ADR (FR-147), and the provenance record
+(FR-148). A merge without them fails FR-052 review regardless of how well the feature
+works. A third is logistical — the master files must reach the repository or an
+archive before the container holding them is reclaimed, since the shipped assets are
+derived from them.
+
+**Status**: ready for `/speckit-plan`.
