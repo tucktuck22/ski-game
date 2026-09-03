@@ -46,6 +46,21 @@ export function resolveConfig(rawUrl: unknown, rawKey: unknown): ConfigResult {
     }
   }
 
+  const role = classifyKey(key);
+  if (role === 'secret') {
+    return {
+      kind: 'invalid',
+      problem:
+        'VITE_SUPABASE_ANON_KEY holds a SECRET key. Supabase refuses it in a browser, ' +
+        'and this build is published publicly, so anyone could read it.',
+      fix:
+        'Delete that key in Supabase (Project Settings → API keys) right now, then set ' +
+        'VITE_SUPABASE_ANON_KEY to the publishable key — the one labelled "publishable" ' +
+        '(sb_publishable_…) or, on older projects, "anon public". A secret key bypasses ' +
+        'every row-level security rule, including the one-run rule.',
+    };
+  }
+
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -65,6 +80,42 @@ export function resolveConfig(rawUrl: unknown, rawKey: unknown): ConfigResult {
   }
 
   return { kind: 'configured', url, anonKey: key };
+}
+
+/**
+ * Tells a browser-safe Supabase key from a server-only one.
+ *
+ * Supabase publishes two keys side by side and they are easy to mix up. The
+ * secret one (`sb_secret_…`, or a legacy JWT with `role: service_role`)
+ * bypasses row-level security entirely: with it, the one-run rule is not a rule
+ * — anyone reading the published bundle could rewrite every score. Supabase now
+ * rejects it in a browser outright ("Forbidden use of secret API key in
+ * browser"), but that error arrives after the key has already shipped, so catch
+ * it here and say what to do about it.
+ */
+export function classifyKey(key: string): 'publishable' | 'secret' | 'unknown' {
+  if (key.startsWith('sb_secret_')) return 'secret';
+  if (key.startsWith('sb_publishable_')) return 'publishable';
+
+  const parts = key.split('.');
+  if (parts.length !== 3) return 'unknown';
+  const payload = decodeJwtPayload(parts[1] ?? '');
+  if (payload === null) return 'unknown';
+  const role = (payload as Record<string, unknown>)['role'];
+  if (role === 'service_role') return 'secret';
+  if (role === 'anon') return 'publishable';
+  return 'unknown';
+}
+
+/** Reads a JWT payload without verifying it — we only want the role claim. */
+function decodeJwtPayload(segment: string): unknown {
+  try {
+    const base64 = segment.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+    return JSON.parse(atob(padded)) as unknown;
+  } catch {
+    return null;
+  }
 }
 
 /** Turns an unreachable-host failure into something a person can act on. */

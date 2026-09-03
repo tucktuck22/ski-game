@@ -1,5 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { resolveConfig, isNetworkFailure, describeUnreachable } from '../../src/state/config.js';
+import {
+  resolveConfig,
+  isNetworkFailure,
+  describeUnreachable,
+  classifyKey,
+} from '../../src/state/config.js';
+
+// Real-shaped legacy keys: header.payload.signature, payload carrying the role claim.
+const ANON_JWT =
+  'eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJpc3MiOiAic3VwYWJhc2UiLCAicmVmIjogImFiY2RlZmdoaWprbCIsICJyb2xlIjogImFub24iLCAiaWF0IjogMSwgImV4cCI6IDJ9.signature';
+const SERVICE_ROLE_JWT =
+  'eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJpc3MiOiAic3VwYWJhc2UiLCAicmVmIjogImFiY2RlZmdoaWprbCIsICJyb2xlIjogInNlcnZpY2Vfcm9sZSIsICJpYXQiOiAxLCAiZXhwIjogMn0.signature';
 
 describe('Supabase configuration is validated before use', () => {
   it('runs local when nothing is configured', () => {
@@ -36,6 +47,37 @@ describe('Supabase configuration is validated before use', () => {
       url: 'https://abcdefghijkl.supabase.co',
       anonKey: 'key123',
     });
+  });
+
+  it('refuses a secret key before it can reach the browser', () => {
+    // Supabase itself answers "Forbidden use of secret API key in browser", but
+    // only after the key has shipped inside a public bundle. Catch it here.
+    const r = resolveConfig('https://abcdefghijkl.supabase.co', 'sb_secret_AbCdEf123456');
+    expect(r.kind).toBe('invalid');
+    if (r.kind === 'invalid') {
+      expect(r.problem).toContain('SECRET');
+      expect(r.fix).toContain('Delete that key');
+    }
+  });
+
+  it('refuses a legacy service_role JWT, which is the same mistake in the old key format', () => {
+    const r = resolveConfig('https://abcdefghijkl.supabase.co', SERVICE_ROLE_JWT);
+    expect(r.kind).toBe('invalid');
+  });
+
+  it('accepts both publishable key formats', () => {
+    expect(
+      resolveConfig('https://abcdefghijkl.supabase.co', 'sb_publishable_AbC123'),
+    ).toMatchObject({ kind: 'configured' });
+    expect(resolveConfig('https://abcdefghijkl.supabase.co', ANON_JWT)).toMatchObject({
+      kind: 'configured',
+    });
+  });
+
+  it('classifies keys it does not recognise as unknown rather than guessing', () => {
+    expect(classifyKey('some-opaque-key')).toBe('unknown');
+    expect(classifyKey('a.b.c')).toBe('unknown'); // not decodable base64 JSON
+    expect(classifyKey('')).toBe('unknown');
   });
 
   it('recognises the browser opaque network failure', () => {
