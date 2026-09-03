@@ -19,7 +19,7 @@ import {
   applyKickers,
   resolveLanding,
 } from './physics.js';
-import { pickupValue, trickScore } from './scoring.js';
+import { pickupValue, trickScore, UPPER_TRACK_MULTIPLIER } from './scoring.js';
 import { makeRng, nextU32, type RngState } from './rng.js';
 
 /** Constants derived once from tuning, so the per-tick path does no trig. */
@@ -28,13 +28,8 @@ export interface DerivedTuning {
   cosToleranceForgiving: number;
 }
 
-/**
- * How much faster distance-based points accrue on the upper track (FR-094).
- *
- * A constant rather than a tuning value: this is the shape of the reward, not a
- * knob for feel, and CV-8's dominance arithmetic is checked against it.
- */
-export const UPPER_TRACK_PROGRESS_RATE = 2;
+/** Re-exported so callers of the simulation need only one import. */
+export { UPPER_TRACK_MULTIPLIER } from './scoring.js';
 
 export const derive = (t: Tuning): DerivedTuning => ({
   cosTolerance: cosDet(t.landingAngleTolerance),
@@ -72,6 +67,7 @@ export function initialState(course: Course, tuning: Tuning, seed: number): RunS
     score: 0,
     maxX: 0,
     progress: 0,
+    scoreMultiplier: 1,
     pickupsTaken: new Uint8Array(course.pickups.length),
     iceBroken: new Uint8Array(course.ice.length),
     outcome: 'running',
@@ -126,12 +122,13 @@ export function step(
   s.x += s.vx;
   s.y += s.vy;
   if (s.x > s.maxX) {
-    // FR-094: ground covered on the upper track is worth double. Credited only
-    // for the stretch beyond maxX, so riding back and forth over one shelf pays
-    // exactly once - the farming protection maxX exists for, preserved through
-    // the multiplier rather than replaced by it. `s.ledge` here is the track he
-    // entered the tick on, which is the track he covered the ground on.
-    s.progress += (s.x - s.maxX) * (s.ledge >= 0 ? UPPER_TRACK_PROGRESS_RATE : 1);
+    // FR-094: ground covered in the upper track's zone is worth double.
+    // Credited only for the stretch beyond maxX, so riding back and forth over
+    // one shelf pays exactly once - the farming protection maxX exists for,
+    // preserved through the multiplier rather than replaced by it. The
+    // multiplier still holds last tick's value here, which is the zone the
+    // ground was actually covered in.
+    s.progress += (s.x - s.maxX) * s.scoreMultiplier;
     s.maxX = s.x;
   }
 
@@ -161,7 +158,7 @@ export function step(
     if (contact !== 'airborne' && s.spinTicksLeft > 0) return wipeout(s, 'spun_out');
     if (contact === 'misaligned') return wipeout(s, 'bad_landing');
     if (contact === 'landed' && s.rotationAccum > 0) {
-      s.score += trickScore(scoring, s.rotationAccum);
+      s.score += trickScore(scoring, s.rotationAccum, s.scoreMultiplier);
       s.rotationAccum = 0;
     }
   } else {
@@ -247,8 +244,15 @@ export function step(
     return wipeout(s, 'struck_obstacle');
   }
 
-  // 6b. Remember the rotate input so the next tick can see a press rather than
-  // a hold. Last, so everything above read the PREVIOUS tick's value.
+  // 6b. Settle the scoring zone, and remember the rotate input so the next tick
+  // can see a press rather than a hold. Both last, so everything above read the
+  // PREVIOUS tick's values.
+  //
+  // The multiplier only moves while the skier is on the ground. That is what
+  // carries the upper track's 2x through an air that starts on a shelf and ends
+  // on the piste, and it is why the trick award above is paid at the rate of
+  // the air rather than of the snow he landed on.
+  if (s.grounded) s.scoreMultiplier = s.ledge >= 0 ? UPPER_TRACK_MULTIPLIER : 1;
   s.rotateHeld = input.rotate;
 
   // 7. Finish.

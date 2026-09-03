@@ -85,6 +85,7 @@ export function stateHash(s: RunState): string {
   mix(s.score);
   mix(s.crouchCharge);
   mix(s.spinTicksLeft);
+  mix(s.scoreMultiplier);
   mix(s.spinDir + 1);
   mix(s.rotateHeld + 1);
   mix(s.grounded ? 1 : 0);

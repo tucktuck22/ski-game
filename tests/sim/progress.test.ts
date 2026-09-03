@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { derive, initialState, step, UPPER_TRACK_PROGRESS_RATE } from '../../src/sim/step.js';
+import { derive, initialState, step, UPPER_TRACK_MULTIPLIER } from '../../src/sim/step.js';
 import { MAX_TICKS } from '../../src/sim/run.js';
 import { ride } from './pilots.js';
 import { official, scoring, tuning, warmup } from './fixtures.js';
@@ -17,7 +17,7 @@ import { official, scoring, tuning, warmup } from './fixtures.js';
  * pilots below.
  */
 const boundsHold = (progress: number, maxX: number): boolean =>
-  progress >= maxX - 1e-9 && progress <= UPPER_TRACK_PROGRESS_RATE * maxX + 1e-9;
+  progress >= maxX - 1e-9 && progress <= UPPER_TRACK_MULTIPLIER * maxX + 1e-9;
 
 describe('progress accrual (FR-094)', () => {
   it('a pilot who never leaves the piste is credited exactly the ground he covered', () => {

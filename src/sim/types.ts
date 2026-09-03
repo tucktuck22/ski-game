@@ -263,6 +263,18 @@ export interface RunState {
    * reopening the farming hole maxX was introduced to close.
    */
   progress: number;
+  /**
+   * What everything scored right now is multiplied by: the upper track's 2x, or
+   * 1 on the piste.
+   *
+   * It tracks a ZONE rather than a surface, and only changes when the skier is
+   * on the ground. Leaving a shelf carries the 2x through the whole air and
+   * gives it up on landing back at piste level, so a trick thrown off the upper
+   * track pays double even though it finishes on ordinary snow. One field
+   * drives the scoring and the on-screen indicator, so what the player is told
+   * and what he is paid cannot disagree.
+   */
+  scoreMultiplier: number;
   pickupsTaken: Uint8Array;
   /**
    * Which ice sections have already given way.

@@ -7,6 +7,7 @@
  */
 import type { Course, RunInput, RunState, Scoring, Tuning } from '../sim/types.js';
 import { derive, initialState, step, type DerivedTuning } from '../sim/step.js';
+import { TAU } from '../sim/trig.js';
 import { finalScore } from '../sim/scoring.js';
 import { createStage, type Stage } from '../render/stage.js';
 import { applyCrt, resetCrt } from '../render/filters/crt.js';
@@ -18,6 +19,7 @@ import { InputSampler } from '../input/sample.js';
 import { keyboardSource } from '../input/keyboard.js';
 import { touchSource } from '../input/touch.js';
 import type { RunKind } from '../state/runEconomy.js';
+import type { TrickEvent } from './trickBadge.js';
 
 export interface RunReport {
   outcome: 'finished' | 'wiped_out';
@@ -45,6 +47,8 @@ export class GameView {
     seed: number,
     private readonly kind: RunKind,
     private readonly onEnd: (r: RunReport) => void,
+    /** Fired the moment a trick is paid, so the HUD can say so (FR-128). */
+    private readonly onTrick: (t: TrickEvent) => void = () => {},
   ) {
     const motion = resolveMotion();
     this.motion = motion;
@@ -79,6 +83,22 @@ export class GameView {
       this.landing.trigger(performance.now(), this.motion);
     }
 
+    // A trick is paid in the tick the skier lands: rotationAccum is converted to
+    // score and cleared. Reading the transition here rather than adding a field
+    // keeps the payout out of the simulation state, the same way the landing
+    // flash does - and the points come from the score delta, so what the badge
+    // says and what the player was paid cannot drift apart.
+    if (this.prevState.rotationAccum > 0 && this.state.rotationAccum === 0 && this.state.grounded) {
+      const points = this.state.score - this.prevState.score;
+      if (points > 0) {
+        this.onTrick({
+          points,
+          rotations: Math.floor(this.prevState.rotationAccum / TAU),
+          multiplier: this.prevState.scoreMultiplier,
+        });
+      }
+    }
+
     if (this.state.outcome !== 'running' && !this.finished) {
       this.finished = true;
       this.onEnd({
@@ -110,6 +130,11 @@ export class GameView {
 
   get liveScore(): number {
     return finalScore(this.state, this.scoring);
+  }
+
+  /** The zone the skier is scoring in right now, for the HUD indicator (FR-129). */
+  get liveMultiplier(): number {
+    return this.state.scoreMultiplier;
   }
 
   destroy(): void {

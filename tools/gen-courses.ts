@@ -188,7 +188,7 @@ function build(
 
   return {
     id,
-    rulesVersion: '1.4.0',
+    rulesVersion: '1.5.0',
     length,
     terrain: terrain(length, seed),
     obstacles,

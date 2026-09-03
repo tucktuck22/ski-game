@@ -9,6 +9,16 @@
 import type { Course, RunState, Scoring, Pickup } from './types.js';
 import { TAU } from './trig.js';
 
+/**
+ * What the upper track multiplies, and by how much.
+ *
+ * One number for both halves of the reward on purpose. Distance covered up
+ * there and tricks thrown from up there are the same bet paying out, and two
+ * separate constants would let them drift apart into two rules a player has to
+ * hold in his head at once.
+ */
+export const UPPER_TRACK_MULTIPLIER = 2;
+
 export const pickupValue = (s: Scoring, p: Pickup): number =>
   p.value === 'large' ? s.pickupLarge : s.pickupSmall;
 
@@ -23,9 +33,15 @@ export const pickupValue = (s: Scoring, p: Pickup): number =>
 export const progressScore = (s: Scoring, progress: number): number =>
   Math.floor(progress * s.progressPerUnit);
 
-/** Trick score for a cleanly landed air. Partial rotations pay nothing. */
-export const trickScore = (s: Scoring, rotationAccum: number): number =>
-  Math.floor(rotationAccum / TAU) * s.trickPerRotation;
+/**
+ * Trick score for a cleanly landed air. Partial rotations pay nothing.
+ *
+ * The multiplier is the one in force for the AIR, not for the ground he happens
+ * to touch down on: a trick thrown off the upper track pays double even when it
+ * ends on the piste, which is what makes launching off a shelf worth doing.
+ */
+export const trickScore = (s: Scoring, rotationAccum: number, multiplier: number): number =>
+  Math.floor(rotationAccum / TAU) * s.trickPerRotation * multiplier;
 
 /**
  * The maximum a single run could possibly earn in bonuses — every pickup and a
@@ -34,7 +50,8 @@ export const trickScore = (s: Scoring, rotationAccum: number): number =>
 export function maxAchievableBonus(course: Course, s: Scoring, trickCeiling: number): number {
   let total = 0;
   for (const p of course.pickups) total += pickupValue(s, p);
-  total += trickCeiling * s.trickPerRotation;
+  // Tricks are worth double off the upper track, so the ceiling is too.
+  total += trickCeiling * s.trickPerRotation * UPPER_TRACK_MULTIPLIER;
   return total;
 }
 

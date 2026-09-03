@@ -12,6 +12,7 @@ import { Outbox, type OutboxStore, type PendingCommit } from './state/outbox.js'
 import { availability, courseFor, PRACTICE_RUNS, type RunKind } from './state/runEconomy.js';
 import { renderLeaderboard, escapeHtml } from './ui/leaderboard.js';
 import { GameView, type RunReport } from './ui/game.js';
+import { popTrickBadge } from './ui/trickBadge.js';
 import { Synth } from './audio/synth.js';
 import { resolveMotion, setMotion, REDUCED_MOTION } from './render/reducedMotion.js';
 import { deadlineState, canStartOfficialRun, formatRemaining } from './state/deadline.js';
@@ -340,11 +341,17 @@ async function startRun(kind: RunKind): Promise<void> {
       <canvas id="screen"></canvas>
       <div class="hud">
         <span class="kind ${kind === 'official' ? 'official' : ''}">${kind.toUpperCase()}${kind === 'official' ? ' — THIS COUNTS' : ' — DOES NOT COUNT'}</span>
-        <span class="score" id="live-score">0</span>
+        <span class="score-group">
+          <span class="mult" id="live-mult" hidden>2× HIGH LINE</span>
+          <span class="score" id="live-score">0</span>
+        </span>
       </div>
+      <div class="badges" id="badges"></div>
     </div>`;
 
   const canvas = app.querySelector('#screen') as HTMLCanvasElement;
+  const badges = app.querySelector('#badges') as HTMLDivElement;
+  const motion = resolveMotion();
   game = new GameView(
     canvas,
     course,
@@ -355,13 +362,22 @@ async function startRun(kind: RunKind): Promise<void> {
     (report) => {
       void endRun(report);
     },
+    (trick) => popTrickBadge(badges, trick, motion),
   );
   game.start();
 
   const hud = app.querySelector('#live-score') as HTMLSpanElement;
+  const mult = app.querySelector('#live-mult') as HTMLSpanElement;
   const hudTimer = setInterval(() => {
-    if (game) hud.textContent = game.liveScore.toLocaleString();
-    else clearInterval(hudTimer);
+    if (!game) {
+      clearInterval(hudTimer);
+      return;
+    }
+    hud.textContent = game.liveScore.toLocaleString();
+    // A standing indicator rather than a flash: the zone persists through a
+    // whole air, and the player needs to know he is still in it while he
+    // decides whether to spin (FR-129).
+    mult.hidden = game.liveMultiplier <= 1;
   }, 100);
 }
 

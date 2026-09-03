@@ -30,16 +30,17 @@ interface Result {
  * bump rulesVersion, because scores under different rules are not comparable
  * (FR-023). Do not "just update the numbers" to make this pass.
  *
- * Last regenerated for rulesVersion 1.4.0, which made rotation a committed spin.
- * These traces press rotate at random, so under the old model they wobbled the
- * skier's orientation a few degrees and under this one they commit him to a
- * whole turn he usually has no time for. Two of the three now end far sooner,
- * which is the mechanic working rather than a regression.
+ * Last regenerated for rulesVersion 1.5.0, which made the upper track's 2x a
+ * zone that persists through the air. Scores and tick counts are unchanged from
+ * 1.4.0 and only the hashes moved: these traces never reach a shelf, so the
+ * multiplier they carry is 1 from start to finish — but the state they hash now
+ * records it. Scores moving here would have meant the zone was leaking onto the
+ * lower line.
  */
 const GOLDEN: Result[] = [
-  { seed: '5eed', score: 2925, ticks: 145, hash: '2cc0d8df' },
-  { seed: '1986', score: 138, ticks: 48, hash: '18318781' },
-  { seed: 'beef', score: 235, ticks: 63, hash: '476dac53' },
+  { seed: '5eed', score: 2925, ticks: 145, hash: 'ed3db63e' },
+  { seed: '1986', score: 138, ticks: 48, hash: '0e950d20' },
+  { seed: 'beef', score: 235, ticks: 63, hash: 'd2b14cf2' },
 ];
 
 test('the simulation reproduces the golden run exactly on this engine', async ({

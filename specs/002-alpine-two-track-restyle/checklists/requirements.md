@@ -164,6 +164,31 @@ Worth recording because it is the same shape of problem twice: an acceptance
 criterion written against a mechanic outlives the mechanic and keeps asserting
 something nobody re-reads. The defence in both cases was a test, not a review.
 
+### Sixth validation pass — after the trick badges and the scoring zone
+
+FR-127 to FR-130 add the badge, the multiplier indicator, and the rule that
+carries the upper track's 2x through the air. Two findings:
+
+1. **FR-094 needed amending, not just extending.** It said points accrue at
+   double "while the player is riding the upper track" — a statement about a
+   SURFACE. FR-127 makes the multiplier a ZONE that persists through an air
+   begun on a shelf, which is a different claim, and leaving both in the spec
+   would have left two rules for one number. FR-094 is rewritten to reference
+   the zone rather than the surface.
+
+   The reason the zone is the right rule is worth keeping: paying a trick at the
+   rate of the ground it happens to finish on would make the best-scoring thing
+   to do on the upper track _stay on the ground_, which is the opposite of what
+   the high line exists for.
+
+2. **The badge is feedback and had to be prevented from becoming authority.**
+   FR-128 says so explicitly, and the implementation takes the figure it
+   displays from the change in the score rather than recomputing it, so the two
+   cannot drift apart. FR-130 then keeps both the badge and the indicator out of
+   what reduced motion suppresses: they carry points, and feature 001's FR-056
+   asks for a run that stays scoreable with effects off, not one that goes
+   silent. Only their movement is dropped.
+
 ### Implementation status
 
 All requirements in the spec are built, and the spec's Context section says so.

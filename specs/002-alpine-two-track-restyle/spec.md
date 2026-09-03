@@ -28,7 +28,7 @@ catching a bad requirement while it is still cheap.
 
 **Implementation status**: every requirement in this document is built. FR-094
 and FR-111 to FR-113 were specified ahead of implementation and have since been
-closed; FR-114 to FR-126 were added after the changes they describe and carry
+closed; FR-114 to FR-130 were added after the changes they describe and carry
 the same Principle I deviation as the rest of the feature.
 
 ## Clarifications
@@ -48,8 +48,10 @@ running above it — but only if he comes in carrying speed, tucked, and pops th
 crouch at the top of the ramp. The screen flashes and kicks when he lands up
 there, so he knows the gamble paid before he has read anything. Up there the
 hazards on the piste pass harmlessly beneath him, the pickups are worth far
-more, and the ground itself scores at double rate. The shelf runs out, he drops
-back to the piste, and the next ramp offers the same bargain again. A player who
+more, and the ground itself scores at double rate — and so does anything he
+throws off the end of it, because the doubling follows him through the air and
+only lets go once he is back on ordinary snow. The shelf runs out, he drops back
+to the piste, and the next ramp offers the same bargain again. A player who
 never carries speed never sees the upper track at all, and gets down the
 mountain regardless.
 
@@ -112,6 +114,16 @@ ridden high and ridden low.
 18. **Given** a player with reduced motion enabled, **When** he lands on the
     upper track, **Then** neither the flash nor the shake occurs, he is still
     told which track he is on, and his points still accrue at the doubled rate.
+19. **Given** a player who lands a trick, **When** it is paid, **Then** the
+    screen names it and shows the points it earned, and the figure shown equals
+    the change in his score.
+20. **Given** a player who lands a trick thrown off the upper track, **When** it
+    is paid, **Then** it pays double and the announcement says so — even when he
+    landed back down on the piste.
+21. **Given** a player in the upper track's zone, **When** he looks at the HUD,
+    **Then** it says he is scoring at double, for as long as that lasts.
+22. **Given** a player with reduced motion enabled, **When** he lands a trick,
+    **Then** he is still told what he scored.
 
 ---
 
@@ -238,9 +250,9 @@ that every hazard and both tracks remain readable in each.
   only where feature 001's FR-080 requires it.
 - **FR-093**: Reaching the end of an upper track segment MUST return the player
   to the piste without an unavoidable wipeout.
-- **FR-094**: Distance-based points MUST accrue at twice the rate while the
-  player is riding the upper track as they do on the piste beneath it, and the
-  doubled rate MUST apply only to ground he has not already covered — so that no
+- **FR-094**: Points MUST accrue at twice the rate while the player is in the
+  upper track's scoring zone (FR-127), and for distance the doubled rate MUST
+  apply only to ground he has not already covered — so that no
   amount of moving back and forth over one stretch of upper track earns more
   than crossing it once. Feature 001 computes progress from the furthest point
   reached precisely so that it cannot be farmed, and a rate multiplier MUST NOT
@@ -338,6 +350,38 @@ that every hazard and both tracks remain readable in each.
 - **FR-123**: Upper-track hazards MUST be far enough into a shelf that a player
   arriving on it can land, recover and read them, and far enough apart that each
   is answered on its own.
+
+#### Telling the player what he scored
+
+- **FR-127**: The upper track's multiplier MUST be a **zone**, not a surface. It
+  MUST take effect when the player is on a shelf, MUST persist through an air
+  that began there, and MUST end only when he is back on the piste.
+
+  Paying a trick at the rate of the ground it happens to finish on would make
+  the best-scoring thing to do on the upper track _stay on the ground_, which is
+  the opposite of what the high line is for. One value MUST drive both the
+  scoring and the indicator, so what the player is told and what he is paid
+  cannot disagree.
+
+- **FR-128**: Landing a trick MUST be announced on screen with the points it
+  earned, and MUST say when those points were doubled.
+
+  Before this, a landed trick was invisible: the score ticked up between two HUD
+  refreshes, at the exact moment the player was busy looking at where he was
+  about to land. The mechanic with the highest skill floor in the game paid out
+  silently. The announcement is feedback and never the authority — the score
+  itself remains that, and stays correct whether or not the player ever sees a
+  badge.
+
+- **FR-129**: While the player is in the doubled zone, the HUD MUST say so, for
+  as long as it lasts. The decision the indicator supports is whether to commit
+  a spin, and that decision is made in the air — so a flash at the moment of
+  entry would be gone by the time it mattered.
+
+- **FR-130**: Neither the announcement nor the indicator may be suppressed by
+  reduced motion. Both carry score information, and feature 001's FR-056
+  requires a run to remain fully playable and scoreable with effects off, not
+  silent. What reduced motion removes is their movement.
 
 #### Withdrawals and rebalancing
 
@@ -443,6 +487,10 @@ that every hazard and both tracks remain readable in each.
   score.
 - **SC-034**: A player can bank two spins in the air bought by a full-charge
   launch, and going for a third costs him both.
+- **SC-035**: A trick thrown from the upper track pays double even when it is
+  landed on the piste, and a trick thrown from the piste never does.
+- **SC-036**: Every trick that pays out is announced with the points it paid,
+  and the announced figure always equals the change in the score.
 
 ## Assumptions
 

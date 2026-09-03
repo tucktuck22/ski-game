@@ -149,8 +149,14 @@ to be looked at.
 - **LT-1** — Titles are chrome: `snow` core, `cyan` upper bevel, `magenta` lower
   bevel, `ink` outline. Titles only — never body copy.
 - **LT-2** — Body and HUD text is a 5 × 7 pixel face in `snow`, unbevelled, unbloomed.
-- **LT-3** — Sound-effect lettering (WIPEOUT, SEND IT) is `yellow` on `ink` with a
-  hard `magenta` drop at 1px offset.
+- **LT-3** — Sound-effect lettering (WIPEOUT, SEND IT, and the trick badges —
+  NICE, COOL, SICK, WHOA) is `yellow` on `ink` with a hard `magenta` drop at 1px
+  offset. The points beside a badge are `snow` and the multiplier note `cyan`:
+  the shout is the loudest thing on the badge, and the figures are read after
+  it, not instead of it.
+- **LT-6** — Score feedback survives reduced motion. A badge or indicator that
+  carries points is information, not decoration, so what is dropped is its
+  movement and never its message (FR-130, and feature 001's FR-056).
 - **LT-4** — Insult copy is R-rated in register and never uses slurs or content
   targeting protected characteristics (FR-059). Profane, not hateful.
 - **LT-5** — Minimum rendered text height is 7 device pixels post-upscale.
