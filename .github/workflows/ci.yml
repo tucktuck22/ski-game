@@ -84,6 +84,21 @@ jobs:
           # is what failed this job the first time it ran.
           $PSQL -d postgres -c 'create database seedtest;'
           $PSQL -d seedtest -f supabase/setup.sql
-          $PSQL -d seedtest -f supabase/seed-draft.sql
+          $PSQL -d seedtest -tA -f supabase/seed-draft.sql | tee /tmp/seed-out.txt
           $PSQL -d seedtest -tAc 'select count(*) from roster_entry;' | grep -qx 8
           echo 'Seed produced a draft with 8 roster entries.'
+
+          # The links are the seed's actual output, and this job used to check
+          # only the rows. A run that created a perfectly good draft printed
+          # links with the "?draft=" missing - they 404 before the app loads -
+          # and this step passed. Assert the shape of what it prints.
+          grep -Eq '^https://[^|]+/\?draft=[0-9a-f-]{36}\|' /tmp/seed-out.txt \
+            || { echo 'player_link is not <site>/?draft=<uuid>'; cat /tmp/seed-out.txt; exit 1; }
+          grep -Eq '\|https://[^|]+/\?draft=[0-9a-f-]{36}&organizer=[0-9a-f]{32}\|' /tmp/seed-out.txt \
+            || { echo 'organizer_link is not <site>/?draft=<uuid>&organizer=<secret>'; cat /tmp/seed-out.txt; exit 1; }
+          # Written as an if, not `grep && exit`: a grep that finds nothing exits
+          # non-zero, and under `set -e` that would fail the step on success.
+          if grep -qi 'YOUR-SITE\|REPLACE-ME\|your-project' /tmp/seed-out.txt; then
+            echo 'seed printed an unsubstituted placeholder'; cat /tmp/seed-out.txt; exit 1
+          fi
+          echo 'Seed printed links that actually resolve.'
