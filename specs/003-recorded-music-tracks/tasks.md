@@ -156,14 +156,24 @@ has its proof, except the two that only a human ear can give.
 ## Phase 7: Polish & Cross-Cutting Concerns
 
 - [x] T043 Verify no `.mp3` appears under `dist/assets/` after `npm run build`, confirming both pieces are copied from `public/` and outside the bundle graph, per FR-146 and SC-044
-- [ ] T044 Measure and record initial payload gzipped and time to interactive on Fast 3G with a cold cache, confirming both are unchanged from before this feature, per SC-044
-- [ ] T045 Measure and record frame time p95, sustained fps, simulation step time, and peak JS heap during a run at 4× CPU throttle, confirming decoded audio accounts for roughly 16.9 MB and not 59 MB, per FR-145, SC-045 and R2
-- [ ] T046 Walk the eight-row scenario table in [quickstart.md](quickstart.md) against the built artifact at `http://localhost:4173/ski-game` with no trailing slash, recording the command and environment in the change description, per Definition of Done item 7
+- [x] T044 Measure and record initial payload gzipped and time to interactive on Fast 3G with a cold cache, confirming both are unchanged from before this feature, per SC-044
+- [x] T045 Measure and record frame time p95, sustained fps, simulation step time, and peak JS heap during a run at 4× CPU throttle, confirming decoded audio accounts for roughly 16.9 MB and not 59 MB, per FR-145, SC-045 and R2
+- [x] T046 Walk the eight-row scenario table in [quickstart.md](quickstart.md) against the built artifact at `http://localhost:4173/ski-game` with no trailing slash, recording the command and environment in the change description, per Definition of Done item 7
 - [ ] T047 Listen through the front-end loop join five consecutive times on the shipped encode and confirm no gap, click, or stutter, per SC-040 and G4
+  - **Blocked: needs a human ear.** The offsets in `data/audio.json` were measured
+    from the shipped encode (leading silence 0.666 s, trailing 0.825 s) and the loop
+    is asserted structurally in `music-player.test.ts`, but whether the join is
+    _musically_ seamless — beat-aligned, no click at the splice — cannot be
+    established from here. Play the board for three minutes and listen.
 - [ ] T048 Play a full session end to end on a phone and record findings against this spec, settling the two questions only listening can answer — 96 vs 64 kbps, and whether the cues stay audible over the music — per Principle III, FR-141 and Definition of Done item 6
-- [ ] T049 [P] Confirm every shipped audio asset cites the style-bible rule it satisfies, with zero assets carried as documented exceptions, per FR-052 and SC-048
-- [ ] T050 [P] Update the audio paragraph of `README.md` if it describes audio as synthesised at runtime, so the repository's own description does not contradict what ships
-- [ ] T051 [P] Confirm at review that neither music track carries information a player needs to complete a run or read the standings — a run must be equally completable and scoreable in silence — per FR-142 and SC-043
+  - **Blocked: needs a human and a phone.** The `gain` values in `data/audio.json`
+    (0.5 front-end, 0.45 course) are opening positions for exactly this, in the same
+    spirit as `data/tuning.json`. Constitution Principle III and Definition of Done
+    item 6 both make this a requirement, not a nicety: the feature is not done until
+    it happens.
+- [x] T049 [P] Confirm every shipped audio asset cites the style-bible rule it satisfies, with zero assets carried as documented exceptions, per FR-052 and SC-048
+- [x] T050 [P] Update the audio paragraph of `README.md` if it describes audio as synthesised at runtime, so the repository's own description does not contradict what ships
+- [x] T051 [P] Confirm at review that neither music track carries information a player needs to complete a run or read the standings — a run must be equally completable and scoreable in silence — per FR-142 and SC-043
 
 ---
 

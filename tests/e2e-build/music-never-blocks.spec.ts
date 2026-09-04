@@ -38,7 +38,7 @@ test.describe('a run survives music that cannot load', () => {
       appErrors.push(m.text());
     });
 
-    await page.goto('/');
+    await page.goto('./');
     await page.locator('button[data-claim]').first().click();
 
     await page.locator('#official').click();
@@ -61,7 +61,7 @@ test.describe('a run survives music that cannot load', () => {
   });
 
   test('a run is not delayed waiting for music that will never arrive', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./');
     await page.locator('button[data-claim]').first().click();
 
     const started = Date.now();
@@ -75,7 +75,7 @@ test.describe('a run survives music that cannot load', () => {
   });
 
   test('the mute toggle still works with no music to mute', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./');
     await page.locator('body').click();
     await expect(page.locator('#mute')).toContainText('SOUND ON');
     await page.locator('#mute').click();
@@ -91,7 +91,7 @@ test.describe('a run survives music that 404s', () => {
     const thrown: string[] = [];
     page.on('pageerror', (e) => thrown.push(e.message));
 
-    await page.goto('/');
+    await page.goto('./');
     await page.locator('button[data-claim]').first().click();
     await page.locator('#practice').click();
     await expect(page.locator('#screen')).toBeVisible();

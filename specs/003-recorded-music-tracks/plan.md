@@ -19,9 +19,11 @@ needs. Look Out Below loops constantly on the board and must be genuinely gaples
 it is decoded to an `AudioBuffer` and looped sample-accurately between offsets
 measured inside the MP3's encoder padding. Powder Rush is streamed from an
 `HTMLAudioElement`, which costs almost no memory and whose only weakness — an audible
-seam at the loop — is at a point no player reaches. That split holds peak decoded
-audio at 16.9 MB instead of 59.2 MB, and spends the smaller figure at the moment the
-frame budget is tightest.
+seam at the loop — is at a point no player reaches. That split holds resident decoded
+audio at an estimated 16.9 MB instead of 59.2 MB, and spends the smaller figure at the
+moment device memory is tightest. (Measured afterwards: this is native audio memory,
+not JS heap — see the correction in
+[R2](research.md#r2--playback-mechanism).)
 
 Neither file enters the initial payload. Both live under `public/audio/` and are
 fetched at runtime from a URL built on `import.meta.env.BASE_URL` — the first code in

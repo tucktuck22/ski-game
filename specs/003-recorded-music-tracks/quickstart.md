@@ -158,6 +158,41 @@ With DevTools performance profiling on a run, at 4× CPU throttle:
   instead of streamed and [R2](research.md#r2--playback-mechanism) has been
   implemented wrongly.
 
+## Recorded measurements — 2026-09-04
+
+Taken by hand, because the constitution records that **no budget job exists** (open
+deviation 3). Environment: Chromium 4× CPU throttle, production build served by
+`vite preview --base /ski-game/`, in the session's Linux container. Reference hardware
+is a 2022-era mid-range phone, which this is not — stated as a gap rather than implied
+to be equivalent (Principle VI).
+
+| Measure                          | Before   | After      | Budget   |
+| -------------------------------- | -------- | ---------- | -------- |
+| Initial payload, gzipped         | ~110 KiB | 110 KiB    | 2048 KiB |
+| `.mp3` under `dist/assets/`      | —        | none       | none     |
+| Shipped music, fetched on demand | —        | 3927 KiB   | 4096 KiB |
+| Time to first paint, throttled   | ~300 ms  | 272–325 ms | 5000 ms  |
+| `usedJSHeapSize`, board          | 3.9 MB   | 3.9 MB     | 150 MB   |
+| `usedJSHeapSize`, mid-run        | 3.8 MB   | 3.8 MB     | 150 MB   |
+
+**Music playing versus music blocked made no measurable difference to any of these.**
+
+That is not the null result it looks like. `AudioBuffer` storage is allocated by the
+audio thread, not on the JavaScript heap, so the ~16.9 MB of decoded audio is
+**invisible to `usedJSHeapSize`** and never counted against the 150 MB ceiling. The
+plan originally justified streaming the course piece against that ceiling; the
+justification was wrong and the correction is recorded in
+[research.md R2](research.md#r2--playback-mechanism). The decision is unchanged — 42 MB
+of native audio memory during a run on a mid-range phone is still worth avoiding — but
+it rests on device memory, not heap.
+
+**Not measured here**, and honestly outstanding: frame-time p95 and sustained fps
+during a run (SC-045), and time to interactive on Fast 3G with a cold cache (SC-044).
+Both need the throttling harness that open deviation 3 describes and that does not
+exist. Neither is likely to have moved — nothing in this feature touches the render
+loop or the initial payload — but "likely" is not a measurement and should not be
+reported as one.
+
 ## 8. Playtest
 
 Principle III and Definition of Done item 6: a human plays it end to end and records

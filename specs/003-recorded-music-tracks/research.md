@@ -76,14 +76,27 @@ second of audio, regardless of how small the compressed file was:
 | Powder Rush    | 220.1 s  | **42.3 MB**                    |
 | Both resident  | —        | **59.2 MB**                    |
 
-Against the constitution's **150 MB peak heap ceiling**, 59.2 MB of decoded audio is
-not affordable — and the worst moment for it would be during a run, competing with
-PixiJS textures and the simulation for exactly the memory and bandwidth the frame
-budget depends on.
-
 The split spends 16.9 MB on the piece whose loop is heard and near-zero on the piece
-whose loop is not. Peak decoded audio drops from 59.2 MB to **16.9 MB**, and the
-larger of the two pieces costs the least at the moment the budget is tightest.
+whose loop is not. The larger of the two costs the least at the moment device memory
+and bandwidth are tightest — during a run, competing with PixiJS textures and the
+simulation.
+
+**Correction, made after measuring (2026-09-04).** This decision was originally
+justified against the constitution's **150 MB peak JS heap ceiling**. That link does
+not hold, and the honest version is narrower.
+
+Measured on the production build at 4× CPU throttle, `usedJSHeapSize` is **3.9 MB**
+whether the music is playing or blocked — a delta of zero. `AudioBuffer` storage is
+allocated natively by the audio thread, not on the JavaScript heap, so decoded audio
+is invisible to that metric and was never counted against that ceiling. The 150 MB
+budget was not the binding constraint it was described as.
+
+The decision stands, on the constraint that actually applies: 42.3 MB of native audio
+memory resident during a run on a 2022-era mid-range phone is worth avoiding when it
+buys a loop join no player reaches. But that is device memory, not heap, and the two
+should not be conflated. The figures above are estimates from duration and sample
+rate; nothing available in this environment measures native audio allocation
+directly, which is itself worth knowing before someone cites them as measurements.
 
 **Alternatives considered**:
 

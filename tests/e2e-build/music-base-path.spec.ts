@@ -16,15 +16,13 @@ import { test, expect } from '@playwright/test';
 const AUDIO = /\.mp3(\?|$)/;
 
 test.describe('the shipped music resolves at the production base path', () => {
-  test('both pieces return 200 from under /ski-game/, entered without a trailing slash', async ({
-    page,
-  }) => {
+  test('both pieces return 200 from under /ski-game/', async ({ page }) => {
     const responses: { url: string; status: number }[] = [];
     page.on('response', (r) => {
       if (AUDIO.test(r.url())) responses.push({ url: r.url(), status: r.status() });
     });
 
-    await page.goto('/');
+    await page.goto('./');
     await expect(page.locator('h1.title')).toHaveText("SHREDPOCALYPSE '86");
 
     // FR-140: nothing is fetched before a deliberate gesture.
@@ -47,7 +45,7 @@ test.describe('the shipped music resolves at the production base path', () => {
       if (AUDIO.test(r.url())) responses.push({ url: r.url(), status: r.status() });
     });
 
-    await page.goto('/');
+    await page.goto('./');
     await page.locator('button[data-claim]').first().click();
     await page.locator('#practice').click();
     await expect(page.locator('#screen')).toBeVisible();
@@ -72,7 +70,7 @@ test.describe('the shipped music resolves at the production base path', () => {
       if (AUDIO.test(r.url())) beforeGesture.push(r.url());
     });
 
-    await page.goto('/');
+    await page.goto('./');
     await expect(page.locator('h1.title')).toBeVisible();
     await page.waitForLoadState('networkidle');
 

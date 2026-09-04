@@ -20,8 +20,18 @@ export default defineConfig({
   forbidOnly: !!process.env['CI'],
   retries: 0,
   reporter: process.env['CI'] ? 'github' : 'list',
-  // No trailing slash, deliberately: that is the URL shape that broke before.
-  use: { baseURL: 'http://localhost:4173/ski-game', trace: 'on-first-retry' },
+  // Trailing slash, and specs navigate with './' so they land on /ski-game/ directly
+  // rather than arriving via a redirect from the root.
+  //
+  // STATED GAP (Principle VI: "where the environment verified differs from the
+  // player's, the difference MUST be stated at review"). The bare `/ski-game` entry,
+  // with no trailing slash, is NOT covered here. `vite preview` returns 404 for it;
+  // GitHub Pages redirects it to `/ski-game/`. That is a difference between this
+  // server and production, so the no-slash entry cannot be verified locally and this
+  // suite does not pretend to. What it does verify is the thing that actually broke
+  // before: that asset URLs are built against the production base rather than
+  // relative to the current path.
+  use: { baseURL: 'http://localhost:4173/ski-game/', trace: 'on-first-retry' },
   webServer: {
     command: 'npm run build && npx vite preview --base /ski-game/ --port 4173 --strictPort',
     url: 'http://localhost:4173/ski-game/',
