@@ -165,12 +165,7 @@ function renderTitle(): void {
     <div class="title-screen">
       ${titleScene()}
       <h1 class="title-wordmark">SHREDPOCALYPSE<span class="title-year">'86</span></h1>
-      <p class="title-tagline">
-        One official run down a mountain you have never seen.
-        The leaderboard is the bed order.
-      </p>
       <button id="drop-in" type="button">DROP IN</button>
-      <p class="title-note">Sound starts when you drop in. You can turn it off any time.</p>
     </div>`;
   const start = app.querySelector<HTMLButtonElement>('#drop-in');
   if (start)

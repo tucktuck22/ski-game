@@ -359,7 +359,9 @@ run still starts, plays, ends, and commits its score.
   that a reviewer can tell which asset satisfies which requirement.
 
 - **FR-151**: A title screen MUST be the first thing a player sees on a cold load,
-  carrying the game's name and a single control that enters the game.
+  carrying the game's name and a single control that enters the game, and nothing
+  else. No explanatory copy: the control says what it does and the rest is the
+  artwork.
 - **FR-152**: Activating that control MUST start the music and place the player on the
   board in one action. A player MUST NOT have to find a second thing to click before
   hearing anything.
