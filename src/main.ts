@@ -15,6 +15,7 @@ import { GameView, type RunReport } from './ui/game.js';
 import { popTrickBadge } from './ui/trickBadge.js';
 import { showYouDied } from './ui/youDied.js';
 import { Synth } from './audio/synth.js';
+import { MusicPlayer } from './audio/music.js';
 import { resolveMotion, setMotion, REDUCED_MOTION } from './render/reducedMotion.js';
 import { deadlineState, canStartOfficialRun, formatRemaining } from './state/deadline.js';
 import { organizerSecretFromUrl } from './state/links.js';
@@ -28,6 +29,7 @@ import scoringJson from '../data/scoring.json';
 import warmupJson from '../data/courses/warmup.json';
 import officialJson from '../data/courses/official.json';
 import insultsJson from '../data/insults.json';
+import audioJson from '../data/audio.json';
 
 type Backend = LocalDraftStore | DraftStore;
 
@@ -43,6 +45,7 @@ const data: GameData = assembleGameData({
   warmup: warmupJson,
   official: officialJson,
   insults: insultsJson,
+  audio: audioJson,
 });
 
 // Validated up front: a bad URL otherwise surfaces as an opaque
@@ -105,15 +108,25 @@ let commitMessage = '';
 let rosterError = '';
 
 const synth = new Synth();
+// FR-135/FR-136: which piece is audible follows one rule - on the course, or not.
+// Set before the first gesture; arm() honours it when the gesture arrives.
+const music = new MusicPlayer(data.audio, import.meta.env.BASE_URL);
+music.setContext('frontEnd');
 let reducedMotion = resolveMotion() === REDUCED_MOTION;
 
 /**
  * FR-054 and style-bible A-3: no AudioContext until a deliberate gesture. Bound
  * to the first pointer or key the player produces, then removed.
+ *
+ * The music arms from this same handler rather than a listener of its own. Two
+ * gates for the same rule drift apart, and the one that drifts is the one nobody
+ * is testing.
  */
 function armAudioOnFirstGesture(): void {
   const arm = (): void => {
     synth.start();
+    const target = synth.target;
+    if (target) music.arm(target);
     window.removeEventListener('pointerdown', arm);
     window.removeEventListener('keydown', arm);
   };
@@ -278,7 +291,11 @@ function wire(): void {
   const mute = app.querySelector<HTMLButtonElement>('#mute');
   if (mute)
     mute.onclick = (): void => {
-      synth.setMuted(!synth.isMuted);
+      // One call site for both paths. Two mute paths is one too many: they
+      // disagree the moment either grows a special case.
+      const next = !synth.isMuted;
+      synth.setMuted(next);
+      music.setMuted(next);
       render();
     };
 
@@ -388,6 +405,9 @@ async function startRun(kind: RunKind): Promise<void> {
       <div class="badges" id="badges"></div>
     </div>`;
 
+  // FR-136: every run kind - practice, official, free play - gets the course piece.
+  music.setContext('course');
+
   const canvas = app.querySelector('#screen') as HTMLCanvasElement;
   const badges = app.querySelector('#badges') as HTMLDivElement;
   const motion = resolveMotion();
@@ -471,6 +491,10 @@ async function endRun(report: RunReport): Promise<void> {
   await finale;
   view?.destroy();
   game = null;
+  // FR-135: after the finale, not when the score commits. The score commits before
+  // the wipeout finishes playing, and the music belongs to the screen rather than
+  // to the transaction.
+  music.setContext('frontEnd');
 
   app.innerHTML = `
     <div class="panel">

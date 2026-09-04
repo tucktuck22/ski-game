@@ -1,24 +1,31 @@
 /**
- * Runtime chiptune and synthwave synthesis.
+ * Runtime synthesis of the sound effects.
  *
- * Style bible A-1 and FR-053: all audio is original by construction. Nothing is
- * sampled and nothing is licensed, because it is generated here from
- * oscillators. It also costs kilobytes rather than the megabytes an audio file
- * would take out of the 2 MB payload budget - and it is how the music of the
- * period was actually made.
+ * This class used to carry the music too, and its comment argued that all audio
+ * should be synthesised: original by construction, kilobytes instead of the
+ * megabytes an audio file costs, and how the music of the period was actually
+ * made. Style-bible A-1 was written from that argument.
  *
- * A-2 fixes the instrument set: two pulse leads, one triangle bass, one noise
- * percussion. That constraint is the sound.
+ * Half of it was overturned on 2026-09-04. A-1 now permits an original recorded
+ * MUSIC piece, which lives in music.ts; ADR-0009 records what changed and why.
+ * The rest of the argument still holds here, and one part of it is load-bearing
+ * for effects in a way it never was for music: a cue carries gameplay
+ * information (A-4) and has to fire the instant the event happens, which a file
+ * that has not finished downloading cannot do.
+ *
+ * So: every sound effect is synthesised, without exception. A-2 fixes the
+ * instrument set - two pulse leads, one triangle bass, one noise percussion -
+ * and that constraint is the sound.
+ *
+ * Nothing mechanical now stops a future change routing a cue through the music
+ * loader instead. That gap is named in ADR-0009 rather than left to be
+ * discovered.
  */
 import { PALETTE } from '../render/palette.js';
-
-const A_MINOR_PENTATONIC = [220.0, 261.63, 293.66, 329.63, 392.0, 440.0];
 
 export class Synth {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
-  private loopTimer: number | null = null;
-  private step = 0;
   private muted = false;
 
   /**
@@ -32,11 +39,21 @@ export class Synth {
     this.master = this.ctx.createGain();
     this.master.gain.value = 0.18;
     this.master.connect(this.ctx.destination);
-    this.scheduleLoop();
   }
 
   get started(): boolean {
     return this.ctx !== null;
+  }
+
+  /**
+   * The context and node the music player attaches to, or null before the first
+   * gesture. Shared deliberately: a second AudioContext would be a second set of
+   * hardware buffers for no gain, and the two would gate independently.
+   */
+  get target(): { context: AudioContext; destination: AudioNode } | null {
+    return this.ctx && this.master
+      ? { context: this.ctx, destination: this.ctx.destination }
+      : null;
   }
 
   setMuted(muted: boolean): void {
@@ -46,25 +63,6 @@ export class Synth {
 
   get isMuted(): boolean {
     return this.muted;
-  }
-
-  private scheduleLoop(): void {
-    if (!this.ctx) return;
-    // 128 BPM sixteenths - period-appropriate and steady enough to ski to.
-    this.loopTimer = window.setInterval(() => this.tick(), 117);
-  }
-
-  private tick(): void {
-    if (!this.ctx || this.muted) return;
-    const t = this.ctx.currentTime;
-    const s = this.step++;
-
-    if (s % 4 === 0) this.bass(t, 55 * (s % 16 === 8 ? 1.5 : 1));
-    if (s % 2 === 0) this.noise(t, s % 8 === 4 ? 0.16 : 0.05);
-    if (s % 3 === 0) {
-      const note = A_MINOR_PENTATONIC[((s / 3) % A_MINOR_PENTATONIC.length) | 0] as number;
-      this.pulse(t, note, 0.09);
-    }
   }
 
   private pulse(at: number, freq: number, dur: number): void {
@@ -137,9 +135,9 @@ export class Synth {
   }
 
   destroy(): void {
-    if (this.loopTimer !== null) clearInterval(this.loopTimer);
     void this.ctx?.close();
     this.ctx = null;
+    this.master = null;
   }
 }
 

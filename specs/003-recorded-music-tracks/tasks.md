@@ -77,11 +77,11 @@ carries measured offsets rather than placeholders.
 **Purpose**: The manifest reaches the app validated, and the player's surface exists
 with the failure semantics that make everything downstream safe.
 
-- [ ] T013 [P] Extend `assembleGameData` in `src/data/load.ts` to validate `data/audio.json` — both ids present exactly once, contexts covering `frontEnd` and `course` exactly once each, gain in range, loop offsets well-ordered — per the rules in [data-model.md](data-model.md#musictrack)
-- [ ] T014 [P] Add `tests/unit/audio-manifest.test.ts` asserting the validator rejects a duplicate id, a missing context, an out-of-range gain, and `loopStart >= loopEnd`, per FR-149
-- [ ] T015 Create `src/audio/music.ts` with the four-operation surface from [contracts/audio.md](contracts/audio.md#surface) — `arm`, `setContext`, `setMuted`, `destroy` — every one returning `void` and structurally unable to throw, per FR-143 and G6
-- [ ] T016 Implement URL construction in `src/audio/music.ts` as `` `${import.meta.env.BASE_URL}audio/${track.file}` `` and nowhere else, per FR-146 and R5
-- [ ] T017 [P] Add `tests/unit/music-player.test.ts` with fakes for `HTMLAudioElement` and the Web Audio nodes, since neither exists under jsdom, and assert nothing is audible before `arm()`, per FR-140 and G1
+- [x] T013 [P] Extend `assembleGameData` in `src/data/load.ts` to validate `data/audio.json` — both ids present exactly once, contexts covering `frontEnd` and `course` exactly once each, gain in range, loop offsets well-ordered — per the rules in [data-model.md](data-model.md#musictrack)
+- [x] T014 [P] Add `tests/unit/audio-manifest.test.ts` asserting the validator rejects a duplicate id, a missing context, an out-of-range gain, and `loopStart >= loopEnd`, per FR-149
+- [x] T015 Create `src/audio/music.ts` with the four-operation surface from [contracts/audio.md](contracts/audio.md#surface) — `arm`, `setContext`, `setMuted`, `destroy` — every one returning `void` and structurally unable to throw, per FR-143 and G6
+- [x] T016 Implement URL construction in `src/audio/music.ts` as `` `${import.meta.env.BASE_URL}audio/${track.file}` `` and nowhere else, per FR-146 and R5
+- [x] T017 [P] Add `tests/unit/music-player.test.ts` with fakes for `HTMLAudioElement` and the Web Audio nodes, since neither exists under jsdom, and assert nothing is audible before `arm()`, per FR-140 and G1
 
 **Checkpoint**: `npm run test:unit` passes. No behaviour is player-visible yet.
 
@@ -95,15 +95,15 @@ and indefinitely, and replaces the synthesised music loop.
 **Independent test**: Open the app, make one gesture, confirm the piece plays; leave the
 board open past 1:28 and confirm it restarts and continues without intervention.
 
-- [ ] T018 [US1] Implement the decoded-buffer path in `src/audio/music.ts` — fetch, `decodeAudioData`, `AudioBufferSourceNode` with `loop = true` and `loopStart`/`loopEnd` from the manifest — per FR-135, FR-137 and R2
-- [ ] T019 [US1] Route the buffer path through a `GainNode` at the manifest's gain, sharing the `AudioContext` the `Synth` already owns rather than creating a second one, per FR-141 and R6
-- [ ] T020 [US1] Implement `setContext('frontEnd')` as idempotent in `src/audio/music.ts` — a repeat call while already in that context must not restart the piece — per FR-139 and G5
-- [ ] T021 [US1] Call `music.arm()` from the existing `armAudioOnFirstGesture()` handler in `src/main.ts`, in the same handler that starts the `Synth` rather than a second listener, per FR-140 and caller obligation 1
-- [ ] T022 [US1] Set the front-end context in `src/main.ts` on boot and after every return from a run, so the boot shell, board, official-run confirmation and results panel all share one continuous piece, per FR-135
-- [ ] T023 [US1] Delete `scheduleLoop`, `tick`, `loopTimer`, `step` and `A_MINOR_PENTATONIC` from `src/audio/synth.ts`, keeping `start`, `cue`, `pulse`, `bass`, `noise` and `destroy` intact, per FR-135 and FR-141
-- [ ] T024 [US1] Rewrite the class comment in `src/audio/synth.ts`, which currently argues for runtime synthesis over audio files on payload and originality grounds — an argument this feature half overturns — per Principle I and R6
-- [ ] T025 [P] [US1] Extend `tests/unit/music-player.test.ts` to assert the front-end piece loops with `loop = true` and the manifest's offsets applied, per FR-137
-- [ ] T026 [P] [US1] Assert in `tests/unit/music-player.test.ts` that repeated `setContext('frontEnd')` does not restart the source, per FR-139 and SC-042
+- [x] T018 [US1] Implement the decoded-buffer path in `src/audio/music.ts` — fetch, `decodeAudioData`, `AudioBufferSourceNode` with `loop = true` and `loopStart`/`loopEnd` from the manifest — per FR-135, FR-137 and R2
+- [x] T019 [US1] Route the buffer path through a `GainNode` at the manifest's gain, sharing the `AudioContext` the `Synth` already owns rather than creating a second one, per FR-141 and R6
+- [x] T020 [US1] Implement `setContext('frontEnd')` as idempotent in `src/audio/music.ts` — a repeat call while already in that context must not restart the piece — per FR-139 and G5
+- [x] T021 [US1] Call `music.arm()` from the existing `armAudioOnFirstGesture()` handler in `src/main.ts`, in the same handler that starts the `Synth` rather than a second listener, per FR-140 and caller obligation 1
+- [x] T022 [US1] Set the front-end context in `src/main.ts` on boot and after every return from a run, so the boot shell, board, official-run confirmation and results panel all share one continuous piece, per FR-135
+- [x] T023 [US1] Delete `scheduleLoop`, `tick`, `loopTimer`, `step` and `A_MINOR_PENTATONIC` from `src/audio/synth.ts`, keeping `start`, `cue`, `pulse`, `bass`, `noise` and `destroy` intact, per FR-135 and FR-141
+- [x] T024 [US1] Rewrite the class comment in `src/audio/synth.ts`, which currently argues for runtime synthesis over audio files on payload and originality grounds — an argument this feature half overturns — per Principle I and R6
+- [x] T025 [P] [US1] Extend `tests/unit/music-player.test.ts` to assert the front-end piece loops with `loop = true` and the manifest's offsets applied, per FR-137
+- [x] T026 [P] [US1] Assert in `tests/unit/music-player.test.ts` that repeated `setContext('frontEnd')` does not restart the source, per FR-139 and SC-042
 
 **Checkpoint**: US1 is independently demonstrable. Music plays on the board, loops, and
 survives screen changes. The synth loop is gone; the cues are not.
@@ -117,12 +117,12 @@ survives screen changes. The synth loop is gone; the cues are not.
 **Independent test**: Start a practice run, confirm Powder Rush is what plays; finish or
 wipe out and confirm the front-end piece returns.
 
-- [ ] T027 [US2] Implement the streamed-element path in `src/audio/music.ts` using `HTMLAudioElement` with `loop = true`, deliberately not `createMediaElementSource`, per FR-136 and R2/R8
-- [ ] T028 [US2] Implement the `frontEnd` ↔ `course` transition in `src/audio/music.ts` so the outgoing source is stopped before the incoming one starts, making two-at-once structurally impossible, per FR-138 and G2
-- [ ] T029 [US2] Call `setContext('course')` in `startRun()` in `src/main.ts` when the run's view is created, for all three run kinds — practice, official and free play — per FR-136
-- [ ] T030 [US2] Call `setContext('frontEnd')` in `endRun()` in `src/main.ts` **after** `await finale` and the view teardown, not when the score commits, so the course piece carries the wipeout sequence, per FR-135 and caller obligation 2
-- [ ] T031 [P] [US2] Assert in `tests/unit/music-player.test.ts` that every context transition stops the outgoing source before starting the incoming one, per FR-138 and SC-041
-- [ ] T032 [P] [US2] Assert in `tests/unit/music-player.test.ts` that entering `course` twice in succession restarts the course piece from its beginning, per US2 acceptance scenario 5
+- [x] T027 [US2] Implement the streamed-element path in `src/audio/music.ts` using `HTMLAudioElement` with `loop = true`, deliberately not `createMediaElementSource`, per FR-136 and R2/R8
+- [x] T028 [US2] Implement the `frontEnd` ↔ `course` transition in `src/audio/music.ts` so the outgoing source is stopped before the incoming one starts, making two-at-once structurally impossible, per FR-138 and G2
+- [x] T029 [US2] Call `setContext('course')` in `startRun()` in `src/main.ts` when the run's view is created, for all three run kinds — practice, official and free play — per FR-136
+- [x] T030 [US2] Call `setContext('frontEnd')` in `endRun()` in `src/main.ts` **after** `await finale` and the view teardown, not when the score commits, so the course piece carries the wipeout sequence, per FR-135 and caller obligation 2
+- [x] T031 [P] [US2] Assert in `tests/unit/music-player.test.ts` that every context transition stops the outgoing source before starting the incoming one, per FR-138 and SC-041
+- [x] T032 [P] [US2] Assert in `tests/unit/music-player.test.ts` that entering `course` twice in succession restarts the course piece from its beginning, per US2 acceptance scenario 5
 
 **Checkpoint**: Both stories work. A full session — board, run, wipeout, results, board
 — plays the right piece throughout and never two at once.
@@ -137,12 +137,12 @@ breaks.
 **Independent test**: Block every audio request and drive a full official run; it must
 start, play, end, and commit its score.
 
-- [ ] T033 [US3] Handle the rejected `HTMLAudioElement.play()` promise in `src/audio/music.ts` so autoplay refusal never reaches the global handlers installed by `installGlobalErrorHandlers()`, per FR-143 and R9
-- [ ] T034 [US3] Swallow fetch and `decodeAudioData` failures in `src/audio/music.ts` into a valid silent state, with no retry loop and no path to `showFatalError`, per FR-143 and G6
-- [ ] T035 [US3] Ensure a run starting before its piece has arrived proceeds without waiting, the music joining late or not at all, per FR-143 and SC-043
-- [ ] T036 [US3] Implement `setMuted` in `src/audio/music.ts` to silence and resume without restarting, and fan the mute button in `src/main.ts` out to both the `Synth` and the music player from one call site, per FR-140, SC-047 and caller obligation 3
-- [ ] T037 [P] [US3] Assert in `tests/unit/music-player.test.ts` that a rejected `play()`, a 404, and a decode error each leave a valid silent state and throw nothing, per FR-143 and G6
-- [ ] T038 [P] [US3] Assert in `tests/unit/music-player.test.ts` that one `setMuted` silences both audio paths and that unmuting resumes rather than restarts, per SC-047 and G7
+- [x] T033 [US3] Handle the rejected `HTMLAudioElement.play()` promise in `src/audio/music.ts` so autoplay refusal never reaches the global handlers installed by `installGlobalErrorHandlers()`, per FR-143 and R9
+- [x] T034 [US3] Swallow fetch and `decodeAudioData` failures in `src/audio/music.ts` into a valid silent state, with no retry loop and no path to `showFatalError`, per FR-143 and G6
+- [x] T035 [US3] Ensure a run starting before its piece has arrived proceeds without waiting, the music joining late or not at all, per FR-143 and SC-043
+- [x] T036 [US3] Implement `setMuted` in `src/audio/music.ts` to silence and resume without restarting, and fan the mute button in `src/main.ts` out to both the `Synth` and the music player from one call site, per FR-140, SC-047 and caller obligation 3
+- [x] T037 [P] [US3] Assert in `tests/unit/music-player.test.ts` that a rejected `play()`, a 404, and a decode error each leave a valid silent state and throw nothing, per FR-143 and G6
+- [x] T038 [P] [US3] Assert in `tests/unit/music-player.test.ts` that one `setMuted` silences both audio paths and that unmuting resumes rather than restarts, per SC-047 and G7
 - [ ] T039 [US3] Add `tests/e2e/music-never-blocks.spec.ts` blocking every `*.mp3` request and driving a full official run to a committed score, asserting no error boundary and no fatal message, per FR-143 and SC-043
 - [ ] T040 [US3] Add `tests/e2e/music-base-path.spec.ts` asserting both files return 200 from `/ski-game/audio/…` against the **built artifact** served at `/ski-game/`, entered with no trailing slash, per FR-146, R5 and Principle VI
 - [ ] T041 [US3] Extend the determinism check so a run from the same seed and inputs produces an identical score and outcome with music playing, muted, and unavailable, per FR-144 and SC-046
@@ -155,7 +155,7 @@ has its proof, except the two that only a human ear can give.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T043 Verify no `.mp3` appears under `dist/assets/` after `npm run build`, confirming both pieces are copied from `public/` and outside the bundle graph, per FR-146 and SC-044
+- [x] T043 Verify no `.mp3` appears under `dist/assets/` after `npm run build`, confirming both pieces are copied from `public/` and outside the bundle graph, per FR-146 and SC-044
 - [ ] T044 Measure and record initial payload gzipped and time to interactive on Fast 3G with a cold cache, confirming both are unchanged from before this feature, per SC-044
 - [ ] T045 Measure and record frame time p95, sustained fps, simulation step time, and peak JS heap during a run at 4× CPU throttle, confirming decoded audio accounts for roughly 16.9 MB and not 59 MB, per FR-145, SC-045 and R2
 - [ ] T046 Walk the eight-row scenario table in [quickstart.md](quickstart.md) against the built artifact at `http://localhost:4173/ski-game` with no trailing slash, recording the command and environment in the change description, per Definition of Done item 7
