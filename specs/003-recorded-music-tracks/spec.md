@@ -166,6 +166,17 @@ run (FR-143). See FR-146 and FR-150.
   behaviour, and the standing FR-054 gap is recorded below as a deviation rather than
   quietly dropped.
 
+### Session 2026-09-04 (post-merge)
+
+- **Q: The music does not start until the player clicks somewhere. Can it start on
+  page load?**
+  A: No — and not for a reason this project can decide. Every target browser blocks
+  audio before a user gesture, and Safari on iOS 16+, the primary target, permits no
+  exception. FR-054 and style-bible A-3 independently require the same thing. The
+  resolution is to make the required gesture **purposeful and visible** rather than
+  invisible: a title screen with a single control that starts the music and enters the
+  game in one action. See FR-151 to FR-154.
+
 ## Known deviations
 
 The constitution's compliance-review clause requires a deviation to carry a rationale,
@@ -303,7 +314,7 @@ run still starts, plays, ends, and commits its score.
 
 ### Functional Requirements
 
-- **FR-135**: The screens outside a run — the boot shell, the board, the official-run
+- **FR-135**: The screens outside a run — the title screen, the board, the official-run
   confirmation, and the results panel — MUST play "Look Out Below" as their music,
   replacing the runtime-synthesised music loop on those screens.
 - **FR-136**: A run in progress MUST play "Powder Rush" as its music, for every run
@@ -347,6 +358,16 @@ run still starts, plays, ends, and commits its score.
 - **FR-149**: Both music tracks MUST be identifiable in the repository by name, so
   that a reviewer can tell which asset satisfies which requirement.
 
+- **FR-151**: A title screen MUST be the first thing a player sees on a cold load,
+  carrying the game's name and a single control that enters the game.
+- **FR-152**: Activating that control MUST start the music and place the player on the
+  board in one action. A player MUST NOT have to find a second thing to click before
+  hearing anything.
+- **FR-153**: The title screen MUST NOT gate entry on audio. A player whose sound is
+  muted, refused, or unavailable MUST reach the board from the same control, and the
+  control MUST NOT wait for the music to load.
+- **FR-154**: The title screen MUST be reachable and operable by keyboard, and MUST
+  respect the reduced-motion setting, as every other screen does (FR-056).
 - **FR-150**: The shipped music assets MUST be re-encoded from the masters to mono at
   approximately 96 kbps, and the two together MUST NOT exceed 4 MiB transferred. The
   masters are archived, not shipped.
@@ -391,6 +412,10 @@ run still starts, plays, ends, and commits its score.
 - **SC-048**: Every shipped audio asset cites the style-bible rule it satisfies, as
   FR-052 requires — zero assets failing review, rather than assets documented as
   exceptions.
+- **SC-050**: From a cold load, a player reaches the board in **one** action, and the
+  music is audible from that same action rather than a later one.
+- **SC-051**: The title screen adds nothing to the initial payload beyond markup and
+  styling already served — no new image, font, or media file.
 - **SC-049**: The two shipped music assets total no more than 4 MiB transferred, down
   from 7.09 MiB of masters. At mono ~96 kbps the pair projects to roughly 3.5 MiB,
   leaving about 13% headroom.

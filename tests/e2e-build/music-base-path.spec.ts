@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { dropIn } from './helpers.js';
 
 /**
  * FR-146 and research.md R5. The single highest-risk line in this feature.
@@ -23,12 +24,13 @@ test.describe('the shipped music resolves at the production base path', () => {
     });
 
     await page.goto('./');
-    await expect(page.locator('h1.title')).toHaveText("SHREDPOCALYPSE '86");
+    await expect(page.locator('h1.title-wordmark')).toContainText('SHREDPOCALYPSE');
 
-    // FR-140: nothing is fetched before a deliberate gesture.
+    // FR-140: nothing is fetched before a deliberate gesture. The title screen is
+    // where that gesture is asked for, so it must still be silent here.
     expect(responses).toEqual([]);
 
-    await page.locator('body').click();
+    await page.locator('#drop-in').click();
     await expect
       .poll(() => responses.length, { timeout: 15_000, message: 'no audio was requested' })
       .toBeGreaterThan(0);
@@ -45,7 +47,7 @@ test.describe('the shipped music resolves at the production base path', () => {
       if (AUDIO.test(r.url())) responses.push({ url: r.url(), status: r.status() });
     });
 
-    await page.goto('./');
+    await dropIn(page, './');
     await page.locator('button[data-claim]').first().click();
     await page.locator('#practice').click();
     await expect(page.locator('#screen')).toBeVisible();
@@ -70,8 +72,9 @@ test.describe('the shipped music resolves at the production base path', () => {
       if (AUDIO.test(r.url())) beforeGesture.push(r.url());
     });
 
+    // Deliberately no drop-in: this asserts what happens BEFORE the gesture.
     await page.goto('./');
-    await expect(page.locator('h1.title')).toBeVisible();
+    await expect(page.locator('#drop-in')).toBeVisible();
     await page.waitForLoadState('networkidle');
 
     expect(

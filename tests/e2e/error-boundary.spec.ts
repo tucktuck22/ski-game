@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { dropIn } from './helpers.js';
 
 /**
  * A blank page is the worst failure this product can have: nothing on screen,
@@ -15,13 +16,15 @@ test.describe('startup failures are visible, not blank', () => {
         },
       });
     });
+    // No drop-in here: if startup is broken the title screen may never paint, and
+    // the point of this test is that SOMETHING renders regardless.
     await page.goto('/');
     // Whatever happens, the page must not be silently empty.
     await expect(page.locator('body')).not.toBeEmpty();
   });
 
   test('an uncaught runtime error surfaces on screen', async ({ page }) => {
-    await page.goto('/');
+    await dropIn(page);
     await expect(page.locator('h1.title')).toBeVisible();
 
     await page.evaluate(() => {
@@ -41,7 +44,7 @@ test.describe('startup failures are visible, not blank', () => {
   });
 
   test('repeated errors do not stack panels', async ({ page }) => {
-    await page.goto('/');
+    await dropIn(page);
     await expect(page.locator('h1.title')).toBeVisible();
     for (let i = 0; i < 3; i++) {
       await page.evaluate((n) => {
