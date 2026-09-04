@@ -8,7 +8,8 @@
 import { assembleGameData, type GameData } from './data/load.js';
 import { LocalDraftStore } from './state/localDraft.js';
 import { DraftStore, discoverDraft, type DraftSnapshot } from './state/supabase.js';
-import { Outbox, type OutboxStore, type PendingCommit } from './state/outbox.js';
+import { Outbox, indexedDbStore, type OutboxStore, type PendingCommit } from './state/outbox.js';
+import { OutboxRunner, browserEnvironment } from './state/outboxRunner.js';
 import { availability, courseFor, PRACTICE_RUNS, type RunKind } from './state/runEconomy.js';
 import { renderLeaderboard, escapeHtml } from './ui/leaderboard.js';
 import { GameView, type RunReport } from './ui/game.js';
@@ -84,10 +85,20 @@ function makeBackend(): Backend {
       });
 }
 
-// The outbox needs somewhere to persist. In local mode it is in memory, because
-// a local session is already not a real draft.
+/**
+ * Where a queued commit waits.
+ *
+ * FR-048: it MUST survive page reload and browser restart, so a real draft puts
+ * it in IndexedDB. This is the wiring that was missing - indexedDbStore() was
+ * written, tested and imported by nothing, and BOTH modes ran on the Map below,
+ * despite the comment here claiming otherwise. A score taken on a dead
+ * connection was therefore lost by the reload the player was told to avoid.
+ *
+ * A local session stays in memory on purpose: it is already not a real draft,
+ * and its run counts do not survive a reload either.
+ */
 const memory = new Map<string, PendingCommit>();
-const store: OutboxStore = {
+const memoryStore: OutboxStore = {
   all: async () => [...memory.values()],
   put: async (c) => {
     memory.set(c.id, c);
@@ -96,7 +107,25 @@ const store: OutboxStore = {
     memory.delete(id);
   },
 };
+const store: OutboxStore = config.kind === 'configured' ? indexedDbStore() : memoryStore;
 const outbox = new Outbox(store, (c) => backend.submitCommit(c));
+/**
+ * FR-046: retried until confirmed. See src/state/outboxRunner.ts - the retry
+ * had no driver at all before, so a transient failure queued the score and then
+ * waited for a drain that never came again.
+ */
+const outboxRunner = new OutboxRunner(outbox, browserEnvironment(window), (result) => {
+  if (result.confirmed > 0) {
+    commitStatus = 'confirmed';
+    commitMessage = 'It is on the board.';
+  } else if (result.rejected.length > 0) {
+    commitStatus = 'rejected';
+    commitMessage = result.rejected[0] as string;
+  } else {
+    return; // still trying; the screen already says so
+  }
+  render();
+});
 
 let snapshot: DraftSnapshot;
 // Guarded: an unguarded read here threw when site data was blocked, which
@@ -637,7 +666,10 @@ async function endRun(report: RunReport): Promise<void> {
       outcome: report.outcome,
       rulesVersion: data.official.rulesVersion,
     });
-    const result = await outbox.drain();
+    // Through the runner, not straight at the outbox: a pass that comes back
+    // "retry" must leave a scheduled retry behind it. This one call used to BE
+    // the whole of FR-046's "retried until confirmed".
+    const result = await outboxRunner.drainNow();
     if (result.confirmed > 0) {
       commitStatus = 'confirmed';
       commitMessage = `${report.score.toLocaleString()} is locked in.`;
@@ -732,6 +764,13 @@ async function bootstrap(): Promise<void> {
   backend.subscribe(() => {
     void refresh();
   });
+
+  // FR-046/FR-048: deliver anything left over from a previous session before
+  // anything else. A score taken on a dead connection and then reloaded is
+  // submitted here - that is what persisting the queue was for.
+  if (await outboxRunner.hasPending()) commitStatus = 'pending';
+  outboxRunner.start();
+
   await refresh();
 }
 

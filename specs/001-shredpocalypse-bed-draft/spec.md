@@ -47,6 +47,18 @@
   commits. After the commit the claim is permanent, exactly as this spec's edge
   cases already say.
 
+- **Q: A score was queued because the connection dropped, and it never
+  arrived. Why?**
+  A: FR-046 and FR-048 were specified, built as a module, and never connected.
+  `main.ts` constructed the outbox on an in-memory Map in **both** modes, so
+  `indexedDbStore()` was dead code and nothing survived a reload; and `drain()`
+  was called exactly once, immediately after the enqueue, so `backoffFor()` was
+  dead code too and a transient failure was never retried. Every unit test of
+  the outbox passed throughout: a module written and left unwired fails no test
+  that tests the module. No new requirement was needed — the existing two were
+  simply not implemented. Guarded now by tests that read `main.ts` itself, since
+  that is the only place the defect ever lived.
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Claim your name and commit the one run that counts (Priority: P1)
