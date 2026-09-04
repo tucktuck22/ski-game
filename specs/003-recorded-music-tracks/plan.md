@@ -37,13 +37,12 @@ or runtime surface.
 `AudioBufferSourceNode`, `GainNode`) and `HTMLAudioElement`, both already available;
 `Synth` already owns the `AudioContext`. PixiJS and the Supabase client are untouched.
 
-**Storage**: `localStorage` via the existing `safeStorage` wrapper, for the mute
-preference only. No schema change, no migration, nothing added to Supabase or the
-outbox.
+**Storage**: None. No schema change, no migration, no new `localStorage` key, nothing
+added to Supabase or the outbox. Mute stays in memory, as it is today — see the
+deviation below.
 
-**Testing**: Vitest for the player state machine, the `data/audio.json` validator, and
-the mute-persistence round trip — all with `HTMLAudioElement` and Web Audio faked, as
-neither exists under jsdom. Playwright for what only the real thing can prove: assets
+**Testing**: Vitest for the player state machine and the `data/audio.json` validator,
+with `HTMLAudioElement` and Web Audio faked, as neither exists under jsdom. Playwright for what only the real thing can prove: assets
 resolving at the production base path, a run completing with the network blocked, and
 the determinism assertion that a run's score is identical with music playing, muted,
 and unavailable.
@@ -59,7 +58,7 @@ pre-feature figures (SC-045).
 
 **Constraints**: Initial payload ≤ 2 MB gzipped and time to interactive ≤ 5 s on Fast
 3G, both **unchanged** by this feature rather than merely survived (FR-146, SC-044);
-shipped audio ≤ 2 MiB transferred for the pair (FR-150, SC-049); peak JS heap
+shipped audio ≤ 4 MiB transferred for the pair (FR-150, SC-049); peak JS heap
 ≤ 150 MB, against which decoded audio is now a named line item; music never blocks,
 delays, or fails a run (FR-143).
 
@@ -92,20 +91,25 @@ measurement is a task here regardless, done by hand and recorded.
 equivalents (FR-141, FR-058); music carries no information (FR-142); reduced motion is
 untouched (FR-056 governs motion, not sound).
 
-**Two pre-existing defects this feature must absorb**, both documented in
-[R8](research.md#r8--mute-and-an-inherited-defect-this-feature-has-to-absorb):
+**One pre-existing defect deferred, one corrected**, both documented in
+[R8](research.md#r8--mute-and-an-inherited-defect-this-feature-does-not-fix):
 
 1. **The mute toggle is not persistent**, though FR-054 and style-bible A-3 require it.
-   SC-047 cannot pass without fixing it, so the fix is in scope.
+   **Deferred on 2026-09-04** as low impact. SC-047 was narrowed to within-session
+   behaviour to match, and the standing gap is carried with an owner in the spec's
+   [Known deviations](spec.md#known-deviations) table, as the constitution's
+   compliance-review clause requires. Not fixing it is a choice; not recording it
+   would not have been.
 2. **Feature 001's T095 is ticked against a file that does not exist**
-   (`src/audio/gate.ts`). It must be un-ticked with a pointer to where the gesture gate
-   actually landed. A task marked done against a missing file is the failure mode the
+   (`src/audio/gate.ts`). It is un-ticked here with a pointer to where the gesture gate
+   actually landed. This is a documentation correction independent of item 1, and it
+   stays in scope: a task marked done against a missing file is the failure mode the
    constitution's stop condition exists for.
 
 ### Post-Phase-1 re-evaluation
 
-Design added no new dependency, no new persistent state beyond one string, and no
-simulation coupling. The verdicts above are unchanged. The single complexity
+Design added no new dependency, no persistent state at all, and no simulation
+coupling. The verdicts above are unchanged. The single complexity
 introduced — two playback mechanisms — is justified below rather than waved through.
 
 ## Project Structure
@@ -145,14 +149,13 @@ data/
 src/audio/
 ├── synth.ts                         # MODIFIED — music loop deleted, cues kept (R6)
 ├── music.ts                         # NEW — the two-context player (R2)
-└── settings.ts                      # NEW — persistent mute, mirrors reducedMotion.ts (R8)
+                                     # (no settings.ts — mute persistence is deferred, R8)
 
 src/data/load.ts                     # MODIFIED — validate audio.json at load
 src/main.ts                          # MODIFIED — context transitions, mute fan-out
 
 tests/unit/
-├── music-player.test.ts             # NEW — state machine, exclusivity, failure paths
-└── audio-settings.test.ts           # NEW — mute persistence round trip
+└── music-player.test.ts             # NEW — state machine, exclusivity, mute, failure paths
 tests/e2e/
 ├── music-base-path.spec.ts          # NEW — assets resolve at /ski-game/ (Principle VI)
 └── music-never-blocks.spec.ts       # NEW — run completes with audio requests blocked
@@ -168,8 +171,8 @@ tools/encode-audio.sh                # NEW — the documented transcode (R10, Pr
 `music.ts` is a sibling of `synth.ts` rather than an extension of it because the two
 have genuinely different lifetimes — the `Synth` owns the `AudioContext` and lives for
 the session, while the music player switches sources as the player moves on and off
-the course. `settings.ts` is separate from both because the mute preference outlives
-either and is read before either exists.
+the course. Nothing else is added: with persistence deferred, mute remains a field
+read by `main.ts` for the button label, exactly as `synth.isMuted` is read today.
 
 ## Phase sequencing
 
@@ -181,8 +184,8 @@ so it is sequenced first, where it is cheap to change.
    written from intent rather than back-fitted to whatever got built.
 2. **Assets** — transcode the masters, measure the loop offsets on the _shipped_ file,
    write `data/audio.json`, verify sizes against SC-049.
-3. **Foundation** — `settings.ts` and its test; `load.ts` validation. Both independent
-   of the player and of each other.
+3. **Foundation** — `load.ts` validation of the manifest, and the T095 correction.
+   Both independent of the player.
 4. **US1 (P1)** — the front-end piece: `music.ts` buffer path, `main.ts` wiring, synth
    music loop deleted. Deliverable and demonstrable on its own.
 5. **US2 (P2)** — the course piece: element path, run-start and run-end transitions.
@@ -193,19 +196,23 @@ so it is sequenced first, where it is cheap to change.
 
 ## Complexity Tracking
 
-| Violation                                      | Why needed                                                                                                                                                                                                              | Simpler alternative rejected because                                                                                                                                                                                                                |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Two playback mechanisms rather than one        | Gaplessness (SC-040) is only achievable with `AudioBufferSourceNode`; the 150 MB heap ceiling cannot absorb 59.2 MB of decoded audio. R1 shows the two pieces need opposite things, so one mechanism cannot serve both. | `HTMLAudioElement` for both is simpler and near-free on memory, but fails SC-040 on the one piece whose loop is actually heard. `AudioBufferSourceNode` for both is also simpler, but spends 39% of the heap ceiling on a loop join nobody reaches. |
-| Fixing mute persistence inside a music feature | SC-047 requires the preference to survive a reload, and it does not today. The feature cannot pass its own success criteria while the defect stands.                                                                    | Deferring it to a separate change would leave this feature knowingly shipping a failing success criterion, which Principle I treats as a defect rather than a scheduling choice.                                                                    |
+| Violation                               | Why needed                                                                                                                                                                                                              | Simpler alternative rejected because                                                                                                                                                                                                                |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Two playback mechanisms rather than one | Gaplessness (SC-040) is only achievable with `AudioBufferSourceNode`; the 150 MB heap ceiling cannot absorb 59.2 MB of decoded audio. R1 shows the two pieces need opposite things, so one mechanism cannot serve both. | `HTMLAudioElement` for both is simpler and near-free on memory, but fails SC-040 on the one piece whose loop is actually heard. `AudioBufferSourceNode` for both is also simpler, but spends 39% of the heap ceiling on a loop join nobody reaches. |
 
 ## Risks
 
-- **SC-049 may not be reachable at 96 kbps without trimming.** Mono at 96 kbps projects
-  to roughly 3.7 MiB for the pair, against a 2 MiB ceiling. Either Powder Rush is
-  trimmed — which [R1](research.md#r1--how-long-is-a-run-and-does-the-course-music-ever-loop)
-  shows costs nothing a player can perceive — or the bitrate drops to ~64 kbps, or
-  SC-049 is amended. **This needs a decision before the transcode task runs**, and it
-  is the one open question this plan cannot close by itself.
+- **SC-049 has about 13% headroom, and no more.** Mono at 96 kbps projects to
+  ~3.52 MiB against the 4 MiB ceiling raised on 2026-09-04. That is comfortable for
+  encoder variance and nothing else: a longer piece, a stereo encode, or a third track
+  would breach it. The transcode task must check the actual figure rather than trust
+  the projection.
+- **Load time is a knowingly accepted cost.** 3.5 MiB of music on a slow connection
+  arrives late. FR-143 makes that silence rather than a blocked run, so the failure
+  mode is benign — but it is untested at that size until someone plays it on cellular.
+  Trimming Powder Rush remains available and, per
+  [R1](research.md#r1--how-long-is-a-run-and-does-the-course-music-ever-loop), costs
+  nothing a player can perceive.
 - **Silent 404s.** Audio that fails to load produces no visible symptom, by design
   (FR-143). That is correct behaviour and a bad debugging experience, and it is why the
   base-path e2e test is not optional.

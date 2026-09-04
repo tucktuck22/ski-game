@@ -136,15 +136,19 @@ measured against the shipped file and stored as data (R7), not hardcoded.
 
 **Decision**: MP3, mono, ~96 kbps CBR. Same container and codec as the masters.
 
-**Rationale**: FR-150 fixes the target — mono, ~96 kbps, ≤ 2 MiB for the pair. The
+**Rationale**: FR-150 fixes the target — mono, ~96 kbps, ≤ 4 MiB for the pair. The
 open question was the codec, and the answer is "don't change it".
 
 The masters are ~192 kbps stereo VBR. Mono at 96 kbps preserves the per-channel
 bitrate exactly while halving the channel count and the file size. Expected result is
-roughly 1.05 MiB + 2.6 MiB ≈ **3.7 MiB**, which meets SC-049's 2 MiB ceiling only if
-Powder Rush is also trimmed — see the note under R1 and the flag in
-[plan.md](plan.md#risks). At 64 kbps mono the pair lands near 2.5 MiB; at 96 kbps with
-Powder Rush trimmed to 90 s, near 1.6 MiB.
+roughly 1.01 MiB + 2.52 MiB ≈ **3.52 MiB**, inside SC-049's ceiling — raised from
+2 MiB to 4 MiB on 2026-09-04 precisely so that neither piece needs trimming. Headroom
+is about 13%, which is enough for encoder variance but not for a longer piece.
+
+The trade accepted with that decision is transfer time, not correctness: on a slow
+connection the music simply arrives later, and never blocks a run (R9). The
+constitution's 2 MB gzipped ceiling is untouched — it governs the _initial_ payload,
+and R5 keeps both pieces out of it.
 
 MP3 is chosen over better codecs for one reason: it is the only one whose support on
 Safari on iOS 16+ needs no verification. Opus at 96 kbps would sound materially better
@@ -229,16 +233,16 @@ the shape of `tuning.json`, `scoring.json` and the courses at load.
 
 ---
 
-## R8 — Mute, and an inherited defect this feature has to absorb
+## R8 — Mute, and an inherited defect this feature does not fix
 
 **Decision**: One `setMuted` fans out to both the `Synth` and the new music player,
-and the preference persists via `safeLocal`, following `src/render/reducedMotion.ts`
-exactly.
+from a single call site. **Persistence is out of scope** and the standing gap is
+recorded as a deviation rather than closed.
 
-**Rationale, and the defect**: FR-140 and SC-047 require a _persistent_ mute toggle,
-as do FR-054 and style-bible A-3. **It is not persistent today.** `Synth.muted` is a
-plain in-memory field; nothing in `src/` writes a mute preference to storage. Mute the
-game, reload, and the sound comes back.
+**The defect, which predates this feature**: FR-054 and style-bible A-3 both require a
+_persistent_ mute toggle. **It is not persistent.** `Synth.muted` is a plain in-memory
+field; nothing in `src/` writes a mute preference to storage. Mute the game, reload,
+and the sound comes back.
 
 Feature 001's `tasks.md` marks **T095** complete — _"Gate audio behind the first
 deliberate gesture with a persistent mute toggle per FR-054 in `src/audio/gate.ts`"_ —
@@ -246,11 +250,23 @@ and `src/audio/gate.ts` **does not exist**. The gesture-gate half was inlined in
 `main.ts` as `armAudioOnFirstGesture()`; the persistence half was never written, and
 the task was ticked anyway.
 
-This feature cannot honour SC-047 without fixing it, so the fix is in scope here. Two
-things follow that are not code: T095 must be un-ticked in feature 001's `tasks.md`
-with a pointer to where the work actually landed, and the false tick is worth noting
-as evidence for the constitution's own stop condition — a task marked done against a
-file that does not exist is the kind of thing a checklist cannot catch and a test can.
+**Why it is not fixed here**: judged low impact on 2026-09-04 — a player who wants
+silence re-mutes once per session — and deliberately deferred. SC-047 was narrowed to
+within-session behaviour to match, and the gap is carried in the spec's
+[Known deviations](spec.md#known-deviations) table with an owner, as the
+constitution's compliance-review clause requires. Deferring it is a scheduling choice;
+leaving it undocumented would not have been.
+
+**What is still in scope**: un-ticking T095. That is a documentation correction, not
+the implementation, and it stands independently of whether persistence is ever built.
+The constitution treats citing a check that did not run as a defect of the same
+severity as the bug it conceals, and a task ticked against a file that does not exist
+is exactly that.
+
+**Consequences for the design**: no `src/audio/settings.ts`, no new `localStorage`
+key, no `safeStorage` use, and no `SoundSetting` entity. Mute stays a field on the
+music player, read by `main.ts` for the button label exactly as `synth.isMuted` is
+read today.
 
 **Mechanism note**: the music player must not be routed through
 `createMediaElementSource`, which would let one master `GainNode` govern everything

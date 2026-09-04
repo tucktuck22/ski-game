@@ -15,7 +15,7 @@ Four operations. Nothing else is exposed.
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | `arm()`                              | Called once, from the first deliberate gesture. Before it, nothing is audible under any circumstances.        |
 | `setContext('frontEnd' \| 'course')` | The named context's piece becomes the only audible music. Idempotent: setting the current context is a no-op. |
-| `setMuted(boolean)`                  | All music falls silent, or resumes the current context's piece. Persists across reloads.                      |
+| `setMuted(boolean)`                  | All music falls silent, or resumes the current context's piece. Session-scoped.                               |
 | `destroy()`                          | Everything stops and releases. Safe to call in any state, including twice.                                    |
 
 **Every operation returns `void` and never throws, in any state, for any reason.** A
@@ -36,8 +36,11 @@ this application is allowed to depend on that.
 - **G6 — Failure is silence.** A missing file, a refused `play()`, a decode error, or a
   fetch still in flight all produce no music and no error. Never a rejected promise
   reaching a global handler, never a retry storm, never a blocked caller. (FR-143.)
-- **G7 — Mute is durable.** The preference survives a reload and is applied before the
-  first sound. (SC-047.)
+- **G7 — Mute is total, and resumes rather than restarts.** One call silences music
+  and `Synth` cues alike within 100 ms; unmuting picks the current context's piece back
+  up where it was. Session-scoped: it does **not** survive a reload, which is a known
+  deviation from FR-054 and A-3, not an oversight. (SC-047, and the spec's
+  [Known deviations](../spec.md#known-deviations).)
 - **G8 — Nothing here is reachable from the simulation.** (FR-144, SC-046.)
 - **G9 — Nothing here blocks.** No operation delays a run's start, its ticks, or its
   commit. (FR-143, SC-043.)
@@ -130,6 +133,6 @@ nothing about this and must not be offered as evidence (Principle VI).
 | G4        | Manual, on the shipped encode: five consecutive loops, listened to.                                                                                |
 | G5        | Unit: repeated `setContext('frontEnd')` does not restart the source.                                                                               |
 | G6        | Unit: rejected `play()`, 404, and decode error each leave a valid silent state. E2e: a full run with audio requests blocked completes and commits. |
-| G7        | Unit: round trip through a faked and a denied `safeLocal`.                                                                                         |
+| G7        | Unit: one `setMuted` silences both paths; unmuting resumes rather than restarts.                                                                   |
 | G8        | Lint/grep: no `src/sim/` import reaches `src/audio/`.                                                                                              |
 | G9        | E2e: run start-to-commit timing unchanged with audio blocked, and score identical (SC-046).                                                        |

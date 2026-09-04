@@ -34,6 +34,9 @@ grep -n "T095" specs/001-shredpocalypse-bed-draft/tasks.md   # must no longer be
 cat assets/audio/README.md                     # provenance record (FR-148)
 ```
 
+The T095 line is the one people skip. It is a documentation correction, independent of
+the mute-persistence work that was deferred, and it does not go away with it.
+
 Expected: A-1 permits original recorded music and scopes synthesis to sound effects;
 A-2's instrument set is explicitly about synthesised audio; ADR-0009 exists; T095 is
 `[ ]` with a note saying where the gesture gate actually landed; the provenance table
@@ -51,13 +54,13 @@ du -cb public/audio/*.mp3 | tail -1
 ```
 
 Expected: `look-out-below.mp3` and `powder-rush.mp3` exist, and the total is **at or
-under 2 MiB (2097152 bytes)** — SC-049.
+under 4 MiB (4194304 bytes)** — SC-049. At mono ~96 kbps expect roughly 3.5 MiB.
 
-> **Known risk.** Mono at 96 kbps projects to roughly 3.7 MiB for the pair, which
-> **fails** SC-049. Resolving this needs a decision, not a retry: trim Powder Rush
-> (which [R1](research.md#r1--how-long-is-a-run-and-does-the-course-music-ever-loop)
-> shows no player can perceive), drop to ~64 kbps, or amend SC-049. See
-> [plan.md](plan.md#risks).
+> **Only ~13% headroom.** The 4 MiB ceiling was raised from 2 MiB on 2026-09-04 so
+> that neither piece needs trimming, and the projection fits with little to spare.
+> **Check the actual number** rather than trusting the projection. If it breaches,
+> trimming Powder Rush costs nothing a player can perceive
+> ([R1](research.md#r1--how-long-is-a-run-and-does-the-course-music-ever-loop)).
 
 Under Principle VII this script is a deliverable: run it verbatim and **inspect its
 output**. An exit code of zero while producing a 4 MiB file is a failure.
@@ -79,7 +82,7 @@ npm run lint
 npm run test:unit
 ```
 
-Expected: clean, and `music-player.test.ts` plus `audio-settings.test.ts` pass. These
+Expected: clean, and `music-player.test.ts` passes. It
 cover the state machine, exclusivity, the failure paths, and the mute round trip —
 guarantees G1, G2, G5, G6, G7 in [contracts/audio.md](contracts/audio.md).
 
@@ -96,16 +99,16 @@ npx vite preview --base /ski-game/ --port 4173
 Open **`http://localhost:4173/ski-game`** — deliberately **without** the trailing
 slash. That is the URL shape that already broke this project once.
 
-| #   | Do this                                                     | Expect                                                                            | Proves             |
-| --- | ----------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------ |
-| 1   | Load the page. Touch nothing.                               | Silence. Network tab shows **no** request for either `.mp3`.                      | G1, FR-146         |
-| 2   | Open DevTools → Network, filter `mp3`. Click once anywhere. | `/ski-game/audio/look-out-below.mp3` → **200**. Music starts.                     | G1, R5 base path   |
-| 3   | Move board → OFFICIAL RUN confirmation → NOT YET → board.   | Music continues without restarting.                                               | G5, FR-139, SC-042 |
-| 4   | Start a practice run.                                       | Front-end piece stops, `powder-rush.mp3` → **200** and plays. Never both at once. | G2, FR-136         |
-| 5   | Wipe out deliberately.                                      | Course piece continues through the finale, stops at the results panel.            | US2 scenario 3     |
-| 6   | BACK TO THE BOARD.                                          | Front-end piece plays again, from the beginning.                                  | US2 scenario 4     |
-| 7   | Press SOUND ON to mute. Reload the page. Click once.        | Silent, and the button still reads SOUND OFF.                                     | G7, SC-047         |
-| 8   | Unmute mid-piece.                                           | Resumes where it was, not from zero.                                              | Edge case, mute    |
+| #   | Do this                                                     | Expect                                                                                                    | Proves             |
+| --- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------ |
+| 1   | Load the page. Touch nothing.                               | Silence. Network tab shows **no** request for either `.mp3`.                                              | G1, FR-146         |
+| 2   | Open DevTools → Network, filter `mp3`. Click once anywhere. | `/ski-game/audio/look-out-below.mp3` → **200**. Music starts.                                             | G1, R5 base path   |
+| 3   | Move board → OFFICIAL RUN confirmation → NOT YET → board.   | Music continues without restarting.                                                                       | G5, FR-139, SC-042 |
+| 4   | Start a practice run.                                       | Front-end piece stops, `powder-rush.mp3` → **200** and plays. Never both at once.                         | G2, FR-136         |
+| 5   | Wipe out deliberately.                                      | Course piece continues through the finale, stops at the results panel.                                    | US2 scenario 3     |
+| 6   | BACK TO THE BOARD.                                          | Front-end piece plays again, from the beginning.                                                          | US2 scenario 4     |
+| 7   | Press SOUND ON to mute.                                     | Music and cues both fall silent. (Reload and it returns — mute is session-scoped by decision, not a bug.) | G7, SC-047         |
+| 8   | Unmute mid-piece.                                           | Resumes where it was, not from zero.                                                                      | Edge case, mute    |
 
 Then confirm the payload is genuinely unchanged:
 

@@ -2,9 +2,9 @@
 
 **Feature**: [spec.md](spec.md) | **Plan**: [plan.md](plan.md) | **Date**: 2026-09-04
 
-There is no persistent domain data here beyond one preference string. What this
-feature has instead is a manifest, a small state machine, and one invariant worth
-naming. Nothing below touches the simulation, the draft, or the outbox.
+There is no persistent data here at all. What this feature has instead is a manifest,
+a small state machine, and a few invariants worth naming. Nothing below touches the
+simulation, the draft, or the outbox.
 
 ## Entities
 
@@ -50,19 +50,21 @@ true for precisely the `course` context and false for precisely the `frontEnd` o
 
 ### SoundSetting
 
-The player's mute preference. One string in `localStorage` via `safeStorage`.
+The player's mute preference. **In memory only, for the session.**
 
-| Field | Type                     | Rule                                                                  |
-| ----- | ------------------------ | --------------------------------------------------------------------- |
-| key   | `'shredpocalypse-muted'` | Mirrors `shredpocalypse-reduced-motion` in naming and mechanism (R8). |
-| value | `'muted'` \| `'on'`      | Any other value, including absent, resolves to `'on'`.                |
+| Field   | Type      | Rule                                                                     |
+| ------- | --------- | ------------------------------------------------------------------------ |
+| `muted` | `boolean` | Defaults to `false` on every load. Governs music and `Synth` cues alike. |
 
-Denied storage must fall through to the default without throwing, as
-`reducedMotion.ts` already does. A device that blocks site data is a supported device
-here — that defect has already been fixed once in this project.
+**It is deliberately not persisted.** FR-054 and style-bible A-3 require a persistent
+toggle and this does not satisfy them — a standing gap that predates this feature,
+deferred on 2026-09-04 and carried with an owner in the spec's
+[Known deviations](spec.md#known-deviations). SC-047 was narrowed to within-session
+behaviour to match. See [R8](research.md#r8--mute-and-an-inherited-defect-this-feature-does-not-fix).
 
-**This is new persistence.** The preference is not stored today, though FR-054 and
-style-bible A-3 require it. See [R8](research.md#r8--mute-and-an-inherited-defect-this-feature-has-to-absorb).
+There is therefore no new `localStorage` key, no `safeStorage` use, and no
+`src/audio/settings.ts`. `main.ts` reads this the way it reads `synth.isMuted` today,
+for the button label.
 
 ## State machine
 
@@ -104,11 +106,12 @@ it is why the state is keyed on context rather than on screen.
    FR-144, and the reason SC-046 is assertable.
 3. **Every failure resolves to silence.** Load, decode, and play failures all leave the
    machine in a valid state with no audible output and no error surfaced. FR-143.
-4. **The mute preference outlives the player object.** It is read before the
-   `AudioContext` exists and applied when one is created. SC-047.
+4. **Mute governs every audible path from one call.** Music and `Synth` cues fall
+   silent together, and unmuting resumes the current context's piece rather than
+   restarting it. SC-047. It does not survive a reload, by decision.
 
 ## What this feature does not add
 
 No table, column, migration, or RLS policy. No outbox entry. No change to
-`DraftSnapshot`, entries, scores, or the deadline. No new field reaches Supabase. The
-only durable write is one `localStorage` key on the player's own device.
+`DraftSnapshot`, entries, scores, or the deadline. No new field reaches Supabase, and
+**no durable write of any kind** — not even a `localStorage` key.

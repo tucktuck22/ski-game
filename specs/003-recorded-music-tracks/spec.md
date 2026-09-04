@@ -103,11 +103,17 @@ ADR-0006 rejected two candidate game engines "on payload alone — they spend th
 entire budget before any game code." The same arithmetic applied here, more sharply.
 
 **Resolved**: both measures, not either. The shipped assets are re-encoded to mono at
-roughly 96 kbps, which brings the pair to approximately 1.8 MiB — about a quarter of
-the bytes, for a fidelity loss unlikely to register through a phone speaker on a
-chairlift. And neither is part of the initial bundle: both are fetched on demand, so
-the initial-payload and time-to-interactive budgets are untouched rather than merely
-survived. The budget itself is **not** amended. See FR-146 and FR-150.
+roughly 96 kbps, bringing the pair to roughly 3.5 MiB — about half the bytes, for a
+fidelity loss unlikely to register through a phone speaker on a chairlift. And neither
+is part of the initial bundle: both are fetched on demand, so the initial-payload and
+time-to-interactive budgets are untouched rather than merely survived.
+
+**The constitution's 2 MB gzipped budget is not amended and is not in play here.** It
+governs the _initial_ payload, and lazy loading keeps both pieces out of it entirely.
+SC-049's 4 MiB is a separate, self-imposed ceiling on the music itself, raised from
+2 MiB on 2026-09-04 so that neither piece has to be trimmed. What it costs is
+transfer time on a slow connection before music arrives — silence, never a blocked
+run (FR-143). See FR-146 and FR-150.
 
 ### What was never in conflict
 
@@ -133,8 +139,9 @@ survived. The budget itself is **not** amended. See FR-146 and FR-150.
 - **Q: The masters total 7.09 MiB against a 2 MB gzipped initial-payload ceiling and a
   5 s Fast 3G time-to-interactive ceiling. How is that resolved?**
   A: Both re-encode and lazy-load. Ship the music re-encoded to mono at roughly
-  96 kbps (approximately 1.8 MiB for the pair), and fetch both on demand so neither is
-  part of the initial bundle. The constitution's budget is not amended.
+  96 kbps, and fetch both on demand so neither is part of the initial bundle. The
+  constitution's budget is not amended. _(The 2 MiB asset ceiling set here was raised
+  to 4 MiB on 2026-09-04, below, once the encode was projected at ~3.5 MiB.)_
 
 - **Q: The request says "landing music" and "the loading screen" in consecutive
   sentences, but those are different screens in the shipped app, and the literal boot
@@ -143,6 +150,39 @@ survived. The budget itself is **not** amended. See FR-146 and FR-150.
   A: Everything that is not a run — the boot shell, the board, the official-run
   confirmation, and the results panel — as one continuous piece that does not restart
   when the screen changes. The rule reduces to "on the course, or not".
+
+### Session 2026-09-04
+
+- **Q: Mono at ~96 kbps projects to roughly 3.5 MiB for the pair, over SC-049's
+  original 2 MiB ceiling. Trim Powder Rush, drop the bitrate, or raise the ceiling?**
+  A: Raise the ceiling to 4 MiB. Neither piece is trimmed and the bitrate stands.
+  Load time is accepted as a known cost and revisited only if it proves a problem in
+  practice. The constitution's initial-payload budget is untouched either way, because
+  lazy loading keeps both pieces out of it.
+
+- **Q: The mute toggle is not persistent today, though FR-054 and style-bible A-3
+  require it. Fix it inside this feature, since SC-047 depended on it?**
+  A: No. Persistence is out of scope here. SC-047 is narrowed to within-session
+  behaviour, and the standing FR-054 gap is recorded below as a deviation rather than
+  quietly dropped.
+
+## Known deviations
+
+The constitution's compliance-review clause requires a deviation to carry a rationale,
+an owner, and a remediation date rather than going unrecorded.
+
+| Deviation                                                                                         | Rationale                                                                                                                                                                                           | Owner         | Remediation |
+| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ----------- |
+| **The mute toggle does not persist**, though FR-054 and style-bible A-3 require a persistent one. | Pre-existing, not introduced here: `Synth.muted` has always been an in-memory field. Judged low impact — a player who wants silence re-mutes once per session. Deferred deliberately on 2026-09-04. | Project owner | Undated     |
+
+This is a **standing** gap, not one this feature opens. It is named here because
+FR-140 and SC-047 would otherwise read as though the toggle behaved as A-3 describes.
+
+Related and **not** deferred: feature 001's `tasks.md` marks **T095** complete against
+`src/audio/gate.ts`, a file that does not exist. Correcting that tick is a
+documentation fix, independent of whether the persistence is ever built, and it stays
+in scope — the constitution treats a check that did not run as a defect of the same
+severity as the bug it conceals.
 
 ## User Scenarios & Testing _(mandatory)_
 
@@ -276,8 +316,9 @@ run still starts, plays, ends, and commits its score.
   screens that are all outside a run. Moving from the board to the confirmation screen
   and back is not a reason to restart the music.
 - **FR-140**: Music MUST remain silent until a deliberate player gesture, and the
-  existing persistent mute toggle MUST silence and restore it, preserving FR-054 and
-  style-bible A-3 unchanged.
+  existing mute toggle MUST silence and restore it within the session, preserving the
+  gesture gate of FR-054 and style-bible A-3 unchanged. The toggle is **not** required
+  to survive a reload — see [Known deviations](#known-deviations).
 - **FR-141**: The launch, land, pickup and wipeout sound cues MUST remain synthesised
   at runtime and MUST remain audible over the music, preserving FR-058 and style-bible
   A-2 and A-4 for the audio that carries gameplay information.
@@ -307,7 +348,7 @@ run still starts, plays, ends, and commits its score.
   that a reviewer can tell which asset satisfies which requirement.
 
 - **FR-150**: The shipped music assets MUST be re-encoded from the masters to mono at
-  approximately 96 kbps, and the two together MUST NOT exceed 2 MiB transferred. The
+  approximately 96 kbps, and the two together MUST NOT exceed 4 MiB transferred. The
   masters are archived, not shipped.
 
 ### Key Entities
@@ -318,8 +359,8 @@ run still starts, plays, ends, and commits its score.
 - **Playback Context**: The condition under which a music track is the one that should
   be audible. Two exist — _on the course_ and _not on the course_ — and they are
   mutually exclusive and exhaustive, which is what makes FR-138 checkable.
-- **Sound Setting**: The player's existing persistent mute preference, which now
-  governs music as well as cues.
+- **Sound Setting**: The player's existing mute preference, which now governs music as
+  well as cues. It lasts the session only — see [Known deviations](#known-deviations).
 
 ## Success Criteria _(mandatory)_
 
@@ -344,13 +385,15 @@ run still starts, plays, ends, and commits its score.
   feature by more than 5%.
 - **SC-046**: A run replayed from the same seed and inputs produces an identical score
   and outcome with music playing, muted, and unavailable.
-- **SC-047**: Muting silences all audio within 100 ms, and the preference survives a
-  reload.
+- **SC-047**: Muting silences all audio — music and cues alike — within 100 ms, and
+  unmuting resumes the current context's piece rather than restarting it. The
+  preference is not required to survive a reload.
 - **SC-048**: Every shipped audio asset cites the style-bible rule it satisfies, as
   FR-052 requires — zero assets failing review, rather than assets documented as
   exceptions.
-- **SC-049**: The two shipped music assets total no more than 2 MiB transferred, down
-  from 7.09 MiB of masters.
+- **SC-049**: The two shipped music assets total no more than 4 MiB transferred, down
+  from 7.09 MiB of masters. At mono ~96 kbps the pair projects to roughly 3.5 MiB,
+  leaving about 13% headroom.
 
 ## Assumptions
 
@@ -368,7 +411,7 @@ answered above.
 - **The handoff between pieces is a cut or a short fade, not a beat-matched
   transition.** Nothing in the request asks for synchronisation between the two.
 - **There is no separate music volume control.** The existing single mute toggle
-  governs all audio, as it does today.
+  governs all audio, as it does today — including its lack of persistence.
 - **Mixing keeps the cues audible over the music**, since the cues carry information
   and the music does not.
 - **Reduced motion does not affect audio.** FR-056 governs motion; there is no
@@ -403,5 +446,7 @@ answered above.
 - Per-course, per-track, or dynamic music that responds to what the player is doing.
 - A music volume slider or any audio setting beyond the existing mute toggle.
 - Offline caching of the music beyond whatever the browser does on its own.
+- Making the mute toggle persist across reloads. Recorded as a deviation above.
+- Trimming or shortening either piece.
 - Amending the constitution's payload or time-to-interactive budgets.
 - Any change to the simulation, scoring, courses, run economy, deadline, or standings.

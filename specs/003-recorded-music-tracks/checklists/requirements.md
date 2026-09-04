@@ -75,4 +75,32 @@ works. A third is logistical — the master files must reach the repository or a
 archive before the container holding them is reclaimed, since the shipped assets are
 derived from them.
 
-**Status**: ready for `/speckit-plan`.
+### Iteration 3 — 2026-09-04 (post-plan amendments, all items still pass)
+
+Two decisions taken after planning, both folded back through spec, plan, research,
+data model, contract and quickstart:
+
+| Change                      | Decision                                                                                                      | Ripple                                                                                                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SC-049 / FR-150 ceiling** | Raised 2 MiB → 4 MiB, so neither piece is trimmed and the bitrate stands. Load time accepted as a known cost. | Closes the plan's open risk. ~3.52 MiB projected, ~13% headroom. The constitution's 2 MB **initial-payload** budget is untouched — lazy loading keeps both pieces out of it. |
+| **Mute persistence**        | Out of scope. SC-047 narrowed to within-session behaviour.                                                    | No `settings.ts`, no `localStorage` key, no `SoundSetting` persistence, one fewer test file, and one row dropped from Complexity Tracking.                                   |
+
+**A new section: [Known deviations](../spec.md#known-deviations).** Deferring the mute
+persistence leaves FR-054 and style-bible A-3 unsatisfied. That gap predates this
+feature — `Synth.muted` has always been in-memory — but the constitution's
+compliance-review clause requires a deviation to carry a rationale and an owner rather
+than going unrecorded, so it is now tabled rather than implied by FR-140's silence.
+Scope was **narrowed deliberately, not quietly**, which is the distinction that
+matters at review.
+
+**Still in scope, and deliberately separated**: un-ticking feature 001's T095, which is
+marked complete against `src/audio/gate.ts` — a file that does not exist. That is a
+documentation correction, independent of whether persistence is ever built, and it
+survives the deferral. The quickstart's governance gate says so explicitly, because it
+is the check most likely to be skipped now that the work it referred to is deferred.
+
+**Traceability re-verified** after the amendments: every FR-135…FR-150 and
+SC-039…SC-049 is referenced by at least one downstream artifact, and no downstream
+artifact references a requirement the spec does not define.
+
+**Status**: plan complete; ready for `/speckit-tasks`.
