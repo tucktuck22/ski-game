@@ -90,6 +90,46 @@ test.describe('the title screen', () => {
     expect(notFavicon, 'the title screen pulled in a media file').toEqual([]);
   });
 
+  test('the blowing snow is dropped under reduced motion, not slowed', async ({ browser }) => {
+    // Style-bible T-5 and the same call src/render/draw.ts makes for the game's
+    // own snowfall: a slow blizzard is still a blizzard, so the field goes away
+    // entirely rather than easing off.
+    const moving = await browser.newPage();
+    await moving.goto('./');
+    await moving.waitForSelector('#drop-in');
+    expect(await moving.locator('.flake').count(), 'no snow at all').toBeGreaterThan(0);
+    expect(
+      await moving.evaluate(() => getComputedStyle(document.querySelector('.snowfall')!).display),
+    ).not.toBe('none');
+    await moving.close();
+
+    const still = await browser.newPage({ reducedMotion: 'reduce' });
+    await still.goto('./');
+    await still.waitForSelector('#drop-in');
+    expect(
+      await still.evaluate(() => getComputedStyle(document.querySelector('.snowfall')!).display),
+      'the snow kept falling under reduced motion',
+    ).toBe('none');
+    await still.close();
+  });
+
+  test('the ice caps cannot escape the mountain they sit on', async ({ page }) => {
+    await page.goto('./');
+    // Alignment is guaranteed structurally rather than by eye: the caps are
+    // clipped to the ridge silhouette, so they can neither overhang into the
+    // sky nor leave bare rock above them. Free-standing triangles did both.
+    const clipped = await page.evaluate(() => {
+      const g = document.querySelector('svg.title-scene g[clip-path]');
+      return {
+        attr: g?.getAttribute('clip-path') ?? null,
+        caps: g?.querySelectorAll('path').length ?? 0,
+      };
+    });
+    expect(clipped.attr).toBe('url(#ridge-clip)');
+    expect(clipped.caps).toBeGreaterThan(0);
+    await expect(page.locator('svg.title-scene clipPath#ridge-clip')).toHaveCount(1);
+  });
+
   test('every colour in the scene comes from the palette', async ({ page }) => {
     await page.goto('./');
     const markup = (await page.locator('svg.title-scene').innerHTML()).toLowerCase();

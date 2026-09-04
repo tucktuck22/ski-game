@@ -161,8 +161,12 @@ armAudioOnFirstGesture();
  * that shell, so the first paint is the finished thing rather than a placeholder.
  */
 function renderTitle(): void {
+  // FR-056 and style-bible T-5: the blowing snow is dropped, not slowed, when
+  // motion is reduced. `resolveMotion()` already folds the OS preference and
+  // the in-game toggle together, so this honours a choice made on either.
+  const still = resolveMotion() === REDUCED_MOTION ? ' reduced-motion' : '';
   app.innerHTML = `
-    <div class="title-screen">
+    <div class="title-screen${still}">
       ${titleScene()}
       <h1 class="title-wordmark">SHREDPOCALYPSE<span class="title-year">'86</span></h1>
       <button id="drop-in" type="button">DROP IN</button>

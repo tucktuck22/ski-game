@@ -509,3 +509,54 @@ th {
     transition: none;
   }
 }
+
+/* Blowing snow on the title card.
+   The model is drawn from `drawSnowfall` in src/render/draw.ts: fixed columns
+   falling on a loop, with a lateral sway out of phase per flake sold as wind.
+   The game drives it from a tick counter; here two CSS animations and a
+   negative delay do the same job with no JavaScript running at all.
+
+   The flake falls further than the viewBox is tall so it clears the frame at
+   both ends, and the group is clipped by the SVG itself. */
+@keyframes title-snow-fall {
+  from {
+    transform: translateY(-14px);
+  }
+  to {
+    transform: translateY(196px);
+  }
+}
+
+@keyframes title-snow-sway {
+  0%,
+  100% {
+    transform: translateX(calc(var(--drift) * -1));
+  }
+  50% {
+    transform: translateX(var(--drift));
+  }
+}
+
+.flake {
+  animation: title-snow-fall var(--fall) linear infinite;
+  animation-delay: var(--fall-delay);
+}
+.flake circle {
+  animation: title-snow-sway var(--sway) ease-in-out infinite;
+  animation-delay: var(--sway-delay);
+}
+
+/* T-5, and the same call the game makes: under reduced motion the field is
+   DROPPED, not slowed. A slow blizzard is still a blizzard.
+
+   Two switches, because there are two ways to ask. The media query catches the
+   OS setting; `.reduced-motion` catches the in-game toggle, which is a stored
+   preference the OS knows nothing about. */
+@media (prefers-reduced-motion: reduce) {
+  .snowfall {
+    display: none;
+  }
+}
+.title-screen.reduced-motion .snowfall {
+  display: none;
+}
