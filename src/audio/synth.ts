@@ -23,6 +23,9 @@
  */
 import { PALETTE } from '../render/palette.js';
 
+/** Master level for the synthesised cues. */
+const LEVEL = 0.18;
+
 export class Synth {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -34,15 +37,31 @@ export class Synth {
    * correct behaviour and the compliant behaviour are the same thing.
    */
   start(): void {
-    if (this.ctx) return;
-    this.ctx = new AudioContext();
-    this.master = this.ctx.createGain();
-    this.master.gain.value = 0.18;
-    this.master.connect(this.ctx.destination);
+    if (!this.ctx) {
+      this.ctx = new AudioContext();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.muted ? 0 : LEVEL;
+      this.master.connect(this.ctx.destination);
+    }
+    // Safari on iOS hands back a SUSPENDED context even when it was created
+    // inside the gesture handler. Without this the graph exists, nothing
+    // throws, and nothing is ever audible. Chromium resumes it for us, which
+    // is exactly why this was invisible in every test.
+    //
+    // Safe to call repeatedly: the gate does, until `running` is true.
+    if (this.ctx.state !== 'running') void this.ctx.resume().catch(() => undefined);
   }
 
   get started(): boolean {
     return this.ctx !== null;
+  }
+
+  /**
+   * Whether audio can actually be HEARD, not merely whether it was set up.
+   * The gate stays bound until this is true.
+   */
+  get running(): boolean {
+    return this.ctx?.state === 'running';
   }
 
   /**
@@ -58,7 +77,7 @@ export class Synth {
 
   setMuted(muted: boolean): void {
     this.muted = muted;
-    if (this.master) this.master.gain.value = muted ? 0 : 0.18;
+    if (this.master) this.master.gain.value = muted ? 0 : LEVEL;
   }
 
   get isMuted(): boolean {

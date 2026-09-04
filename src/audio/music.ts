@@ -43,7 +43,7 @@ export function trackUrl(base: string, track: MusicTrack): string {
 
 /** Just enough of the Web Audio surface to be faked in a test. */
 interface AudioTarget {
-  readonly context: BaseAudioContext;
+  readonly context: BaseAudioContext & { resume?: () => Promise<void> };
   readonly destination: AudioNode;
 }
 
@@ -81,12 +81,35 @@ export class MusicPlayer {
    * would be a second set of hardware buffers for no gain.
    */
   arm(target: AudioTarget): void {
-    if (this.armed) return;
     this.armed = true;
     this.target = target;
+    this.ensureRunning();
     // A context set before arming is honoured now rather than dropped, so the caller
     // may set it during boot without ordering against the first gesture.
-    if (this.context !== null) this.play(this.context);
+    //
+    // Safe to call more than once, and the gate does exactly that: on iOS the
+    // first gesture can leave the context suspended, and a later gesture has to
+    // be able to finish the job. Nothing restarts if a piece is already going.
+    if (this.context !== null && !this.sounding) this.play(this.context);
+  }
+
+  /** Whether a source is currently attached and not paused. */
+  private get sounding(): boolean {
+    if (this.source) return true;
+    return this.element !== null && !this.element.paused;
+  }
+
+  /**
+   * Resume a suspended context.
+   *
+   * Safari on iOS suspends the context when the page is backgrounded, and hands
+   * back a suspended one at construction, so this runs before every start
+   * rather than once at arm time. A source started on a suspended context is
+   * silent until it resumes - a failure with no error attached to it.
+   */
+  private ensureRunning(): void {
+    const ctx = this.target?.context;
+    if (ctx && ctx.state !== 'running') void ctx.resume?.().catch(() => undefined);
   }
 
   /**
@@ -120,6 +143,13 @@ export class MusicPlayer {
     return this.muted;
   }
 
+  /** Called when the page comes back into view; iOS suspends audio meanwhile. */
+  resume(): void {
+    if (!this.armed) return;
+    this.ensureRunning();
+    if (this.context !== null && !this.sounding) this.play(this.context);
+  }
+
   destroy(): void {
     this.stopAll();
     this.element = null;
@@ -136,6 +166,7 @@ export class MusicPlayer {
   private play(context: PlaybackContext): void {
     const track = this.byContext.get(context);
     if (!track) return;
+    this.ensureRunning();
     // The decoded path is for the piece that carries loop offsets, which is the
     // piece whose join is actually heard. The manifest decides, not this class.
     if (track.loopStart !== undefined) this.playDecoded(track);

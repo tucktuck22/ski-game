@@ -177,6 +177,26 @@ run (FR-143). See FR-146 and FR-150.
   invisible: a title screen with a single control that starts the music and enters the
   game in one action. See FR-151 to FR-154.
 
+### Session 2026-09-04 (defect found on a phone after deploy)
+
+- **Q: The music does not start on DROP IN, or on any later tap, on a real
+  phone — though it works everywhere in test. Why?**
+  A: Two compounding defects, neither visible to any test that existed.
+
+  Safari on iOS hands back a **suspended** `AudioContext` even when it is
+  constructed inside the gesture handler. Nothing throws; the graph builds and
+  is never audible. Chromium resumes such a context on its own, which is exactly
+  why the whole suite passed while the deployed game was silent.
+
+  The gesture gate then **unbound itself on the first gesture whether or not
+  that gesture achieved anything**, so once the first tap failed silently, every
+  later tap was ignored for the rest of the session. That is the second half of
+  the report — nothing happens when you tap anywhere either.
+
+  Resolved by FR-155 to FR-157: resume the context rather than assume it,
+  keep the gate bound until audio is genuinely running, and resume again when
+  the page returns to the foreground.
+
 ## Known deviations
 
 The constitution's compliance-review clause requires a deviation to carry a rationale,
@@ -370,6 +390,14 @@ run still starts, plays, ends, and commits its score.
   control MUST NOT wait for the music to load.
 - **FR-154**: The title screen MUST be reachable and operable by keyboard, and MUST
   respect the reduced-motion setting, as every other screen does (FR-056).
+- **FR-155**: Audio MUST be resumed, not assumed. Where a browser provides a
+  suspended audio context, the application MUST resume it rather than treat
+  construction as success. Silence with nothing thrown is a failure.
+- **FR-156**: The gesture gate MUST remain active until audio is genuinely
+  running, not merely until a first gesture has been seen. A gesture that
+  achieves nothing MUST NOT consume the player's only chance to start the music.
+- **FR-157**: Audio MUST recover when the page returns to the foreground, since
+  a backgrounded page may have had its audio suspended by the platform.
 - **FR-150**: The shipped music assets MUST be re-encoded from the masters to mono at
   approximately 96 kbps, and the two together MUST NOT exceed 4 MiB transferred. The
   masters are archived, not shipped.
@@ -414,6 +442,8 @@ run still starts, plays, ends, and commits its score.
 - **SC-048**: Every shipped audio asset cites the style-bible rule it satisfies, as
   FR-052 requires — zero assets failing review, rather than assets documented as
   exceptions.
+- **SC-052**: A player who taps and hears nothing can tap again and hear
+  something. No single failed gesture ends the session's chance of audio.
 - **SC-050**: From a cold load, a player reaches the board in **one** action, and the
   music is audible from that same action rather than a later one.
 - **SC-051**: The title screen adds nothing to the initial payload beyond markup and

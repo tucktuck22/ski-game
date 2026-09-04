@@ -82,6 +82,16 @@ class FakeContext {
   decodeCalls = 0;
   failDecode = false;
   destination = { kind: 'destination' };
+  /** iOS hands back a suspended context even inside the gesture handler. */
+  state: 'suspended' | 'running' = 'running';
+  resumeCalls = 0;
+  /** Set true to model a context that refuses to resume on the first ask. */
+  stayStuck = false;
+  resume(): Promise<void> {
+    this.resumeCalls++;
+    if (!this.stayStuck) this.state = 'running';
+    return Promise.resolve();
+  }
   createBufferSource(): FakeSource {
     const s = new FakeSource();
     this.sources.push(s);
@@ -432,5 +442,84 @@ describe('G7 — mute is total, and resumes rather than restarts (SC-047)', () =
     expect(p.isMuted).toBe(false);
     p.setMuted(true);
     expect(p.isMuted).toBe(true);
+  });
+});
+
+// ---- the iOS regression -----------------------------------------------------
+
+/**
+ * Chromium resumes a context created inside a gesture on its own. Safari on iOS
+ * does not: the graph builds, nothing throws, and nothing is ever audible. That
+ * shipped, and every test here passed while it did — because the fake context
+ * above used to be permanently 'running'.
+ */
+describe('a suspended context is resumed, not assumed (iOS)', () => {
+  it('resumes on arm', async () => {
+    ctx.state = 'suspended';
+    const p = new MusicPlayer(manifest, BASE);
+    p.arm(target());
+    await settle();
+    expect(ctx.resumeCalls, 'a suspended context was never resumed').toBeGreaterThan(0);
+    expect(ctx.state).toBe('running');
+  });
+
+  it('does not resume a context that is already running', () => {
+    const p = new MusicPlayer(manifest, BASE);
+    p.arm(target());
+    expect(ctx.resumeCalls).toBe(0);
+  });
+
+  it('lets a second gesture finish what the first could not', async () => {
+    ctx.state = 'suspended';
+    ctx.stayStuck = true;
+    const p = new MusicPlayer(manifest, BASE);
+    p.setContext('frontEnd');
+
+    // First gesture: resumed, refused, nothing audible.
+    p.arm(target());
+    await settle();
+    const afterFirst = ctx.resumeCalls;
+    expect(afterFirst).toBeGreaterThan(0);
+
+    // Second gesture must try again rather than short-circuit on `armed`.
+    ctx.stayStuck = false;
+    p.arm(target());
+    await settle();
+    expect(ctx.resumeCalls, 'arming twice did nothing the second time').toBeGreaterThan(afterFirst);
+    expect(ctx.state).toBe('running');
+  });
+
+  it('does not start a second source when armed again while already sounding', async () => {
+    const p = new MusicPlayer(manifest, BASE);
+    p.arm(target());
+    p.setContext('frontEnd');
+    await settle();
+    expect(ctx.sources).toHaveLength(1);
+
+    p.arm(target());
+    p.arm(target());
+    await settle();
+    expect(ctx.sources, 'arming again started the piece over the top of itself').toHaveLength(1);
+  });
+
+  it('resume() picks the music back up after the page was backgrounded', async () => {
+    const p = new MusicPlayer(manifest, BASE);
+    p.arm(target());
+    p.setContext('frontEnd');
+    await settle();
+
+    // iOS suspends the context while the page is away.
+    ctx.state = 'suspended';
+    p.resume();
+    await settle();
+    expect(ctx.resumeCalls).toBeGreaterThan(0);
+    expect(ctx.state).toBe('running');
+  });
+
+  it('resume() does nothing before the player has ever been armed', () => {
+    const p = new MusicPlayer(manifest, BASE);
+    ctx.state = 'suspended';
+    p.resume();
+    expect(ctx.resumeCalls).toBe(0);
   });
 });
