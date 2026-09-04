@@ -143,10 +143,10 @@ start, play, end, and commit its score.
 - [x] T036 [US3] Implement `setMuted` in `src/audio/music.ts` to silence and resume without restarting, and fan the mute button in `src/main.ts` out to both the `Synth` and the music player from one call site, per FR-140, SC-047 and caller obligation 3
 - [x] T037 [P] [US3] Assert in `tests/unit/music-player.test.ts` that a rejected `play()`, a 404, and a decode error each leave a valid silent state and throw nothing, per FR-143 and G6
 - [x] T038 [P] [US3] Assert in `tests/unit/music-player.test.ts` that one `setMuted` silences both audio paths and that unmuting resumes rather than restarts, per SC-047 and G7
-- [ ] T039 [US3] Add `tests/e2e/music-never-blocks.spec.ts` blocking every `*.mp3` request and driving a full official run to a committed score, asserting no error boundary and no fatal message, per FR-143 and SC-043
-- [ ] T040 [US3] Add `tests/e2e/music-base-path.spec.ts` asserting both files return 200 from `/ski-game/audio/…` against the **built artifact** served at `/ski-game/`, entered with no trailing slash, per FR-146, R5 and Principle VI
-- [ ] T041 [US3] Extend the determinism check so a run from the same seed and inputs produces an identical score and outcome with music playing, muted, and unavailable, per FR-144 and SC-046
-- [ ] T042 [P] [US3] Assert no import path reaches `src/audio/` from `src/sim/`, keeping the simulation structurally unable to observe playback state, per FR-144 and G8
+- [x] T039 [US3] Add `tests/e2e/music-never-blocks.spec.ts` blocking every `*.mp3` request and driving a full official run to a committed score, asserting no error boundary and no fatal message, per FR-143 and SC-043
+- [x] T040 [US3] Add `tests/e2e/music-base-path.spec.ts` asserting both files return 200 from `/ski-game/audio/…` against the **built artifact** served at `/ski-game/`, entered with no trailing slash, per FR-146, R5 and Principle VI
+- [x] T041 [US3] Extend the determinism check so a run from the same seed and inputs produces an identical score and outcome with music playing, muted, and unavailable, per FR-144 and SC-046
+- [x] T042 [P] [US3] Assert no import path reaches `src/audio/` from `src/sim/`, keeping the simulation structurally unable to observe playback state, per FR-144 and G8
 
 **Checkpoint**: Every guarantee in [contracts/audio.md](contracts/audio.md#test-obligations)
 has its proof, except the two that only a human ear can give.
