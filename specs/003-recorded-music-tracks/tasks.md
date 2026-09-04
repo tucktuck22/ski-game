@@ -277,3 +277,27 @@ cite a rule at review under FR-052.
 - [x] T057 [P] Update every end-to-end spec that enters the app to pass through the title screen, in `tests/e2e/` and `tests/e2e-build/`
 - [x] T058 [P] Add end-to-end coverage that one activation both starts the music and reaches the board, and that entry still works with audio blocked, per SC-050 and FR-153
 - [x] T059 Verify the initial payload is unchanged — no new image, font, or media file — per SC-051
+
+---
+
+## Phase 9: The iOS silence (added 2026-09-04, post-deploy defect)
+
+**Reported**: the music does not start on DROP IN, nor on any later tap, on a phone.
+
+**Two defects, neither catchable by any test that existed.** Safari on iOS hands
+back a suspended `AudioContext` even when it is built inside the gesture handler;
+Chromium resumes one for us, which is why the entire suite passed while the
+deployed game was silent. And the gate unbound itself on the first gesture whether
+or not that gesture worked, so one silent failure ended the session's chance.
+
+- [x] T060 Create `src/audio/gate.ts` — the file feature 001's T095 named and never made — holding the gesture gate as a testable unit, per FR-054 and FR-156
+- [x] T061 Resume a suspended context in `Synth.start()` and expose `running`, so the gate can tell setup apart from audibility, per FR-155
+- [x] T062 Resume before every start in `src/audio/music.ts`, and make `arm()` safe to call repeatedly without restarting a piece already sounding, per FR-155 and FR-156
+- [x] T063 Keep the gate bound until audio is running, and accept `touchend` as well as pointer and key, per FR-156 and SC-052
+- [x] T064 Resume audio on `visibilitychange` in `src/main.ts`, since iOS suspends a backgrounded page's context, per FR-157
+- [x] T065 [P] Add `tests/unit/audio-gate.test.ts` with a context that does NOT auto-resume, asserting the gate keeps listening after a failed gesture, per FR-156
+- [x] T066 [P] Extend `tests/unit/music-player.test.ts` with a suspended fake context, asserting resume on arm, a second gesture finishing the job, and recovery after backgrounding, per FR-155 and FR-157
+- [x] T067 Verify the new tests fail with the fix reverted and pass with it, so they are regression tests rather than decoration
+- [x] T068 Open the audio route with a one-frame silent buffer inside the gesture in `src/audio/synth.ts`, since `resume()` alone does not open it on WebKit, per FR-158
+- [x] T069 [P] Add `tests/unit/synth-unlock.test.ts` against a WebKit-shaped context that starts suspended and can refuse to resume — the `Synth` had no tests at all, which is part of why this shipped
+- [x] T070 Verify the unlock tests fail without it: 2 of 8 do

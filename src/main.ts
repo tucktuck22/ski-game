@@ -16,6 +16,7 @@ import { popTrickBadge } from './ui/trickBadge.js';
 import { showYouDied } from './ui/youDied.js';
 import { Synth } from './audio/synth.js';
 import { MusicPlayer } from './audio/music.js';
+import { armAudioOnFirstGesture } from './audio/gate.js';
 import { resolveMotion, setMotion, REDUCED_MOTION } from './render/reducedMotion.js';
 import { deadlineState, canStartOfficialRun, formatRemaining } from './state/deadline.js';
 import { organizerSecretFromUrl } from './state/links.js';
@@ -127,25 +128,37 @@ music.setContext('frontEnd');
 let reducedMotion = resolveMotion() === REDUCED_MOTION;
 
 /**
- * FR-054 and style-bible A-3: no AudioContext until a deliberate gesture. Bound
- * to the first pointer or key the player produces, then removed.
+ * FR-054 and style-bible A-3: no AudioContext until a deliberate gesture.
  *
- * The music arms from this same handler rather than a listener of its own. Two
- * gates for the same rule drift apart, and the one that drifts is the one nobody
- * is testing.
+ * The music arms from this same gate rather than a listener of its own. Two
+ * gates for the same rule drift apart, and the one that drifts is the one
+ * nobody is testing.
+ *
+ * `running` is the state that matters, not `started`: iOS hands back a
+ * suspended context, and the gate stays bound until audio can actually be
+ * heard. See src/audio/gate.ts.
  */
-function armAudioOnFirstGesture(): void {
-  const arm = (): void => {
+armAudioOnFirstGesture(window, {
+  arm: () => {
     synth.start();
     const target = synth.target;
     if (target) music.arm(target);
-    window.removeEventListener('pointerdown', arm);
-    window.removeEventListener('keydown', arm);
-  };
-  window.addEventListener('pointerdown', arm, { once: false });
-  window.addEventListener('keydown', arm, { once: false });
-}
-armAudioOnFirstGesture();
+  },
+  get running() {
+    return synth.running;
+  },
+});
+
+/**
+ * iOS suspends the AudioContext whenever the page goes into the background, and
+ * hands it back suspended. Without this, answering a message mid-session leaves
+ * the mountain silent for the rest of it.
+ */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  synth.start();
+  music.resume();
+});
 
 /**
  * Paint something before the first await.

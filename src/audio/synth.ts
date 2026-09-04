@@ -23,6 +23,9 @@
  */
 import { PALETTE } from '../render/palette.js';
 
+/** Master level for the synthesised cues. */
+const LEVEL = 0.18;
+
 export class Synth {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -34,15 +37,64 @@ export class Synth {
    * correct behaviour and the compliant behaviour are the same thing.
    */
   start(): void {
-    if (this.ctx) return;
-    this.ctx = new AudioContext();
-    this.master = this.ctx.createGain();
-    this.master.gain.value = 0.18;
-    this.master.connect(this.ctx.destination);
+    if (!this.ctx) {
+      this.ctx = new AudioContext();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.muted ? 0 : LEVEL;
+      this.master.connect(this.ctx.destination);
+    }
+    // WebKit hands back a SUSPENDED context even when it was created inside
+    // the gesture handler. Without this the graph exists, nothing throws, and
+    // nothing is ever audible. Chromium resumes it for us, which is exactly
+    // why this was invisible in every test.
+    //
+    // This matters on every iOS browser, not just Safari. Apple requires all
+    // of them to render with WebKit, so Chrome on an iPhone is a WebKit shell
+    // and behaves the same way.
+    //
+    // Safe to call repeatedly: the gate does, until `running` is true.
+    if (this.ctx.state !== 'running') {
+      void this.ctx.resume().catch(() => undefined);
+      this.unlock();
+    }
+  }
+
+  /**
+   * Open the audio hardware by playing one silent frame.
+   *
+   * `resume()` alone is frequently not enough on WebKit: the context reports
+   * itself running and still produces no sound, because the audio route was
+   * never actually opened. Starting a buffer source INSIDE the user gesture is
+   * what opens it, and a one-frame silent buffer is the cheapest way to do
+   * that - it costs nothing and is inaudible by construction.
+   *
+   * Every failure here is swallowed. This is best-effort unlocking, and a
+   * browser that refuses must cost the player silence and nothing else
+   * (FR-143).
+   */
+  private unlock(): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    try {
+      const source = ctx.createBufferSource();
+      source.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      source.connect(ctx.destination);
+      source.start(0);
+    } catch {
+      // No unlock. The gate will try again on the next gesture.
+    }
   }
 
   get started(): boolean {
     return this.ctx !== null;
+  }
+
+  /**
+   * Whether audio can actually be HEARD, not merely whether it was set up.
+   * The gate stays bound until this is true.
+   */
+  get running(): boolean {
+    return this.ctx?.state === 'running';
   }
 
   /**
@@ -58,7 +110,7 @@ export class Synth {
 
   setMuted(muted: boolean): void {
     this.muted = muted;
-    if (this.master) this.master.gain.value = muted ? 0 : 0.18;
+    if (this.master) this.master.gain.value = muted ? 0 : LEVEL;
   }
 
   get isMuted(): boolean {
