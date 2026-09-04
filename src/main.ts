@@ -8,7 +8,8 @@
 import { assembleGameData, type GameData } from './data/load.js';
 import { LocalDraftStore } from './state/localDraft.js';
 import { DraftStore, discoverDraft, type DraftSnapshot } from './state/supabase.js';
-import { Outbox, type OutboxStore, type PendingCommit } from './state/outbox.js';
+import { Outbox, indexedDbStore, type OutboxStore, type PendingCommit } from './state/outbox.js';
+import { OutboxRunner, browserEnvironment } from './state/outboxRunner.js';
 import { availability, courseFor, PRACTICE_RUNS, type RunKind } from './state/runEconomy.js';
 import { renderLeaderboard, escapeHtml } from './ui/leaderboard.js';
 import { GameView, type RunReport } from './ui/game.js';
@@ -22,7 +23,7 @@ import { deadlineState, canStartOfficialRun, formatRemaining } from './state/dea
 import { organizerSecretFromUrl } from './state/links.js';
 import { renderOrganizer, removalConfirmationText } from './ui/organizer.js';
 import { safeSession } from './state/safeStorage.js';
-import { showFatalError, installGlobalErrorHandlers } from './ui/errorBoundary.js';
+import { showFatalError, installGlobalErrorHandlers, describeError } from './ui/errorBoundary.js';
 import { titleScene } from './ui/title.js';
 import { resolveConfig, describeUnreachable, isNetworkFailure } from './state/config.js';
 
@@ -65,7 +66,8 @@ const DRAFT_ID_FROM_URL = new URLSearchParams(location.search).get('draft');
 let DRAFT_ID = DRAFT_ID_FROM_URL ?? 'local-draft';
 // FR-006: organizer controls appear only for a holder of the organizer URL.
 // Secrecy, not authentication - see src/state/links.ts.
-const isOrganizer = organizerSecretFromUrl(location.search) !== null;
+const organizerSecret = organizerSecretFromUrl(location.search);
+const isOrganizer = organizerSecret !== null;
 const localDeadlineIso = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
 
 // Assigned in bootstrap(), once DRAFT_ID is settled. Every read of it happens
@@ -74,7 +76,7 @@ let backend!: Backend;
 
 function makeBackend(): Backend {
   return config.kind === 'configured'
-    ? new DraftStore(config.url, config.anonKey, DRAFT_ID)
+    ? new DraftStore(config.url, config.anonKey, DRAFT_ID, organizerSecret)
     : new LocalDraftStore({
         id: DRAFT_ID,
         deadline: localDeadlineIso,
@@ -84,10 +86,20 @@ function makeBackend(): Backend {
       });
 }
 
-// The outbox needs somewhere to persist. In local mode it is in memory, because
-// a local session is already not a real draft.
+/**
+ * Where a queued commit waits.
+ *
+ * FR-048: it MUST survive page reload and browser restart, so a real draft puts
+ * it in IndexedDB. This is the wiring that was missing - indexedDbStore() was
+ * written, tested and imported by nothing, and BOTH modes ran on the Map below,
+ * despite the comment here claiming otherwise. A score taken on a dead
+ * connection was therefore lost by the reload the player was told to avoid.
+ *
+ * A local session stays in memory on purpose: it is already not a real draft,
+ * and its run counts do not survive a reload either.
+ */
 const memory = new Map<string, PendingCommit>();
-const store: OutboxStore = {
+const memoryStore: OutboxStore = {
   all: async () => [...memory.values()],
   put: async (c) => {
     memory.set(c.id, c);
@@ -96,7 +108,25 @@ const store: OutboxStore = {
     memory.delete(id);
   },
 };
+const store: OutboxStore = config.kind === 'configured' ? indexedDbStore() : memoryStore;
 const outbox = new Outbox(store, (c) => backend.submitCommit(c));
+/**
+ * FR-046: retried until confirmed. See src/state/outboxRunner.ts - the retry
+ * had no driver at all before, so a transient failure queued the score and then
+ * waited for a drain that never came again.
+ */
+const outboxRunner = new OutboxRunner(outbox, browserEnvironment(window), (result) => {
+  if (result.confirmed > 0) {
+    commitStatus = 'confirmed';
+    commitMessage = 'It is on the board.';
+  } else if (result.rejected.length > 0) {
+    commitStatus = 'rejected';
+    commitMessage = result.rejected[0] as string;
+  } else {
+    return; // still trying; the screen already says so
+  }
+  render();
+});
 
 let snapshot: DraftSnapshot;
 // Guarded: an unguarded read here threw when site data was blocked, which
@@ -108,6 +138,16 @@ let commitMessage = '';
 // Held in state rather than written straight to the DOM: refresh() re-renders,
 // and an error painted directly onto the node was wiped before anyone read it.
 let rosterError = '';
+// The same, for the player panel. US5 exists because this draft gets played on
+// lodge wifi, so an action that needs the network needs somewhere to say it
+// could not reach it - short of the error boundary, which takes down the whole
+// page for what is usually a passing failure.
+let playerError = '';
+// And for the organizer panel. Its three destructive actions used to throw
+// straight past every handler into the global unhandledrejection listener,
+// which replaced the whole page with the error boundary: the organizer clicked
+// REMOVE, confirmed, and the app died.
+let organizerError = '';
 /**
  * FR-151: the title screen is the first thing a player sees, and DROP IN is the
  * gesture that starts the music.
@@ -214,7 +254,51 @@ renderTitle();
 
 async function refresh(): Promise<void> {
   snapshot = await backend.snapshot();
+  reconcileIdentity();
   render();
+}
+
+/**
+ * FR-021: shared storage decides who you are. This device only remembers.
+ *
+ * The session key exists for FR-010 - resume on the same device without
+ * re-selecting - and was being treated as the answer rather than as a hint.
+ * So when the organizer released a claim, which the spec names as the fix for
+ * "a player claims the wrong name", the release landed in shared storage and
+ * the released player's own screen never noticed. He was still "You are
+ * <name>", still holding his practice runs, still able to take the official run
+ * that had just been taken back from him. The organizer watched the row flip to
+ * UNCLAIMED and nothing whatsoever happened to the one person it was aimed at.
+ *
+ * Re-checked against every snapshot, so a release reaches the player on his
+ * next refresh - the realtime subscription, or the 15s poll behind it.
+ */
+function reconcileIdentity(): void {
+  if (myEntryId === null) return;
+  // Not mid-run. A run already under way was legitimately started, and pulling
+  // the player's identity out from under it drops him onto the roster during
+  // his own wipeout and bins the score without a word. A release that lands
+  // during a run is applied when he comes back to the board, which is late
+  // rather than wrong - and FR-074 removal is the organizer's answer to a score
+  // he did not want, not a silent discard here.
+  if (game) return;
+  const mine = snapshot.entries.find((e) => e.id === myEntryId);
+  if (mine !== undefined && mine.claimed && !mine.removed) return;
+  forgetIdentity();
+}
+
+/**
+ * Drops this device's memory of who it is. Never touches shared storage: the
+ * claim itself is released by whoever is entitled to release it.
+ */
+function forgetIdentity(): void {
+  myEntryId = null;
+  safeSession.remove(`claim:${DRAFT_ID}`);
+  // A commit result belongs to the player it was about. Left standing it would
+  // greet whoever claims a name next with somebody else's confirmed score.
+  commitStatus = 'idle';
+  commitMessage = '';
+  playerError = '';
 }
 
 const myEntry = (): DraftSnapshot['entries'][number] | undefined =>
@@ -254,7 +338,7 @@ function render(): void {
       ${me ? renderPlayer(me) : renderRoster()}
     </div>
     ${renderLeaderboard(snapshot.entries, draftIsFinal())}
-    ${isOrganizer ? renderOrganizer(snapshot.entries, snapshot.draft.deadline) : ''}`;
+    ${isOrganizer ? renderOrganizer(snapshot.entries, snapshot.draft.deadline, organizerError) : ''}`;
   wire();
 }
 
@@ -281,7 +365,18 @@ function renderRoster(): string {
 function renderPlayer(me: NonNullable<ReturnType<typeof myEntry>>): string {
   const a = availability(me, !canStartOfficialRun(deadline()));
   return `
-    <p>You are <strong style="color:var(--magenta)">${escapeHtml(me.name)}</strong>.</p>
+    <p>
+      You are <strong style="color:var(--magenta)">${escapeHtml(me.name)}</strong>.
+      ${
+        // Only before the official run. After it the claim is permanent - the
+        // score is already on the board under this name, and the spec's answer
+        // to a wrong name at that point is organizer removal, not a swap.
+        // availability() already explains the committed state just below.
+        me.score === null
+          ? `<button id="not-me" style="min-height:36px;padding:6px 10px">NOT YOU?</button>`
+          : ''
+      }
+    </p>
     <div class="stack">
       <div class="row">
         <button id="practice" ${a.practiceRemaining === 0 || a.freePlayOnly ? 'disabled' : ''}>
@@ -291,6 +386,7 @@ function renderPlayer(me: NonNullable<ReturnType<typeof myEntry>>): string {
         <button id="free" ${a.freePlayOnly ? '' : 'disabled'}>FREE PLAY</button>
       </div>
       ${a.blockedReason ? `<p id="blocked-reason" style="color:var(--yellow)">${escapeHtml(a.blockedReason)}</p>` : ''}
+      ${playerError ? `<p id="player-error" style="color:var(--yellow)">${escapeHtml(playerError)}</p>` : ''}
       ${commitStatus === 'pending' ? `<p class="pending">SCORE PENDING — not on the leaderboard until the server confirms it.</p>` : ''}
       ${commitStatus === 'confirmed' ? `<p class="confirmed">SCORE CONFIRMED. ${escapeHtml(commitMessage)}</p>` : ''}
       ${commitStatus === 'rejected' ? `<p style="color:var(--yellow)">${escapeHtml(commitMessage)}</p>` : ''}
@@ -333,6 +429,46 @@ function wire(): void {
     };
   }
 
+  /**
+   * FR-011: a player must be able to re-select his name from the roster. There
+   * was no way back - the first name tapped became this device's identity for
+   * good, and a mis-tap could only be undone by an organizer who had to be told
+   * about it first.
+   *
+   * The claim is released rather than merely forgotten. Forgetting it locally
+   * would leave the name claimed by nobody, which is the same dead end from the
+   * other side: still unpickable, still needing the organizer.
+   *
+   * Honour system, as everywhere else here - anyone holding the link can claim
+   * any free name (spec.md, "The honor system is the security model").
+   */
+  const notMe = app.querySelector<HTMLButtonElement>('#not-me');
+  if (notMe)
+    notMe.onclick = async (): Promise<void> => {
+      const me = myEntry();
+      if (!me) return;
+      if (
+        !confirm(
+          `Put ${me.name} back on the list and pick again?\n\n` +
+            'Anyone can claim that name after you do, including you. Practice runs ' +
+            'already used stay with the name, not with you.',
+        )
+      )
+        return;
+      try {
+        await backend.releaseClaim(me.id);
+      } catch {
+        // Keep the identity. Forgetting it here would strand him: the name is
+        // still claimed in shared storage, so the roster would not offer it
+        // back and he would be nobody until someone else intervened.
+        playerError = 'Could not reach the draft to give the name back. Try again in a moment.';
+        render();
+        return;
+      }
+      forgetIdentity();
+      await refresh();
+    };
+
   const bind = (sel: string, kind: RunKind): void => {
     const el = app.querySelector<HTMLButtonElement>(sel);
     if (el)
@@ -373,6 +509,28 @@ function wire(): void {
 
 /** FR-016: an explicit confirmation, stating unambiguously that it counts once. */
 function wireOrganizer(): void {
+  /**
+   * Every organizer action, behind one catch.
+   *
+   * These are the three the database denied outright until
+   * 0003_organizer.sql, and each threw straight past its handler into the
+   * global unhandledrejection listener - so the organizer confirmed a removal
+   * and watched the page be replaced by the error boundary. A refusal here is
+   * information ("that is not the organizer link any more", "the draft is
+   * unreachable"), not a reason to take the game down.
+   */
+  const attempt = async (what: string, action: () => Promise<void>): Promise<void> => {
+    organizerError = '';
+    try {
+      await action();
+    } catch (error) {
+      organizerError = `${what} did not happen: ${describeError(error).message}`;
+      render();
+      return;
+    }
+    await refresh();
+  };
+
   app.querySelectorAll<HTMLButtonElement>('[data-remove]').forEach((b) => {
     b.onclick = async (): Promise<void> => {
       const id = b.dataset['remove'] as string;
@@ -383,15 +541,13 @@ function wireOrganizer(): void {
       // "are you sure?" is what people click through without reading, and what
       // is being destroyed is somebody's bed pick.
       if (!confirm(removalConfirmationText(entry?.name ?? 'this entry', score))) return;
-      await backend.removeEntry(id, score);
-      await refresh();
+      await attempt('The removal', () => backend.removeEntry(id, score));
     };
   });
 
   app.querySelectorAll<HTMLButtonElement>('[data-release]').forEach((b) => {
     b.onclick = async (): Promise<void> => {
-      await backend.releaseClaim(b.dataset['release'] as string);
-      await refresh();
+      await attempt('The release', () => backend.releaseClaim(b.dataset['release'] as string));
     };
   });
 
@@ -409,8 +565,7 @@ function wireOrganizer(): void {
         )
       )
         return;
-      await backend.setDeadline(iso);
-      await refresh();
+      await attempt('The deadline change', () => backend.setDeadline(iso));
     };
 
   const reset = app.querySelector<HTMLButtonElement>('#reset');
@@ -418,8 +573,7 @@ function wireOrganizer(): void {
     reset.onclick = async (): Promise<void> => {
       if (!confirm('Reset the draft? Every committed score is destroyed. There is no undo.'))
         return;
-      await backend.resetDraft();
-      await refresh();
+      await attempt('The reset', () => backend.resetDraft());
     };
 }
 
@@ -536,7 +690,10 @@ async function endRun(report: RunReport): Promise<void> {
       outcome: report.outcome,
       rulesVersion: data.official.rulesVersion,
     });
-    const result = await outbox.drain();
+    // Through the runner, not straight at the outbox: a pass that comes back
+    // "retry" must leave a scheduled retry behind it. This one call used to BE
+    // the whole of FR-046's "retried until confirmed".
+    const result = await outboxRunner.drainNow();
     if (result.confirmed > 0) {
       commitStatus = 'confirmed';
       commitMessage = `${report.score.toLocaleString()} is locked in.`;
@@ -631,6 +788,13 @@ async function bootstrap(): Promise<void> {
   backend.subscribe(() => {
     void refresh();
   });
+
+  // FR-046/FR-048: deliver anything left over from a previous session before
+  // anything else. A score taken on a dead connection and then reloaded is
+  // submitted here - that is what persisting the queue was for.
+  if (await outboxRunner.hasPending()) commitStatus = 'pending';
+  outboxRunner.start();
+
   await refresh();
 }
 

@@ -101,3 +101,66 @@ describe('error classification decides retry versus give up', () => {
     expect(classifyError(null)).toMatchObject({ kind: 'confirmed' });
   });
 });
+
+/**
+ * FR-023 freezes the rules at the first commit, and the trigger enforces it by
+ * comparing the submission's rules_version against the draft's. That makes the
+ * seeded value part of the contract rather than a comment: if it does not match
+ * what the client actually sends, EVERY official run is rejected with "rules
+ * version mismatch" and each of eight players is told his one run did not count.
+ *
+ * That is not hypothetical. rulesVersion was bumped five times (1.0.0 -> 1.5.0)
+ * while seed-draft.sql kept saying '1.0.0', and nothing failed until a player
+ * tried to commit. Grepping the seed is cheap; discovering this from the cabin
+ * is not.
+ */
+describe('the seeded rules version matches the rules the client sends (FR-023)', () => {
+  const seed = readFileSync(new URL('../../supabase/seed-draft.sql', import.meta.url), 'utf8');
+  const course = (f: string): { rulesVersion: string } =>
+    JSON.parse(readFileSync(new URL(`../../data/courses/${f}`, import.meta.url), 'utf8')) as {
+      rulesVersion: string;
+    };
+
+  const seeded = /rules_version[\s\S]*?values\s*\([\s\S]*?'([\d.]+)',/.exec(seed)?.[1];
+
+  it('seeds a rules_version at all', () => {
+    expect(seeded).toBeDefined();
+  });
+
+  it('seeds exactly the version the official course declares', () => {
+    expect(seeded).toBe(course('official.json').rulesVersion);
+  });
+
+  it('is the version both courses agree on, since one draft covers both', () => {
+    expect(course('warmup.json').rulesVersion).toBe(course('official.json').rulesVersion);
+  });
+
+  /**
+   * The repair script has to be right for exactly the same reason the seed
+   * does, and it is the more dangerous of the two: it is reached by somebody
+   * whose draft is already broken, so a stale value there fails to fix the
+   * thing it was opened to fix.
+   *
+   * It used to demand the version be filled in by hand and refuse to run until
+   * it was, which is not a safeguard - it is a puzzle handed to someone already
+   * unblocking a draft. The value is baked in and this test is what keeps it
+   * honest.
+   */
+  it('the repair script targets that same version', () => {
+    const fix = readFileSync(
+      new URL('../../supabase/fix-rules-version.sql', import.meta.url),
+      'utf8',
+    );
+    const target = /target\s+text\s*:=\s*'([^']+)'/.exec(fix)?.[1];
+    expect(target).toBe(course('official.json').rulesVersion);
+  });
+
+  it('the repair script asks the operator to edit nothing', () => {
+    const fix = readFileSync(
+      new URL('../../supabase/fix-rules-version.sql', import.meta.url),
+      'utf8',
+    );
+    // A CHANGE ME in an executable line is a script that stops rather than runs.
+    expect(fix).not.toMatch(/:=\s*'CHANGE ME'/);
+  });
+});

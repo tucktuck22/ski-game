@@ -17,7 +17,12 @@ export interface OrganizerActions {
   resetDraft(): Promise<void>;
 }
 
-export function renderOrganizer(entries: readonly EntryView[], deadlineIso: string): string {
+export function renderOrganizer(
+  entries: readonly EntryView[],
+  deadlineIso: string,
+  /** Why the last action did not happen. Empty when it did. */
+  error = '',
+): string {
   const live = entries.filter((e) => !e.removed);
   return `
     <div class="panel" style="border-color:var(--magenta)">
@@ -37,6 +42,8 @@ export function renderOrganizer(entries: readonly EntryView[], deadlineIso: stri
           ${live.map(rowFor).join('')}
         </tbody>
       </table>
+
+      ${error ? `<p id="organizer-error" style="color:var(--yellow)">${escapeHtml(error)}</p>` : ''}
 
       <div class="row" style="margin-top:16px">
         <button id="reset" class="danger">RESET THE WHOLE DRAFT</button>

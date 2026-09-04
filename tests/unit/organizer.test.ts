@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import {
   renderOrganizer,
   removalConfirmationText,
@@ -84,9 +85,56 @@ describe('organizer removal (FR-074, FR-075)', () => {
     expect(html).toContain('>you<');
   });
 
+  it('shows why an action did not happen, rather than failing silently', () => {
+    const html = renderOrganizer([], '2026-09-10T23:00:00Z', 'The removal did not happen: denied');
+    expect(html).toContain('id="organizer-error"');
+    expect(html).toContain('The removal did not happen');
+  });
+
+  it('says nothing when there is nothing to say', () => {
+    expect(renderOrganizer([], '2026-09-10T23:00:00Z')).not.toContain('organizer-error');
+  });
+
   it('warns that reset has no undo', () => {
     const html = renderOrganizer([], '2026-09-10T23:00:00Z');
     expect(html).toContain('destroys every committed score');
     expect(html).toContain('no undo');
+  });
+});
+
+/**
+ * FR-006, and the defect that hid behind it.
+ *
+ * 0002_policies.sql denies every client role the writes these three actions
+ * need, and the organizer holds the same anon key as every player - so for as
+ * long as they were written as table writes they were simply denied, and the
+ * throw took the whole page down with it. They go through the security-definer
+ * functions in 0003_organizer.sql now, and must keep doing so: a well-meaning
+ * "simplification" back to `.from(...).update(...)` would restore the bug
+ * exactly, and every test in this file would still pass.
+ *
+ * supabase/tests/invariants.sql proves the database half against real Postgres.
+ * This is the client half: that we still ask the right way.
+ */
+describe('organizer actions go through the secret-gated functions (FR-006)', () => {
+  const client = readFileSync(new URL('../../src/state/supabase.ts', import.meta.url), 'utf8');
+  const organizerSection = client.slice(client.indexOf('---- Organizer operations'));
+
+  it('calls a function for each of the three the grants deny', () => {
+    expect(organizerSection).toContain("rpc('organizer_set_deadline'");
+    expect(organizerSection).toContain("rpc('organizer_remove_entry'");
+    expect(organizerSection).toContain("rpc('organizer_reset_draft'");
+  });
+
+  it('passes the organizer secret with every one of them', () => {
+    const calls = organizerSection.match(/rpc\('organizer_\w+',\s*\{[^}]*\}/g) ?? [];
+    expect(calls).toHaveLength(3);
+    for (const call of calls) expect(call).toContain('p_secret: this.organizerSecret');
+  });
+
+  it('does not write those tables directly, which the database refuses', () => {
+    expect(organizerSection).not.toMatch(/from\('draft'\)\s*\.update/);
+    expect(organizerSection).not.toMatch(/from\('committed_score'\)\s*\.delete/);
+    expect(organizerSection).not.toMatch(/removed_at:/);
   });
 });
