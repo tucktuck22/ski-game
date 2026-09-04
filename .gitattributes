@@ -43,6 +43,15 @@
 *.gltf binary
 
 # Binary sprite atlases are version-controlled via LFS (constitution: Asset management).
-# Audio is synthesised at runtime, so there are no audio binaries to track.
+#
+# Audio was synthesised at runtime and there were no audio binaries to track,
+# until feature 003 introduced recorded music. The two masters under
+# assets/audio/masters/ are committed as ordinary Git objects, NOT via LFS: the
+# environment they were added from denies lfs.github.com at the network gateway,
+# so an LFS pointer could be committed but never pushed. They stay marked binary
+# above. Migrating them - `git lfs migrate import --include='*.mp3'` - is the
+# outstanding half of the constitution's asset-management rule, and rewrites
+# history, so it wants doing before the repository gains more contributors.
+# See assets/audio/README.md.
 *.png filter=lfs diff=lfs merge=lfs -text
 *.aseprite filter=lfs diff=lfs merge=lfs -text
