@@ -453,6 +453,42 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
       });
   }
 
+  // CV-21: a launch must have somewhere to come down.
+  //
+  // CV-15 keeps a ramp clear of the boughs BESIDE it. It says nothing about
+  // where the flight ends, which did not matter while every ramp on the course
+  // was a 40-unit hop onto a shelf 96 units away. A booter is a different
+  // object: it buys sixty-odd ticks of air and carries the player the better
+  // part of three hundred units downhill, over ground he committed to before he
+  // could see it. Landing on a log there is the same unfairness CV-4 and CV-15
+  // exist to prevent, arriving from above.
+  //
+  // The reach is bounded rather than simulated. Duplicating the flight solver in
+  // the validator would be a second copy of the physics to drift from the first,
+  // which Principle II will not have; 2*v/g matched the simulation's measured
+  // air to within a tick at both the old cap and the new one, and a quarter is
+  // added on top of that. The rule is deliberately strict - it forbids anything
+  // under the arc, including a bough the flight would in fact clear - because a
+  // conservative rule that is obviously right beats a precise one that is
+  // subtly wrong about a case nobody has built yet.
+  const LANDING_MARGIN = 1.25;
+  for (const k of course.kickers) {
+    const lip = k.x + k.width;
+    const impulse = Math.min(k.power * tuning.tuckSpeedMax, tuning.kickerImpulseMax);
+    const airTicks = (2 * impulse) / tuning.gravity;
+    const reach = lip + airTicks * tuning.tuckSpeedMax * LANDING_MARGIN;
+    for (const o of course.obstacles) {
+      if (o.x + o.width <= lip || o.x >= reach) continue;
+      v.push({
+        rule: 'CV-21',
+        message:
+          `ramp at x=${k.x} throws a full-tuck skier as far as x=${reach.toFixed(0)}, and the ` +
+          `${o.kind} obstacle at x=${o.x} stands under that flight. He is committed to the ` +
+          'launch before he can see what he is committed to.',
+      });
+    }
+  }
+
   // CV-8: FR-034 dominance — a finish must beat any wipeout
   const maxBonus = maxAchievableBonus(course, scoring, TRICK_CEILING);
   if (scoring.completionBase <= maxBonus)
