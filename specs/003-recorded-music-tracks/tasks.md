@@ -60,12 +60,12 @@ exist at known sizes with known loop offsets.
 **Requires**: `ffmpeg`, which is **not** available in the environment this plan was
 written in. This phase needs a machine that has it.
 
-- [ ] T007 Write `tools/encode-audio.sh` transcoding both masters in `assets/audio/masters/` to mono ~96 kbps MP3 in `public/audio/`, printing input and output sizes for each, per FR-150 and R10
-- [ ] T008 Run `tools/encode-audio.sh` verbatim and inspect its printed output — not merely its exit code — producing `public/audio/look-out-below.mp3` and `public/audio/powder-rush.mp3`, per Principle VII
-- [ ] T009 Verify the two shipped files total at or under 4 MiB (4194304 bytes) and record the actual figure; if breached, trim Powder Rush rather than dropping bitrate, per SC-049 and R1
-- [ ] T010 Measure the leading and trailing encoder silence in the shipped `public/audio/look-out-below.mp3` and derive `loopStart`/`loopEnd` just inside it, per FR-137, SC-040 and R3
-- [ ] T011 Create `data/audio.json` declaring both music tracks — id, file, context, gain, and Look Out Below's measured loop offsets — using the shape in [contracts/audio.md](contracts/audio.md#data-contract), per FR-149 and R7
-- [ ] T012 [P] Update `assets/audio/README.md` with the encode command, the shipped file sizes measured in T009, and the note that re-encoding invalidates the loop offsets in T010
+- [x] T007 Write `tools/encode-audio.sh` transcoding both masters in `assets/audio/masters/` to mono ~96 kbps MP3 in `public/audio/`, printing input and output sizes for each, per FR-150 and R10
+- [x] T008 Run `tools/encode-audio.sh` verbatim and inspect its printed output — not merely its exit code — producing `public/audio/look-out-below.mp3` and `public/audio/powder-rush.mp3`, per Principle VII
+- [x] T009 Verify the two shipped files total at or under 4 MiB (4194304 bytes) and record the actual figure; if breached, trim Powder Rush rather than dropping bitrate, per SC-049 and R1
+- [x] T010 Measure the leading and trailing encoder silence in the shipped `public/audio/look-out-below.mp3` and derive `loopStart`/`loopEnd` just inside it, per FR-137, SC-040 and R3
+- [x] T011 Create `data/audio.json` declaring both music tracks — id, file, context, gain, and Look Out Below's measured loop offsets — using the shape in [contracts/audio.md](contracts/audio.md#data-contract), per FR-149 and R7
+- [x] T012 [P] Update `assets/audio/README.md` with the encode command, the shipped file sizes measured in T009, and the note that re-encoding invalidates the loop offsets in T010
 
 **Checkpoint**: `du -cb public/audio/*.mp3` is at or under 4 MiB, and `data/audio.json`
 carries measured offsets rather than placeholders.

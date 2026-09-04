@@ -1,0 +1,21 @@
+{
+  "$comment": "Music manifest. Gains are feel values and are opening positions for playtest, like data/tuning.json - they must leave the Synth cues clearly audible over the music (FR-141), because cues carry gameplay information and music carries none. loopStart/loopEnd are MEASUREMENTS OF THE SHIPPED ENCODE in public/audio/, not of the masters: re-running tools/encode-audio.sh invalidates them and they must be re-measured. Sound effects are not here; they are synthesised in src/audio/synth.ts under style-bible A-1 and A-2.",
+  "tracks": [
+    {
+      "id": "lookOutBelow",
+      "file": "look-out-below.mp3",
+      "context": "frontEnd",
+      "gain": 0.5,
+      "loopStart": 0.6665,
+      "loopEnd": 86.9674,
+      "$comment": "Measured 2026-09-04 on the 96 kbps mono encode (duration 87.792 s). The piece opens with 0.666 s of silence and ends with 0.825 s of it, so an edge-to-edge loop would insert ~1.5 s of dead air at every join - far more than MP3 encoder padding alone, and exactly the gap SC-040 forbids. Playback starts at 0 so the intro is heard once; every lap after that runs between these offsets."
+    },
+    {
+      "id": "powderRush",
+      "file": "powder-rush.mp3",
+      "context": "course",
+      "gain": 0.45,
+      "$comment": "No loop offsets, deliberately. The piece is 220.08 s and the longest possible run is 76.9 s, so its loop point is unreachable - see research.md R1. It carries no leading or trailing silence above 0.15 s in any case. If a course is ever lengthened past this piece, or this piece shortened, measure offsets and add them."
+    }
+  ]
+}

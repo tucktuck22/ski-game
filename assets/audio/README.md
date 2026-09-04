@@ -19,24 +19,50 @@ No third-party or licensed material is included in either piece.
 ## Masters versus shipped assets
 
 `masters/` holds the files exactly as delivered. They are **archive only** — nothing
-in `src/` loads them, and no build step reads them.
+in `src/` loads them, and no build step reads them. They are retained because the
+constitution requires it — _"Source files for derived assets MUST be retained"_ — and
+because the shipped assets are transcodes that cannot be regenerated without them.
 
-| Asset          | Duration | Size         | Encoding                          |
-| -------------- | -------- | ------------ | --------------------------------- |
-| Look Out Below | 1:28     | 2.05 MiB     | MP3, VBR ~196 kbps, 48 kHz stereo |
-| Powder Rush    | 3:40     | 5.04 MiB     | MP3, VBR ~192 kbps, 48 kHz stereo |
-| **Total**      | **5:08** | **7.09 MiB** |                                   |
+| Piece          | Master (192 kbps stereo) | Shipped (96 kbps mono) | Duration |
+| -------------- | ------------------------ | ---------------------- | -------- |
+| Look Out Below | 2099 KiB                 | 1239 KiB               | 87.79 s  |
+| Powder Rush    | 5162 KiB                 | 2688 KiB               | 220.08 s |
+| **Total**      | **7261 KiB**             | **3927 KiB**           | 5:08     |
 
-They are retained because the constitution requires it — _"Source files for derived
-assets MUST be retained"_ — and because the shipped assets are transcodes that cannot
-be regenerated without them.
+Measured 2026-09-04. The shipped pair is **3927 KiB against SC-049's 4096 KiB
+ceiling — 168 KiB of headroom, about 4%.** That is enough for encoder variance and
+nothing else: a longer piece, a stereo encode, or a third track breaches it. Anyone
+changing the music must re-run the script and read what it prints.
 
-What ships is re-encoded to mono at roughly 96 kbps and fetched on demand, so that
-neither piece enters the initial payload. The masters at full size are 3.5× the
-constitution's entire 2 MB gzipped payload budget; MP3 is already compressed, so gzip
-recovers nothing. See FR-146, FR-150 and SC-049.
+`tools/encode-audio.sh` produces the shipped files and fails loudly if the pair
+exceeds the ceiling. Run it verbatim and read its output — Principle VII, and an exit
+code of zero while emitting an oversized file would otherwise pass unnoticed.
 
-**The shipped assets do not exist yet.** Feature 003 is specified, not built.
+**Nothing in the initial payload.** The shipped files live in `public/audio/`, which
+Vite copies verbatim without adding them to the bundle graph, and they are fetched at
+runtime from `import.meta.env.BASE_URL`. The constitution's 2 MB gzipped ceiling
+governs the _initial_ payload and is untouched; SC-049 is a separate self-imposed
+budget on the music itself (FR-146, FR-150).
+
+## Loop offsets are properties of the encode
+
+`data/audio.json` carries `loopStart` and `loopEnd` for Look Out Below, measured
+against the **shipped** file rather than the master.
+
+They matter more than the usual encoder-padding case. Look Out Below opens with
+**0.666 s** of silence and ends with **0.825 s** of it, so looping edge to edge would
+insert roughly **1.5 seconds of dead air** at every join — on the one piece a player
+hears loop repeatedly, since it plays on the board while everyone reads the standings.
+Playback starts at 0 so the intro is heard once; every lap after runs between the
+offsets.
+
+**Re-running `tools/encode-audio.sh` invalidates them.** Re-measure with
+`ffmpeg -i public/audio/look-out-below.mp3 -af silencedetect=noise=-50dB:d=0.15 -f null -`
+and update `data/audio.json`. Shipping stale offsets produces exactly the audible seam
+SC-040 forbids.
+
+Powder Rush has no offsets, deliberately: it is 220.08 s and the longest possible run
+is 76.9 s, so nobody ever reaches its loop point.
 
 ## Large-file handling — outstanding
 
