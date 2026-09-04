@@ -101,6 +101,20 @@ export interface Kicker {
   width: number;
   /** Multiplier on carried speed. The launch impulse is power * speed. */
   power: number;
+  /**
+   * Direction of the launch, in degrees above the horizontal. Omitted means 90:
+   * straight up, which is what every ramp did before this existed.
+   *
+   * Straight up is wrong for a booter and right for a hop. A shelf ramp only
+   * has to lift the skier 50 units onto a platform 96 away, so all of its
+   * impulse belongs in the vertical. A booter throwing 12.5 against a forward
+   * speed of 4.2 leaves the lip at 71 degrees and returns at 71 degrees - it
+   * tosses him up and drops him on the same spot, which reads as a fall rather
+   * than a launch however much air it technically buys. Tilting the launch
+   * forward spends the same impulse on distance instead of height, and lands
+   * the apex back inside a 180-tall frame as a side effect.
+   */
+  launchAngle?: number;
 }
 
 export type PickupValue = 'small' | 'large';

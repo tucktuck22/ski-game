@@ -9,7 +9,7 @@
  * protects — and it is invisible to review. It would surface as one friend
  * saying the game is broken, after the draft had already started.
  */
-import type { Course, Obstacle, Scoring, TerrainPoint, Tuning } from '../sim/types.js';
+import type { Course, Kicker, Obstacle, Scoring, TerrainPoint, Tuning } from '../sim/types.js';
 import { overheadClearanceAt, ledgeIndexAt } from '../sim/terrain.js';
 import { maxAchievableBonus } from '../sim/scoring.js';
 
@@ -47,6 +47,21 @@ const TRICK_CEILING = 6;
  * validator is a build-time check, not the simulation.
  */
 const apexOf = (impulse: number, gravity: number): number => (impulse * impulse) / (2 * gravity);
+
+/**
+ * The vertical and horizontal halves of a launch, for a ramp that may throw
+ * forward as well as up.
+ *
+ * Everything downstream used to be able to assume impulse WAS the vertical
+ * component, because every ramp threw straight up. A booter does not, and the
+ * rules that decide whether a shelf is reachable and where a flight comes down
+ * are both wrong if they keep assuming it: one would over-estimate the height a
+ * ramp reaches, the other would under-estimate how far it throws.
+ */
+const launchParts = (k: Kicker, impulse: number): { up: number; along: number } => {
+  const rad = ((k.launchAngle ?? 90) * Math.PI) / 180;
+  return { up: impulse * Math.sin(rad), along: impulse * Math.cos(rad) };
+};
 
 /** Minimum vertical margin between a shelf and the boughs it sails over (CV-14). */
 const LEDGE_BRANCH_MARGIN = 8;
@@ -270,7 +285,7 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
     }
     const reachable = entries.some((k) => {
       const impulse = Math.min(k.power * tuning.tuckSpeedMax, tuning.kickerImpulseMax);
-      return apexOf(impulse, tuning.gravity) > l.height;
+      return apexOf(launchParts(k, impulse).up, tuning.gravity) > l.height;
     });
     if (!reachable)
       v.push({
@@ -279,7 +294,7 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
       });
     for (const k of entries) {
       const impulse = Math.min(k.power * tuning.baseSpeed, tuning.kickerImpulseMax);
-      if (apexOf(impulse, tuning.gravity) >= l.height)
+      if (apexOf(launchParts(k, impulse).up, tuning.gravity) >= l.height)
         v.push({
           rule: 'CV-13',
           message:
@@ -488,8 +503,14 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
   for (const k of course.kickers) {
     const lip = k.x + k.width;
     const impulse = Math.min(k.power * tuning.tuckSpeedMax, tuning.kickerImpulseMax);
-    const airTicks = (2 * impulse) / tuning.gravity;
-    const reach = lip + airTicks * tuning.tuckSpeedMax * LANDING_MARGIN;
+    // Air comes from the vertical half of the launch; ground covered comes from
+    // the skier's own speed PLUS the horizontal half. A booter tilted forward
+    // travels two to three times as far as the same impulse thrown straight up,
+    // so reading the reach off the impulse alone would clear a landing zone the
+    // player sails clean over.
+    const { up, along } = launchParts(k, impulse);
+    const airTicks = (2 * up) / tuning.gravity;
+    const reach = lip + airTicks * (tuning.tuckSpeedMax + along) * LANDING_MARGIN;
     for (const o of course.obstacles) {
       if (o.x + o.width <= lip || o.x >= reach) continue;
       v.push({

@@ -111,23 +111,35 @@ export function applyKickers(state: RunState, course: Course, tuning: Tuning): b
 
   const nextX = state.x + state.vx;
   let impulse = 0;
+  let angleDeg = VERTICAL_LAUNCH_DEG;
   for (const k of course.kickers) {
     const lip = k.x + k.width;
     if (state.x >= lip || nextX < lip) continue;
     const carried = currentSpeed(state);
     const scaled = k.power * carried;
     const capped = scaled > tuning.kickerImpulseMax ? tuning.kickerImpulseMax : scaled;
-    if (capped > impulse) impulse = capped;
+    if (capped > impulse) {
+      impulse = capped;
+      angleDeg = k.launchAngle ?? VERTICAL_LAUNCH_DEG;
+    }
   }
   if (impulse <= 0) return false;
 
-  state.vy -= impulse;
+  // The launch is a vector, not a number. Trig here rather than in derive()
+  // because a launch happens a handful of times in a run, not sixty times a
+  // second - and the deterministic tables are what make it safe to do at all.
+  const rad = (angleDeg * Math.PI) / 180;
+  state.vy -= impulse * sinDet(rad);
+  state.vx += impulse * cosDet(rad);
   state.grounded = false;
   state.ledge = -1;
   state.crouchCharge = 0;
   state.rotationAccum = 0;
   return true;
 }
+
+/** A ramp with no launchAngle throws straight up, as every ramp once did. */
+const VERTICAL_LAUNCH_DEG = 90;
 
 /** Grounded motion: speed toward the tuck or base target, plus slope acceleration. */
 export function applyGroundedMotion(state: RunState, course: Course, tuning: Tuning): void {

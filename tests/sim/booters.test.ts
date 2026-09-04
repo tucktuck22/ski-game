@@ -1,59 +1,63 @@
 import { describe, it, expect } from 'vitest';
 import { derive, initialState, step } from '../../src/sim/step.js';
 import { MAX_TICKS } from '../../src/sim/run.js';
-import type { Course, RunInput } from '../../src/sim/types.js';
+import { terrainYAt } from '../../src/sim/terrain.js';
+import type { Course, Kicker, RunInput } from '../../src/sim/types.js';
 import { official, tuning, scoring } from './fixtures.js';
 
 /**
- * The booters exist to sell hang time, and hang time is only worth anything if
- * it converts into rotations. That is the measurable feel criterion Principle
- * III asks a mechanic to define, so it is asserted rather than described.
+ * A booter throws the skier FORWARD, and the whole feel of one lives in that.
  *
- * The ladder these tests pin down:
- *   base speed, small booter    a double
- *   base speed, big booter      a triple
- *   full tuck, small booter     a quad
- *   full tuck, big booter       a quint
+ * The first cut threw straight up: 12.5 of impulse against a forward speed of
+ * 4.2 leaves the lip at 71 degrees and lands at 71 degrees, which reads as
+ * being tossed and dropped rather than launched, however much air it buys. It
+ * also spent everything on height, which is the one currency this game cannot
+ * show - the buffer is 180 tall, and the snow was out of frame for 85% of the
+ * flight. Both faults are asserted against here, because both were shipped.
  *
- * The big booter is worth exactly one more rotation than the small one at every
- * speed, which is the whole reason there are two of them. It buys that with a
- * stronger launch AND a steeper knuckle behind the lip - the ground falling away
- * is worth as much as the ramp, and neither alone gets there.
- *
- * Speed buying rotations is the whole reason The Flats section exists. A launch
- * impulse is power times CARRIED speed, so coasting the flat is not a rest, it
- * is a smaller trick - and if that ever stops being true, this file fails.
+ * The ladder, at full tuck:  small booter a triple, big booter a quad.
  */
 
-/** A booter is a kicker built for air, not for reaching a shelf. */
-const booters = official.kickers.filter((k) => k.power > 2).sort((a, b) => a.power - b.power);
+const booters = official.kickers
+  .filter((k) => (k.launchAngle ?? 90) < 90)
+  .sort((a, b) => a.power - b.power);
 
-function run(course: Course, spins: number, tuckIn: boolean, only?: number) {
+interface Flight {
+  air: number;
+  apex: number;
+  dist: number;
+  vxBefore: number;
+  vxAfter: number;
+  outcome: string;
+  why: string | null;
+}
+
+function fly(course: Course, k: Kicker, tuckIn: boolean, spins = 0): Flight {
   const d = derive(tuning);
   let s = initialState(course, tuning, 1);
   const boughs = course.obstacles.filter((o) => o.kind === 'low');
   const solids = course.obstacles.filter((o) => o.kind === 'solid');
-  const throwOver = only === undefined ? booters : booters.filter((k) => k.x === only);
-  let thrown = 0;
   let air = 0;
-  let airFrom = 0;
-  const airs: { from: number; ticks: number }[] = [];
+  let apex = 0;
+  let x0 = 0;
+  let vxBefore = 0;
+  let vxAfter = 0;
+  let launched = false;
+  let thrown = 0;
   while (s.outcome === 'running' && s.tick < MAX_TICKS) {
     const onShelf = s.grounded && s.ledge >= 0;
-    const hazards = onShelf
+    const hz = onShelf
       ? [...course.rocks.map((r) => r.x), ...course.ice.map((i) => i.x0)]
       : solids.map((o) => o.x);
     let gap = Infinity;
-    for (const hx of hazards) {
+    for (const hx of hz) {
       const dd = hx - s.x;
       if (dd > -30 && dd < gap) gap = dd;
     }
     const duck = !onShelf && boughs.some((o) => s.x + 30 >= o.x && s.x < o.x + o.width);
     const releasing = gap <= 34 && gap > -30;
-    const over =
-      !s.grounded && throwOver.some((k) => airFrom >= k.x && airFrom <= k.x + k.width + 10);
     let rotate: -1 | 0 | 1 = 0;
-    if (!s.grounded && over && thrown < spins && s.spinTicksLeft === 0) {
+    if (!s.grounded && launched && thrown < spins && s.spinTicksLeft === 0) {
       rotate = 1;
       thrown++;
     }
@@ -64,73 +68,92 @@ function run(course: Course, spins: number, tuckIn: boolean, only?: number) {
     };
     const before = s;
     s = step(s, input, course, tuning, scoring, d);
-    if (!s.grounded) {
-      if (before.grounded) airFrom = before.x;
-      air++;
-    } else {
-      if (air > 0) airs.push({ from: airFrom, ticks: air });
+    if (before.grounded && !s.grounded && before.x >= k.x && before.x <= k.x + k.width + 14) {
+      launched = true;
+      x0 = before.x;
+      vxBefore = before.vx;
+      vxAfter = s.vx;
       air = 0;
+      apex = 0;
       thrown = 0;
     }
+    if (launched && !s.grounded) {
+      air++;
+      const h = terrainYAt(course.terrain, s.x) - s.y;
+      if (h > apex) apex = h;
+    }
+    if (launched && s.grounded && air > 0) break;
   }
-  /** Air launched from a given ramp's lip, rather than anywhere on the course. */
-  const airOff = (x: number): number => {
-    const lip = x + (course.kickers.find((k) => k.x === x)?.width ?? 0);
-    const hits = airs.filter((a) => a.from >= x && a.from <= lip + 60);
-    return hits.length ? Math.max(...hits.map((a) => a.ticks)) : 0;
+  return {
+    air,
+    apex,
+    dist: s.x - x0,
+    vxBefore,
+    vxAfter,
+    outcome: s.outcome,
+    why: s.wipeoutReason,
   };
-  return { state: s, maxAir: airs.length ? Math.max(...airs.map((a) => a.ticks)) : 0, airOff };
 }
 
 describe('the booters (FR-078, Principle III feel criteria)', () => {
-  it('there are two, and the second throws further than the first', () => {
+  it('there are two, both angled forward rather than straight up', () => {
     expect(booters).toHaveLength(2);
-    const r = run(official, 0, true);
-    expect(r.airOff(booters[1]!.x)).toBeGreaterThan(r.airOff(booters[0]!.x));
-  });
-
-  it('buys enough air at full tuck for a quad, with margin', () => {
-    // Four spins is 60 ticks. A launch that only just covers its advertised
-    // trick is a ceiling pretending to be one: the player who hesitates for a
-    // quarter of a second dies, and cannot see why.
-    const r = run(official, 0, true);
     for (const b of booters) {
-      expect(r.airOff(b.x)).toBeGreaterThanOrEqual(4 * tuning.spinDurationTicks + 4);
+      expect(b.launchAngle).toBeLessThan(75);
+      expect(b.launchAngle).toBeGreaterThan(40);
     }
   });
 
-  it('lands a quad at full tuck, and pays for it', () => {
-    const plain = run(official, 0, true).state;
-    const tricked = run(official, 4, true).state;
-    expect(tricked.outcome).toBe('finished');
-    expect(tricked.score).toBeGreaterThan(plain.score);
-  });
-
-  it('gives the quint to the big booter alone', () => {
-    expect(run(official, 5, true, booters[1]!.x).state.outcome).toBe('finished');
-    expect(run(official, 5, true, booters[0]!.x).state.wipeoutReason).toBe('spun_out');
-  });
-
-  it('caps out: nothing on the course holds a sixth rotation', () => {
+  it('throws the skier forward: he leaves the lip faster than he reached it', () => {
+    // The failure this guards is a launch that is all vertical. Forward speed is
+    // never damped in flight, so if it does not arrive AT the lip it never comes.
     for (const b of booters) {
-      expect(run(official, 6, true, b.x).state.wipeoutReason).toBe('spun_out');
+      const f = fly(official, b, true);
+      expect(f.vxAfter).toBeGreaterThan(f.vxBefore * 1.7);
+      expect(f.dist).toBeGreaterThan(380);
     }
   });
 
-  it('charges base speed a rotation on each booter: speed buys air', () => {
-    expect(run(official, 2, false, booters[0]!.x).state.outcome).toBe('finished');
-    expect(run(official, 3, false, booters[0]!.x).state.wipeoutReason).toBe('spun_out');
-    expect(run(official, 3, false, booters[1]!.x).state.outcome).toBe('finished');
-    expect(run(official, 4, false, booters[1]!.x).state.wipeoutReason).toBe('spun_out');
+  it('keeps that forward speed the whole way down', () => {
+    for (const b of booters) {
+      const f = fly(official, b, true);
+      // Distance over air time is the average forward speed across the flight.
+      expect(f.dist / f.air).toBeGreaterThan(f.vxAfter * 0.9);
+    }
   });
 
-  it('lands inside the angle tolerance the player cannot correct for', () => {
-    // Orientation does not track velocity in the air, so a knuckle that tilts
-    // the ground away by more than landingAngleTolerance is an unavoidable
-    // wipeout. Proven by landing them, not by trusting the terrain programme.
+  it('stays inside a frame that is 180 tall', () => {
+    // The camera lifts the skier up the buffer as he climbs, which keeps the
+    // snow in shot to about 145 units above it. Past roughly 200 the ground is
+    // gone for most of the flight and the jump stops reading as a jump at all -
+    // it reads as a fall, which is exactly how the first cut was reported.
     for (const b of booters) {
-      expect(run(official, 0, true, b.x).state.outcome).toBe('finished');
-      expect(run(official, 0, false, b.x).state.outcome).toBe('finished');
+      expect(fly(official, b, true).apex).toBeLessThan(200);
+    }
+  });
+
+  it('lands on the angle it took off from', () => {
+    // Orientation does not track velocity in the air, so the runway under a
+    // booter has to hold the takeoff's grade the whole way out.
+    // The helper stops at the landing, so the run is still 'running' there. A
+    // clean landing is the absence of a wipeout, not the end of the course.
+    for (const b of booters) {
+      expect(fly(official, b, true).why).toBeNull();
+      expect(fly(official, b, false).why).toBeNull();
+    }
+  });
+
+  it('pays a triple on the small booter and a quad on the big one', () => {
+    const [small, big] = booters as [Kicker, Kicker];
+    expect(fly(official, small, true, 3).why).toBeNull();
+    expect(fly(official, small, true, 4).why).toBe('spun_out');
+    expect(fly(official, big, true, 4).why).toBeNull();
+    expect(fly(official, big, true, 5).why).toBe('spun_out');
+  });
+
+  it('charges speed for those rotations: base speed gets neither', () => {
+    for (const b of booters) {
+      expect(fly(official, b, false, 3).why).toBe('spun_out');
     }
   });
 });

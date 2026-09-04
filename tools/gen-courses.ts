@@ -36,7 +36,7 @@ interface Built {
   obstacles: { x: number; kind: 'low' | 'solid'; width: number; clearance: number }[];
   pickups: { x: number; y: number; value: 'small' | 'large' }[];
   ledges: { x0: number; x1: number; height: number }[];
-  kickers: { x: number; width: number; power: number }[];
+  kickers: { x: number; width: number; power: number; launchAngle?: number }[];
   rocks: { x: number; width: number; height: number }[];
   ice: { x0: number; x1: number }[];
 }
@@ -113,28 +113,33 @@ const CORNICE_H = 55;
  * keeps the upper track voluntary would read this launch as a way onto one.
  */
 const BOOTER_W = 96;
-const BOOTER_MID = 2.4;
-const BOOTER_BIG = 3.0;
+const BOOTER_MID = 2.0;
+const BOOTER_BIG = 2.4;
 
 /**
- * A booter is built over a KNUCKLE: the takeoff is levelled off and the ground
- * falls away behind it.
+ * Booters throw FORWARD, not up. This is the whole shape of them.
  *
- * This matters more than the ramp does, and it is not obvious. Air time was
- * measured at 66 ticks on a uniform 0.30 slope, a uniform 0.45 and a uniform
- * 0.60 alike - identical, because the player and the ground descend together
- * and a steeper hill moves both. Only a CHANGE in the slope buys hang time. So
- * the terrain programme flattens through each booter's lip and then drops hard
- * behind it, which is how a real one is shaped and, as it turns out, the only
- * shape that does anything.
+ * Reported from play, and correct: a launch of 12.5 straight up against a
+ * forward speed of 4.2 leaves the lip at 71 degrees and comes back down at 71
+ * degrees. It tosses the skier up and drops him more or less where he stood,
+ * which reads as a fall no matter how much air it technically buys - and it
+ * does not feel like he keeps his speed, because next to a vertical 12.5 his
+ * forward 4.2 is nothing to see. (vx itself is untouched in flight; only air
+ * control nudges it, by 0.0025 a tick.)
  *
- * The size of that change is bounded, and the bound is the reason these numbers
- * are not larger. Orientation does not track velocity in the air - a spin
- * restores exactly the orientation it began from - so the player lands pointing
- * the way he took off. Landing on ground that has tilted away by more than
- * landingAngleTolerance (0.42 rad, about 24 degrees) is a wipeout he could do
- * nothing about. Every knuckle below lands inside 16 degrees of its takeoff.
+ * Tilting the launch forward spends the same impulse on distance. Measured on a
+ * constant 0.45 pitch, the same ramp at 62 degrees instead of 90 travels 459
+ * units instead of 207 and carries the skier over the lip at 7.8 rather than
+ * 3.8. It also buys MORE air, not less - a flatter arc stays above a descending
+ * hill longer - which is the part that is not obvious from the algebra.
+ *
+ * The impulses came down at the same time, and that is deliberate. Height is
+ * the one thing the game cannot show: the buffer is 180 tall, and at the old
+ * cap the snow was out of frame for two thirds of the flight even after the
+ * camera was taught to lift. At these numbers it is in frame for all of it.
  */
+const BOOTER_MID_ANGLE = 62;
+const BOOTER_BIG_ANGLE = 56;
 
 function official(): Built {
   const obstacles: Built['obstacles'] = [];
@@ -223,7 +228,7 @@ function official(): Built {
   // it pays in proportion to the speed carried into it. A launch is power times
   // carried speed, so coasting here is not a rest, it is a smaller trick.
   bough(7600, 12);
-  kickers.push({ x: 8360, width: BOOTER_W, power: BOOTER_MID });
+  kickers.push({ x: 8100, width: BOOTER_W, power: BOOTER_MID, launchAngle: BOOTER_MID_ANGLE });
 
   // ---- VI. THE LAST PITCH (8,800 - 12,000). Ask: everything, at speed. ----
   // Steepest sustained grade of the course, the big booter, and a shelf that
@@ -233,9 +238,11 @@ function official(): Built {
   // the piste beneath it. The two tracks resolve AT the line instead of petering
   // out 600 units short of it, which is where the old course stopped.
   bough(9000, 11);
-  deadfall(9300);
-  bough(9600, 12);
-  kickers.push({ x: 10024, width: BOOTER_W, power: BOOTER_BIG });
+  deadfall(9250);
+  // The big booter needs a RUNWAY, not a gap. It now covers some 640 units of
+  // mountain, where the vertical toss it replaces covered 300, so the obstacles
+  // that used to sit after it have moved ahead of it instead.
+  kickers.push({ x: 9500, width: BOOTER_W, power: BOOTER_BIG, launchAngle: BOOTER_BIG_ANGLE });
   kickers.push({ x: 10500, width: RAMP_W, power: RAMP_POWER });
   ledges.push({ x0: 10600, x1: 12000, height: SHELF_H });
   ice.push({ x0: 10820, x1: 10868 });
@@ -248,8 +255,8 @@ function official(): Built {
   // Skipped across the booters' run-ups and landings, so nothing invites the
   // player to duck into a launch he cannot see the far side of.
   const booterZones = [
-    [8340, 8900],
-    [10004, 10620],
+    [8080, 8720],
+    [9480, 10300],
   ];
   for (let x = 300; x < 11900; x += 320) {
     if (booterZones.some(([a, b]) => x >= (a as number) && x <= (b as number))) continue;
@@ -269,13 +276,13 @@ function official(): Built {
         { x: 5400, g: 0.5 }, // The Cornice eases, so shelf work is readable
         { x: 7400, g: 0.44 },
         { x: 7800, g: 0.2 }, // The Flats: speed bleeds
-        { x: 8560, g: 0.2 }, // levelled THROUGH booter 1's lip: a flat takeoff
-        { x: 9160, g: 0.72 }, // and the ground falls away behind it. Knuckle one.
-        { x: 9800, g: 0.72 }, // The Last Pitch, held steep
-        { x: 10120, g: 0.46 }, // levelled off again for booter 2's lip
-        { x: 10480, g: 0.78 }, // knuckle two, the big one
-        { x: 10700, g: 0.52 }, // eased before the final ramp, so its shelf still
-        { x: 12200, g: 0.62 }, // charges the entry fee CV-13 asserts
+        { x: 8800, g: 0.2 }, // held flat across booter 1's whole flight, so it
+        { x: 9100, g: 0.34 }, // takes off and lands on the same angle
+        { x: 9400, g: 0.34 }, // The Last Pitch opens moderate, because the big
+        { x: 10350, g: 0.34 }, // booter flies across all of it: a steep runway
+        { x: 10700, g: 0.56 }, // drops the snow out of frame under him
+        { x: 12200, g: 0.66 }, // and the steepest ground goes where it pays, the
+        // run to the line on the final shelf
       ],
       12000,
     ),
@@ -304,7 +311,7 @@ function warmup(): Built {
     pickups.push({ x: Math.round(1496 + (700 * k) / 5), y: -(SHELF_H + 6), value: 'large' });
   }
   for (let x = 300; x < 3000; x += 320) {
-    if (x >= 2480 && x <= 3000) continue; // the booter's run-up and landing
+    if (x >= 2380 && x <= 3050) continue; // the booter's run-up and landing
     pickups.push({ x, y: -(4 + (x % 7)), value: 'small' });
   }
   return {
@@ -315,10 +322,9 @@ function warmup(): Built {
       [
         { x: 0, g: 0.22 },
         { x: 1400, g: 0.36 },
-        { x: 2300, g: 0.28 }, // levelled for the booter's lip
-        { x: 2650, g: 0.28 },
-        { x: 3000, g: 0.62 }, // a small knuckle, to learn the shape on
-        { x: 3400, g: 0.62 },
+        { x: 2200, g: 0.3 }, // held flat across the booter's flight
+        { x: 3200, g: 0.3 },
+        { x: 3400, g: 0.34 },
       ],
       3200,
     ),
@@ -327,7 +333,7 @@ function warmup(): Built {
     ledges: [{ x0: 1496, x1: 2196, height: SHELF_H }],
     kickers: [
       { x: 1400, width: RAMP_W, power: RAMP_POWER },
-      { x: 2500, width: BOOTER_W, power: BOOTER_MID },
+      { x: 2400, width: BOOTER_W, power: BOOTER_MID, launchAngle: BOOTER_MID_ANGLE },
     ],
     rocks: [{ x: 1926, width: 16, height: 12 }],
     ice: [{ x0: 1726, x1: 1774 }],
