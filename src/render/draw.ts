@@ -37,10 +37,41 @@ export interface Camera {
   y: number;
 }
 
-export const cameraFor = (state: RunState): Camera => ({
-  x: state.x - CAMERA_X_OFFSET,
-  y: state.y - INTERNAL_HEIGHT * 0.6,
-});
+/**
+ * How far up the frame the skier rides per unit of air beneath him, and the
+ * ceiling on it.
+ *
+ * The camera used to pin him at a fixed 60% down the buffer whatever he was
+ * doing, which is fine on snow and actively hides a jump. The buffer is 180
+ * tall and he sat 108 down it, so the ground left the bottom of the frame the
+ * moment he was 72 units up - and the big booter's apex is 261. Measured, the
+ * snow was off-screen for 85% of that flight: he was motionless at a fixed
+ * height with nothing in shot but sky, so the only motion he could perceive was
+ * the ground rushing back at the end. It reads as no hang time and then a slam,
+ * which is exactly what it was reported as, and gravity had nothing to do with
+ * it - it is a constant 0.32 and always has been.
+ *
+ * Lifting him up the frame as he climbs does two things: the ground he left
+ * stays in shot to about 145 units instead of 72, and he visibly RISES, which
+ * is the cue that was missing entirely.
+ */
+const AIR_LIFT = 0.5;
+const AIR_LIFT_MAX = 74;
+
+/**
+ * Measured from the piste rather than from whatever he is standing on, so the
+ * lift is continuous. Keyed to the shelf instead, it would snap by 25 pixels
+ * the instant he rode off one - and a camera that jumps on landing trades one
+ * unreadable moment for another.
+ */
+export const cameraFor = (state: RunState, course: Course): Camera => {
+  const above = terrainYAt(course.terrain, state.x) - state.y;
+  const lift = above <= 0 ? 0 : Math.min(above * AIR_LIFT, AIR_LIFT_MAX);
+  return {
+    x: state.x - CAMERA_X_OFFSET,
+    y: state.y - INTERNAL_HEIGHT * 0.6 + lift,
+  };
+};
 
 /**
  * Scenery placement hash.
@@ -810,7 +841,7 @@ export function drawRun(
   flashAlpha = 0,
   tumble: Tumble = { spin: 0, slide: 0 },
 ): void {
-  const cam = cameraFor(state);
+  const cam = cameraFor(state, course);
   // The kick is applied to the CAMERA, not to the finished frame. Translating
   // the buffer afterwards would drag the sky with it and leave a bare strip at
   // the edge; moving the camera shakes the world inside a frame that still
