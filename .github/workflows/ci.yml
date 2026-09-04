@@ -28,6 +28,48 @@ jobs:
       - name: Course validator
         run: npm run test:course
 
+  smoke:
+    name: The built artifact loads and plays
+    runs-on: ubuntu-latest
+    # Constitution Principle VI: a claim that a change works must be established
+    # against the BUILT artifact, served at its production base path, entered
+    # through the URL a player actually uses. Every job above this one runs
+    # against source or a harness, and every defect that reached a player in the
+    # first deployment week - assets resolved against the wrong base, a top-level
+    # await that halted module evaluation, an error object rendered as
+    # "[object Object]", an entry URL with no draft - was invisible to all of them
+    # and visible within seconds of loading the deployed page.
+    #
+    # This job builds, serves at /ski-game/, and drives the primary player journey
+    # end to end. It covers the three things Principle VI names: a cold load at the
+    # production base path, the bare entry URL carrying no parameters, and the
+    # journey itself.
+    #
+    # STATED GAPS, because an unstated difference is an untested one:
+    #   - Chromium only. Three-engine agreement is the determinism job's business.
+    #   - `vite preview` 404s the bare `/ski-game` with no trailing slash, where
+    #     GitHub Pages redirects it. That entry shape is not covered here.
+    #   - No CPU or network throttling, so this is not the performance budget job
+    #     that Technical Standards & Constraints still requires.
+    #
+    # Built with no Supabase secrets on purpose: that is local mode, which seeds a
+    # roster and needs no database, so the journey is driveable without touching
+    # the real draft.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'npm' }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Build, serve at the production base path, and play it
+        run: npm run test:build
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: smoke-traces
+          path: test-results/
+          retention-days: 7
+
   determinism:
     name: Three-engine determinism
     runs-on: ubuntu-latest

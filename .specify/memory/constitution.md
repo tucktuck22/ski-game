@@ -55,9 +55,19 @@ OPEN DEVIATIONS (Principle VI requires these be stated, not implied)
   The following are REQUIRED by this document and NOT YET ENFORCED. Each is a
   deviation under the Governance compliance-review clause, owned by the maintainer,
   for remediation before the deadline in specs/001-shredpocalypse-bed-draft.
-    1. No smoke gate. CI never runs `npm run build` and never loads the built
-       artifact in a browser. Required by Principle VI. This is why the base-path
-       and blank-page defects were structurally invisible to a green CI.
+    1. Smoke gate: LARGELY CLOSED 2026-09-04. CI now has a `smoke` job that runs
+       `npm run build`, serves the artifact at the production base path
+       `/ski-game/`, and drives the primary player journey - roster, practice run,
+       results, board - in a real browser, plus the bare entry URL carrying no
+       parameters. That is the three things Principle VI names. Two gaps remain
+       and are stated in the job itself rather than implied away: it runs Chromium
+       only, and `vite preview` 404s the bare `/ski-game` with no trailing slash
+       where GitHub Pages redirects it, so that entry shape is still unverified.
+       The originally recorded text read: "CI never runs `npm run build` and never
+       loads the built artifact in a browser."
+    1b. User-journey coverage in that gate is the music feature's journey plus the
+       claim-and-practise path it drives through. The pre-existing us1/us3/us6 and
+       error-boundary specs are still not run by any job - see deviation 2.
     2. User-journey e2e specs (us1, us3, us6, error-boundary) exist but no CI job
        runs them; only determinism.spec.ts runs under Playwright in CI.
     3. No performance budget job: no frame-time, heap, payload, or time-to-
@@ -78,7 +88,14 @@ OPEN DEVIATIONS (Principle VI requires these be stated, not implied)
 
   Remediation sequencing, agreed 2026-09-03: deviations 1 and 2 are built once the
   deployed game is confirmed playable end to end by the organizer, so the gate is
-  written against a known-good baseline rather than a moving target. This defers the
+  written against a known-good baseline rather than a moving target.
+
+  Update 2026-09-04: deviation 1 was brought forward at the maintainer's request
+  while feature 003 was in flight, because that feature added the first code in the
+  repository to read `import.meta.env.BASE_URL` and its failure mode - audio that
+  404s - is completely silent. Waiting for the baseline would have meant shipping
+  the one defect class the gate exists to catch, with nothing to notice it. The
+  sequencing for deviation 2 is unchanged. This defers the
   stop condition in Development Workflow & Quality Gates by one step and does not
   waive it: the gate is the next deliverable after the game works, ahead of any
   further feature work. Deviation 3 has no date. Deviation 4 awaits a decision on
