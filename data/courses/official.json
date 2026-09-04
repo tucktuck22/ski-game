@@ -616,15 +616,15 @@
       "power": 1.5
     },
     {
-      "x": 7900,
-      "width": 96,
+      "x": 7916,
+      "width": 80,
       "power": 0.7,
       "launchAngle": 45,
       "gravityScale": 0.12
     },
     {
-      "x": 9300,
-      "width": 96,
+      "x": 9316,
+      "width": 80,
       "power": 0.75,
       "launchAngle": 45,
       "gravityScale": 0.085

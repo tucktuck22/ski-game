@@ -10,7 +10,7 @@
  * camera and the tick, never from run state, so it cannot influence or be
  * confused with anything the simulation cares about.
  */
-import type { Course, RunState, Tuning } from '../sim/types.js';
+import type { Course, Kicker, RunState, Tuning } from '../sim/types.js';
 import { terrainYAt, surfaceYAt, iceIndexAt, slopeAt } from '../sim/terrain.js';
 import { PALETTE, type PaletteToken } from './palette.js';
 import { INTERNAL_HEIGHT, INTERNAL_WIDTH } from './stage.js';
@@ -611,7 +611,70 @@ function drawRocks(ctx: CanvasRenderingContext2D, course: Course, cam: Camera): 
  * ink face, and the lip gets the same emphatic treatment LW-4 gives the contact
  * line, because the lip is exactly where the launch fires.
  */
-function drawKickers(ctx: CanvasRenderingContext2D, course: Course, cam: Camera): void {
+/**
+ * How tall a ramp is DRAWN: the flight it gives, not the constant that gives it.
+ *
+ * This was `power * 10`, which was honest while power WAS the size of the jump.
+ * It stopped being that the moment booters started floating: hang time is now
+ * bought with a weak pop under low gravity, so the biggest jump on the mountain
+ * carries the smallest power on it, and the ramp in front of it was drawn eight
+ * pixels tall. The player has no way to tell a launch from a kerb.
+ *
+ * The honest measure is the GROUND the flight covers, not the seconds it lasts.
+ * Air time alone under-rates a booter, because a forward launch spends much of
+ * its impulse on travel: the warm-up's booter hangs for about as long as a shelf
+ * ramp and lands three hundred units further down the mountain, and the player
+ * needs to be told that before he commits, not after.
+ *
+ * So: distance, against the 210 units an ordinary shelf ramp covers, which keeps
+ * its drawn rise at exactly the 19 it has always had. The booters come out at 24,
+ * 37 and 47. The exponent holds the biggest of them to about a quarter of the
+ * buffer's height - it has to read as a ramp, not as a wall.
+ */
+function rampRise(k: Kicker, tuning: Tuning): number {
+  const impulse = Math.min(k.power * tuning.tuckSpeedMax, tuning.kickerImpulseMax);
+  const rad = ((k.launchAngle ?? 90) * Math.PI) / 180;
+  const airTicks = (2 * impulse * Math.sin(rad)) / (tuning.gravity * (k.gravityScale ?? 1));
+  const reach = airTicks * (tuning.tuckSpeedMax + impulse * Math.cos(rad));
+  return Math.round(19 * (reach / 210) ** 0.55);
+}
+
+/** How far past the lip the ramp's visual lift blends away. */
+const RAMP_FADE = 200;
+
+/**
+ * The lift a skier gets from RIDING a ramp, which the simulation does not model.
+ *
+ * The physics launches him from the terrain: a ramp is a lip test, and its face
+ * is not a surface. Drawn honestly that means he slides through the wedge at
+ * snow level and is fired off the ground beside it, which at nineteen pixels
+ * was a small lie and at forty is the whole reason the jump does not read.
+ *
+ * So the RENDERER carries him up the face and blends the offset out over the
+ * first two hundred units of flight. Nothing here reaches the simulation - it
+ * cannot, drawRun only ever reads state - so determinism is untouched. The fade
+ * is slower than the launch climbs, which is what keeps him rising the whole way
+ * rather than sagging back to the snow the moment he leaves the lip.
+ */
+function rampLift(course: Course, tuning: Tuning, x: number, ledge: number): number {
+  if (ledge >= 0) return 0; // ramps are built on the piste; a shelf sails over them
+  let lift = 0;
+  for (const k of course.kickers) {
+    const lip = k.x + k.width;
+    if (x < k.x || x > lip + RAMP_FADE) continue;
+    const rise = rampRise(k, tuning);
+    const here = x <= lip ? rise * ((x - k.x) / k.width) ** 2 : rise * (1 - (x - lip) / RAMP_FADE);
+    if (here > lift) lift = here;
+  }
+  return lift;
+}
+
+function drawKickers(
+  ctx: CanvasRenderingContext2D,
+  course: Course,
+  cam: Camera,
+  tuning: Tuning,
+): void {
   for (const k of course.kickers) {
     const px = k.x - cam.x;
     // Culled against the ramp's OWN width, not a fixed 80. A booter is 96 wide
@@ -619,12 +682,7 @@ function drawKickers(ctx: CanvasRenderingContext2D, course: Course, cam: Camera)
     // still on camera - it popped into existence under the player's feet.
     if (px < -(k.width + 40) || px > INTERNAL_WIDTH + 80) continue;
     const groundAt = (wx: number): number => terrainYAt(course.terrain, wx) - cam.y;
-    // The drawn ramp is as big as the launch it gives. A booter that throws a
-    // player three times as far as a hop does cannot look identical to one, or
-    // he reads two matching wedges and finds out which was which in the air -
-    // and by then he is committed. Ten times power puts the ordinary ramp at
-    // exactly the 19 it has always been, so nothing that shipped before moves.
-    const lipRise = Math.round(k.power * 10);
+    const lipRise = rampRise(k, tuning);
     const rampTop = (i: number): number => groundAt(k.x + i) - lipRise * (i / k.width) ** 2;
 
     const face = (): void => {
@@ -902,7 +960,7 @@ export function drawRun(
   drawSnowfall(ctx, cam, state.tick, motion);
 
   drawPiste(ctx, course, cam);
-  drawKickers(ctx, course, cam);
+  drawKickers(ctx, course, cam, tuning);
   drawLedges(ctx, course, cam, state);
   drawIce(ctx, course, state, cam);
   drawRocks(ctx, course, cam);
@@ -967,7 +1025,8 @@ function drawSkier(
   // lying on the snow instead of drifting off it.
   const slope = slopeAt(course.terrain, state.x);
   const px = state.x - cam.x + slope.ux * tumble.slide;
-  const py = state.y - cam.y + slope.uy * tumble.slide;
+  const py =
+    state.y - cam.y + slope.uy * tumble.slide - rampLift(course, tuning, state.x, state.ledge);
   const height =
     tuning.standHeight - (tuning.standHeight - tuning.crouchHeight) * state.crouchProfile;
 
@@ -979,7 +1038,12 @@ function drawSkier(
     for (let i = 0; i < 7; i++) {
       const age = ((state.tick * 1.7 + i * 5) % 18) / 18;
       const sx = px - age * 22 - 4;
-      const sy = surfaceYAt(course, state.x - age * 22, state.ledge) - cam.y - age * 7;
+      const behind = state.x - age * 22;
+      const sy =
+        surfaceYAt(course, behind, state.ledge) -
+        cam.y -
+        age * 7 -
+        rampLift(course, tuning, behind, state.ledge);
       const s = age < 0.5 ? 2 : 1;
       ctx.fillRect(Math.round(sx), Math.round(sy), s, s);
     }

@@ -118,7 +118,11 @@ const CORNICE_H = 55;
  * A booter must have NO shelf within CV-13's reach after it, or the rule that
  * keeps the upper track voluntary would read this launch as a way onto one.
  */
-const BOOTER_W = 96;
+// Narrower than it was, and drawn far taller (see rampRise): a long low wedge
+// reads as a kerb, a steep one reads as something you commit to. The x values
+// below carry the difference so every LIP stays exactly where it was, and with
+// it every flight the course was measured against.
+const BOOTER_W = 80;
 const BOOTER_MID = 0.7;
 const BOOTER_BIG = 0.75;
 
@@ -268,7 +272,7 @@ function official(): Built {
   // carried speed, so coasting here is not a rest, it is a smaller trick.
   bough(7600, 12);
   kickers.push({
-    x: 7900,
+    x: 7916,
     width: BOOTER_W,
     power: BOOTER_MID,
     launchAngle: BOOTER_MID_ANGLE,
@@ -294,7 +298,7 @@ function official(): Built {
   // moved to give it a runway. The final ramp and its shelf start where the
   // flight has already landed.
   kickers.push({
-    x: 9300,
+    x: 9316,
     width: BOOTER_W,
     power: BOOTER_BIG,
     launchAngle: BOOTER_BIG_ANGLE,
@@ -394,7 +398,7 @@ function warmup(): Built {
       {
         // Clear of the shelf that ends at 2196: a kicker under a ledge never
         // fires, because the skier rides off the shelf already airborne.
-        x: 2400,
+        x: 2416,
         width: BOOTER_W,
         power: BOOTER_MID,
         launchAngle: BOOTER_MID_ANGLE,
