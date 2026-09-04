@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { dropIn } from './helpers.js';
 
 /**
  * FR-144 and SC-046: music playback must not affect the simulation.
@@ -23,7 +24,7 @@ interface RunResult {
  * local mode, so the run is a pure function of the build.
  */
 async function practiceRun(page: Page): Promise<RunResult> {
-  await page.goto('./');
+  await dropIn(page, './');
   await page.locator('button[data-claim]').first().click();
   await page.locator('#practice').click();
   await expect(page.locator('#screen')).toBeVisible();
@@ -45,14 +46,14 @@ test.describe('the simulation does not hear the music', () => {
   }) => {
     // 1. Music playing. A click arms audio before the run starts.
     const playing = await browser.newPage();
-    await playing.goto('./');
+    await dropIn(playing, './');
     await playing.locator('body').click();
     const withMusic = await practiceRun(playing);
     await playing.close();
 
     // 2. Music muted. Same gesture, then the toggle.
     const muted = await browser.newPage();
-    await muted.goto('./');
+    await dropIn(muted, './');
     await muted.locator('body').click();
     await muted.locator('#mute').click();
     await expect(muted.locator('#mute')).toContainText('SOUND OFF');

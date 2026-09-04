@@ -253,3 +253,27 @@ T040 is the only thing standing between a silent production failure and noticing
 - **T010** (measure loop offsets on the shipped encode). Shipping the placeholder
   offsets in `data/audio.json` produces exactly the audible seam SC-040 forbids, on the
   one piece whose loop every player hears repeatedly.
+
+---
+
+## Phase 8: The title screen (added 2026-09-04, post-merge)
+
+**Why**: The music did not start until the player clicked something, which read as a
+defect. It is not one — every target browser blocks audio before a gesture, and iOS
+Safari permits no exception, while FR-054 and A-3 require the same thing
+independently. The fix is to make the required gesture purposeful and visible instead
+of invisible.
+
+**Art direction**: a synthwave title card in the style-bible palette, drawn in markup
+rather than shipped as an image. The reference supplied is direction only — O-1 permits
+period-_style_, never period-_property_, and an image of unknown provenance could not
+cite a rule at review under FR-052.
+
+- [x] T052 Add a title screen to `src/main.ts` carrying the game name and one control that enters the game, painted synchronously before any await so it is the first thing on screen, per FR-151
+- [x] T053 [P] Draw the title card scene — synthwave sun, mountain silhouette, horizon grid — as inline SVG in `src/ui/title.ts` using only the eight palette tokens, per FR-151, SC-051 and style-bible section 1
+- [x] T054 [P] Style the title screen in `src/ui/style.css` reusing the existing chrome treatment of `.title` (LT-1) and the 44px touch target, with a reduced-motion branch, per FR-154 and FR-056
+- [x] T055 Wire the control so one activation arms the audio and moves to the board, and so entry never waits on the music, per FR-152 and FR-153
+- [x] T056 Show a waiting state if a player enters before shared storage has answered, so entry is never blocked by the network, per FR-153
+- [x] T057 [P] Update every end-to-end spec that enters the app to pass through the title screen, in `tests/e2e/` and `tests/e2e-build/`
+- [x] T058 [P] Add end-to-end coverage that one activation both starts the music and reaches the board, and that entry still works with audio blocked, per SC-050 and FR-153
+- [x] T059 Verify the initial payload is unchanged — no new image, font, or media file — per SC-051

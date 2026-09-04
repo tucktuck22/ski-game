@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { dropIn } from './helpers.js';
 
 /**
  * User Story 1 — the MVP loop. Claim a name, practise, commit the one run that
@@ -12,7 +13,7 @@ test.describe('US1: claim, practise, commit', () => {
       if (m.type() === 'error') errors.push(m.text());
     });
 
-    await page.goto('/');
+    await dropIn(page);
     await expect(page.locator('h1.title')).toHaveText("SHREDPOCALYPSE '86");
 
     // FR-041: the board says plainly what rank 1 wins.
@@ -26,7 +27,7 @@ test.describe('US1: claim, practise, commit', () => {
   test('a completed practice run decrements the count and records nothing (FR-014)', async ({
     page,
   }) => {
-    await page.goto('/');
+    await dropIn(page);
     await page.locator('button[data-claim]').first().click();
     await page.locator('#practice').click();
     await expect(page.locator('#screen')).toBeVisible();
@@ -45,7 +46,7 @@ test.describe('US1: claim, practise, commit', () => {
   test('the official run demands an explicit confirmation that says it counts once (FR-016)', async ({
     page,
   }) => {
-    await page.goto('/');
+    await dropIn(page);
     await page.locator('button[data-claim]').first().click();
     await page.locator('#official').click();
 
@@ -63,7 +64,7 @@ test.describe('US1: claim, practise, commit', () => {
   test('the official run commits irreversibly and offers only free play afterwards', async ({
     page,
   }) => {
-    await page.goto('/');
+    await dropIn(page);
     await page.locator('button[data-claim]').first().click();
     await page.locator('#official').click();
     await page.locator('#go').click();
@@ -83,13 +84,13 @@ test.describe('US1: claim, practise, commit', () => {
   });
 
   test('nobody is called a forfeit before the deadline', async ({ page }) => {
-    await page.goto('/');
+    await dropIn(page);
     await expect(page.locator('table')).toContainText('NO SCORE YET');
     await expect(page.locator('table')).not.toContainText('FORFEIT');
   });
 
   test('a player can add a name that is not on the roster (FR-070)', async ({ page }) => {
-    await page.goto('/');
+    await dropIn(page);
     await page.locator('#new-name').fill('Brother-in-law');
     await page.locator('#add-name').click();
     await expect(page.locator('#practice')).toBeVisible();
@@ -97,7 +98,7 @@ test.describe('US1: claim, practise, commit', () => {
   });
 
   test('a duplicate name is refused (FR-003)', async ({ page }) => {
-    await page.goto('/');
+    await dropIn(page);
     const existing = await page.locator('button[data-claim]').first().textContent();
     await page.locator('#new-name').fill(existing!.trim().toLowerCase());
     await page.locator('#add-name').click();

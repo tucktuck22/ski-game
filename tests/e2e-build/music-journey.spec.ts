@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { dropIn } from './helpers.js';
 
 /**
  * The eight-row scenario table in quickstart.md, walked end to end against the built
@@ -34,11 +35,13 @@ test.describe('quickstart scenario table', () => {
   }) => {
     const urls = trackRequests(page);
     await page.goto('./');
-    await expect(page.locator('h1.title')).toBeVisible();
+    await expect(page.locator('#drop-in')).toBeVisible();
     await page.waitForLoadState('networkidle');
     expect(urls, 'row 1: audio was fetched before any gesture').toEqual([]);
 
-    await page.locator('body').click();
+    // Row 2 is now DROP IN rather than a click on blank space: FR-151 makes the
+    // gesture purposeful instead of invisible.
+    await page.locator('#drop-in').click();
     await expect.poll(() => front(urls).length, { timeout: 15_000 }).toBe(1);
     expect(front(urls)[0]).toContain('/ski-game/audio/look-out-below.mp3');
   });
@@ -47,7 +50,7 @@ test.describe('quickstart scenario table', () => {
     page,
   }) => {
     const urls = trackRequests(page);
-    await page.goto('./');
+    await dropIn(page, './');
     await page.locator('button[data-claim]').first().click();
     await expect.poll(() => front(urls).length, { timeout: 15_000 }).toBe(1);
 
@@ -66,7 +69,7 @@ test.describe('quickstart scenario table', () => {
     page,
   }) => {
     const urls = trackRequests(page);
-    await page.goto('./');
+    await dropIn(page, './');
     await page.locator('button[data-claim]').first().click();
     await expect.poll(() => front(urls).length, { timeout: 15_000 }).toBe(1);
 
@@ -87,8 +90,7 @@ test.describe('quickstart scenario table', () => {
 
   test('rows 7-8: mute silences and unmute resumes, within the session', async ({ page }) => {
     const urls = trackRequests(page);
-    await page.goto('./');
-    await page.locator('body').click();
+    await dropIn(page, './');
     await expect.poll(() => front(urls).length, { timeout: 15_000 }).toBe(1);
 
     await expect(page.locator('#mute')).toContainText('SOUND ON');
@@ -105,7 +107,7 @@ test.describe('quickstart scenario table', () => {
     await page.locator('#mute').click();
     await expect(page.locator('#mute')).toContainText('SOUND OFF');
     await page.reload();
-    await page.locator('body').click();
+    await page.locator('#drop-in').click();
     await expect(page.locator('#mute'), 'mute unexpectedly persisted').toContainText('SOUND ON');
   });
 });

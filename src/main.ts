@@ -22,6 +22,7 @@ import { organizerSecretFromUrl } from './state/links.js';
 import { renderOrganizer, removalConfirmationText } from './ui/organizer.js';
 import { safeSession } from './state/safeStorage.js';
 import { showFatalError, installGlobalErrorHandlers } from './ui/errorBoundary.js';
+import { titleScene } from './ui/title.js';
 import { resolveConfig, describeUnreachable, isNetworkFailure } from './state/config.js';
 
 import tuningJson from '../data/tuning.json';
@@ -106,6 +107,17 @@ let commitMessage = '';
 // Held in state rather than written straight to the DOM: refresh() re-renders,
 // and an error painted directly onto the node was wiped before anyone read it.
 let rosterError = '';
+/**
+ * FR-151: the title screen is the first thing a player sees, and DROP IN is the
+ * gesture that starts the music.
+ *
+ * Browsers block audio before a user gesture - iOS Safari without exception - and
+ * FR-054 requires the same thing independently. Before this screen existed the
+ * gesture was still required but invisible, so the music appeared not to start until
+ * the player happened to click something. The requirement did not change; what
+ * changed is that the game now asks for the gesture out loud.
+ */
+let entered = false;
 
 const synth = new Synth();
 // FR-135/FR-136: which piece is audible follows one rule - on the course, or not.
@@ -145,16 +157,47 @@ armAudioOnFirstGesture();
  * error boundary further down had not been reached yet.
  *
  * A shell painted synchronously means the page always has content, and any
- * later failure replaces it rather than leaving a void.
+ * later failure replaces it rather than leaving a void. The title screen is now
+ * that shell, so the first paint is the finished thing rather than a placeholder.
  */
-function renderBootShell(): void {
+function renderTitle(): void {
+  // FR-056 and style-bible T-5: the blowing snow is dropped, not slowed, when
+  // motion is reduced. `resolveMotion()` already folds the OS preference and
+  // the in-game toggle together, so this honours a choice made on either.
+  const still = resolveMotion() === REDUCED_MOTION ? ' reduced-motion' : '';
+  app.innerHTML = `
+    <div class="title-screen${still}">
+      ${titleScene()}
+      <h1 class="title-wordmark">SHREDPOCALYPSE<span class="title-year">'86</span></h1>
+      <button id="drop-in" type="button">DROP IN</button>
+    </div>`;
+  const start = app.querySelector<HTMLButtonElement>('#drop-in');
+  if (start)
+    start.onclick = (): void => {
+      // FR-152: one action does both. The audio was already armed by the
+      // pointerdown or keydown that produced this click - see
+      // armAudioOnFirstGesture above - so by the time we get here the music has
+      // started and all that is left is to move the player on.
+      //
+      // FR-153: nothing here awaits the music. If it is slow, refused, or
+      // missing entirely, the player still lands on the board.
+      entered = true;
+      render();
+    };
+  // Focus it, so a keyboard player has one obvious thing to press (FR-154).
+  start?.focus();
+}
+
+/** Shown when a player drops in before shared storage has answered (FR-153). */
+function renderWaiting(): void {
   app.innerHTML = `
     <div class="panel">
       <h1 class="title">SHREDPOCALYPSE '86</h1>
       <p class="subtitle">Loading the mountain…</p>
     </div>`;
 }
-renderBootShell();
+
+renderTitle();
 
 async function refresh(): Promise<void> {
   snapshot = await backend.snapshot();
@@ -171,6 +214,11 @@ const draftIsFinal = (): boolean => deadline().final;
 
 function render(): void {
   if (game) return; // a run owns the screen
+  // FR-151: nothing else paints until the player has dropped in. A background
+  // refresh from the realtime subscription must not skip the title screen.
+  if (!entered) return renderTitle();
+  // Entering does not wait on the network, so the snapshot may not have arrived.
+  if (snapshot === undefined) return renderWaiting();
   const me = myEntry();
   app.innerHTML = `
     ${
