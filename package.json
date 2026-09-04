@@ -16,6 +16,7 @@
     "test:monkey": "vitest run tests/sim/monkey.test.ts",
     "test:contract": "vitest run tests/contract",
     "test:e2e": "playwright test",
+    "test:build": "playwright test --config playwright.build.config.ts",
     "test:determinism": "playwright test tests/e2e/determinism.spec.ts",
     "test:perf": "playwright test tests/e2e/performance.spec.ts",
     "db:migrate": "node tools/migrate.mjs",

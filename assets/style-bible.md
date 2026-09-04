@@ -190,14 +190,38 @@ to be looked at.
 
 ## 6. Audio (rules A-*)
 
-- **A-1** — All audio is synthesised at runtime via Web Audio (FR-053). No sampled
-  or licensed material of any kind.
-- **A-2** — Voices: two pulse leads, one triangle bass, one noise percussion. This
-  is the whole instrument set.
+- **A-1** — Two kinds of audio, and the rule differs by kind.
+
+  **Sound effects are synthesised at runtime via Web Audio.** Every cue — launch,
+  land, pickup, wipeout — is generated from oscillators, never sampled. This is
+  not negotiable: cues carry gameplay information (A-4), must fire with no load
+  latency, and cost kilobytes.
+
+  **Music may be an original recorded piece**, pre-rendered and loaded as an audio
+  file. Amended 2026-09-04; see
+  [ADR-0009](../docs/adr/0009-recorded-music.md) for what this rule said before and
+  why it changed.
+
+  Licensed or third-party material remains forbidden in **both** kinds, without
+  exception (FR-053, O-1). "Original recorded" means the project owns it. It does
+  not mean "found something that sounds period-correct".
+
+- **A-2** — **Synthesised** voices: two pulse leads, one triangle bass, one noise
+  percussion. That is the whole synthesis instrument set, and it governs every
+  sound effect. A recorded music piece is outside this rule rather than in breach
+  of it — A-2 has always been describing the synthesiser.
 - **A-3** — Silent until a deliberate player gesture, with a persistent mute toggle
-  thereafter (FR-054).
+  thereafter (FR-054). **Currently unmet**: the toggle exists but does not survive a
+  reload. Recorded as a deviation in
+  [feature 003's spec](../specs/003-recorded-music-tracks/spec.md#known-deviations).
 - **A-4** — Every cue carrying gameplay information has a visible equivalent
-  (FR-058). Audio is never the only channel.
+  (FR-058). Audio is never the only channel. Music carries no gameplay information
+  and is therefore never subject to this rule — which is also why it may be recorded
+  while cues may not.
+- **A-5** — A recorded music asset MUST cite its provenance record in
+  `assets/audio/README.md`, naming the piece and establishing it as an original work
+  the project owns. An asset whose provenance is not recorded there cannot pass
+  review under FR-052, however well it fits the palette of the period.
 
 ---
 

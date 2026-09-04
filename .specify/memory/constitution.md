@@ -55,9 +55,19 @@ OPEN DEVIATIONS (Principle VI requires these be stated, not implied)
   The following are REQUIRED by this document and NOT YET ENFORCED. Each is a
   deviation under the Governance compliance-review clause, owned by the maintainer,
   for remediation before the deadline in specs/001-shredpocalypse-bed-draft.
-    1. No smoke gate. CI never runs `npm run build` and never loads the built
-       artifact in a browser. Required by Principle VI. This is why the base-path
-       and blank-page defects were structurally invisible to a green CI.
+    1. Smoke gate: LARGELY CLOSED 2026-09-04. CI now has a `smoke` job that runs
+       `npm run build`, serves the artifact at the production base path
+       `/ski-game/`, and drives the primary player journey - roster, practice run,
+       results, board - in a real browser, plus the bare entry URL carrying no
+       parameters. That is the three things Principle VI names. Two gaps remain
+       and are stated in the job itself rather than implied away: it runs Chromium
+       only, and `vite preview` 404s the bare `/ski-game` with no trailing slash
+       where GitHub Pages redirects it, so that entry shape is still unverified.
+       The originally recorded text read: "CI never runs `npm run build` and never
+       loads the built artifact in a browser."
+    1b. User-journey coverage in that gate is the music feature's journey plus the
+       claim-and-practise path it drives through. The pre-existing us1/us3/us6 and
+       error-boundary specs are still not run by any job - see deviation 2.
     2. User-journey e2e specs (us1, us3, us6, error-boundary) exist but no CI job
        runs them; only determinism.spec.ts runs under Playwright in CI.
     3. No performance budget job: no frame-time, heap, payload, or time-to-
@@ -65,16 +75,39 @@ OPEN DEVIATIONS (Principle VI requires these be stated, not implied)
        Standards & Constraints since v1.1.0 and never implemented.
     4. Principle V remains knowingly violated pending ADR-0005, which is still
        Proposed. Recorded in the spec's Constitutional Compliance Notes.
+    5. The mute toggle is not persistent, though FR-054 and style-bible A-3 both
+       require it. `Synth.muted` is an in-memory field and has always been one, so
+       muting does not survive a reload. Feature 001's T095 was ticked against
+       `src/audio/gate.ts`, a file that was never created - the gesture-gate half
+       landed in `src/main.ts` and the persistence half was never written. The tick
+       is corrected; the gap is deferred deliberately as low impact, owned by the
+       maintainer, undated. Recorded in
+       specs/003-recorded-music-tracks/spec.md#known-deviations.
   An amendment that adds an obligation without adding its gate leaves the obligation
   in this list. It does not get to be described as enforced.
 
   Remediation sequencing, agreed 2026-09-03: deviations 1 and 2 are built once the
   deployed game is confirmed playable end to end by the organizer, so the gate is
-  written against a known-good baseline rather than a moving target. This defers the
+  written against a known-good baseline rather than a moving target.
+
+  Update 2026-09-04: deviation 1 was brought forward at the maintainer's request
+  while feature 003 was in flight, because that feature added the first code in the
+  repository to read `import.meta.env.BASE_URL` and its failure mode - audio that
+  404s - is completely silent. Waiting for the baseline would have meant shipping
+  the one defect class the gate exists to catch, with nothing to notice it. The
+  sequencing for deviation 2 is unchanged. This defers the
   stop condition in Development Workflow & Quality Gates by one step and does not
   waive it: the gate is the next deliverable after the game works, ahead of any
   further feature work. Deviation 3 has no date. Deviation 4 awaits a decision on
   ADR-0005.
+
+  Style-bible amendment, 2026-09-04: rule A-1 previously forbade sampled audio of any
+  kind. It now permits original recorded MUSIC while keeping every sound effect
+  synthesised; A-2's instrument set is scoped to synthesis; A-5 is added, requiring a
+  provenance record for any recorded asset. This is a Principle IV change to the style
+  bible rather than to this document, so no version bump applies here. Decision
+  record: docs/adr/0009-recorded-music.md. Governing feature:
+  specs/003-recorded-music-tracks/.
 
 Deferred TODOs:
   TODO(PRODUCT_TITLE): "Ski Game" is a working name. Final product title is a
