@@ -157,5 +157,83 @@ begin
   raise notice 'PASS: player can record his own run';
 end $$;
 
+-- ---------------------------------------------------------------------------
+-- FR-006, FR-007, FR-074: the organizer's actions.
+--
+-- Everything above proves a player CANNOT do these things. Nothing proved the
+-- organizer COULD, and for a long time he could not: the table grants denied
+-- the deadline change, the removal and the reset to every client role, and the
+-- organizer holds the same anon key as everyone else. The suite proved the
+-- lockdown worked and never noticed the product was locked out with it.
+--
+-- Still as anon - that IS the organizer's role. What he has extra is the secret.
+-- ---------------------------------------------------------------------------
+
+-- Without the secret, nothing. A player holding only the player link has the
+-- key and the draft id, so this is the case FR-006 actually turns on.
+do $$ begin
+  begin
+    perform organizer_set_deadline('11111111-1111-1111-1111-111111111111', 'guessed', now());
+    raise exception 'FR-006 VIOLATED: a player changed the deadline without the secret';
+  exception when insufficient_privilege then raise notice 'PASS FR-006: no secret, no deadline change';
+  end;
+end $$;
+
+do $$ begin
+  begin
+    perform organizer_reset_draft('11111111-1111-1111-1111-111111111111', null);
+    raise exception 'FR-006 VIOLATED: a player reset the draft without the secret';
+  exception when insufficient_privilege then raise notice 'PASS FR-006: no secret, no reset';
+  end;
+end $$;
+
+-- The bare secret check is not exposed. There is no reason to hand anyone an
+-- oracle that answers "is this the secret?" without doing anything.
+do $$ begin
+  begin
+    perform organizer_ok('11111111-1111-1111-1111-111111111111', 'guessed');
+    raise exception 'VIOLATED: the organizer_ok oracle is callable by players';
+  exception when insufficient_privilege then raise notice 'PASS: organizer_ok not exposed';
+  end;
+end $$;
+
+reset role;
+
+-- With the secret, all three. Read it as the owner, then act as anon: that is
+-- exactly what the organizer's browser does with the secret from his URL.
+do $$
+declare
+  sec text;
+  d   uuid := '11111111-1111-1111-1111-111111111111';
+  ent uuid;
+  n   int;
+  dl  timestamptz;
+begin
+  select organizer_secret into sec from draft where id = d;
+  select id into ent from roster_entry where draft_id = d order by name limit 1;
+
+  set local role anon;
+
+  perform organizer_set_deadline(d, sec, now() + interval '30 days');
+  select deadline into dl from draft where id = d;
+  if dl < now() + interval '29 days' then
+    raise exception 'FR-004 BROKEN: the organizer cannot change the deadline';
+  end if;
+  raise notice 'PASS FR-004: organizer changed the deadline';
+
+  perform organizer_remove_entry(d, sec, ent, 4200);
+  select count(*) into n from roster_entry
+    where id = ent and removed_at is not null and removed_score = 4200;
+  if n <> 1 then raise exception 'FR-074 BROKEN: the organizer cannot remove an entry'; end if;
+  raise notice 'PASS FR-074: organizer removed an entry, and the score is recorded';
+
+  perform organizer_reset_draft(d, sec);
+  select count(*) into n from committed_score where draft_id = d;
+  if n <> 0 then raise exception 'FR-007 BROKEN: the organizer cannot reset the draft'; end if;
+  select count(claimed_at) into n from roster_entry where draft_id = d;
+  if n <> 0 then raise exception 'FR-007 BROKEN: reset left claims standing'; end if;
+  raise notice 'PASS FR-007: organizer reset the draft';
+end $$;
+
 reset role;
 \echo 'ALL STORAGE INVARIANTS HELD'

@@ -23,7 +23,7 @@ import { deadlineState, canStartOfficialRun, formatRemaining } from './state/dea
 import { organizerSecretFromUrl } from './state/links.js';
 import { renderOrganizer, removalConfirmationText } from './ui/organizer.js';
 import { safeSession } from './state/safeStorage.js';
-import { showFatalError, installGlobalErrorHandlers } from './ui/errorBoundary.js';
+import { showFatalError, installGlobalErrorHandlers, describeError } from './ui/errorBoundary.js';
 import { titleScene } from './ui/title.js';
 import { resolveConfig, describeUnreachable, isNetworkFailure } from './state/config.js';
 
@@ -66,7 +66,8 @@ const DRAFT_ID_FROM_URL = new URLSearchParams(location.search).get('draft');
 let DRAFT_ID = DRAFT_ID_FROM_URL ?? 'local-draft';
 // FR-006: organizer controls appear only for a holder of the organizer URL.
 // Secrecy, not authentication - see src/state/links.ts.
-const isOrganizer = organizerSecretFromUrl(location.search) !== null;
+const organizerSecret = organizerSecretFromUrl(location.search);
+const isOrganizer = organizerSecret !== null;
 const localDeadlineIso = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
 
 // Assigned in bootstrap(), once DRAFT_ID is settled. Every read of it happens
@@ -75,7 +76,7 @@ let backend!: Backend;
 
 function makeBackend(): Backend {
   return config.kind === 'configured'
-    ? new DraftStore(config.url, config.anonKey, DRAFT_ID)
+    ? new DraftStore(config.url, config.anonKey, DRAFT_ID, organizerSecret)
     : new LocalDraftStore({
         id: DRAFT_ID,
         deadline: localDeadlineIso,
@@ -142,6 +143,11 @@ let rosterError = '';
 // could not reach it - short of the error boundary, which takes down the whole
 // page for what is usually a passing failure.
 let playerError = '';
+// And for the organizer panel. Its three destructive actions used to throw
+// straight past every handler into the global unhandledrejection listener,
+// which replaced the whole page with the error boundary: the organizer clicked
+// REMOVE, confirmed, and the app died.
+let organizerError = '';
 /**
  * FR-151: the title screen is the first thing a player sees, and DROP IN is the
  * gesture that starts the music.
@@ -332,7 +338,7 @@ function render(): void {
       ${me ? renderPlayer(me) : renderRoster()}
     </div>
     ${renderLeaderboard(snapshot.entries, draftIsFinal())}
-    ${isOrganizer ? renderOrganizer(snapshot.entries, snapshot.draft.deadline) : ''}`;
+    ${isOrganizer ? renderOrganizer(snapshot.entries, snapshot.draft.deadline, organizerError) : ''}`;
   wire();
 }
 
@@ -503,6 +509,28 @@ function wire(): void {
 
 /** FR-016: an explicit confirmation, stating unambiguously that it counts once. */
 function wireOrganizer(): void {
+  /**
+   * Every organizer action, behind one catch.
+   *
+   * These are the three the database denied outright until
+   * 0003_organizer.sql, and each threw straight past its handler into the
+   * global unhandledrejection listener - so the organizer confirmed a removal
+   * and watched the page be replaced by the error boundary. A refusal here is
+   * information ("that is not the organizer link any more", "the draft is
+   * unreachable"), not a reason to take the game down.
+   */
+  const attempt = async (what: string, action: () => Promise<void>): Promise<void> => {
+    organizerError = '';
+    try {
+      await action();
+    } catch (error) {
+      organizerError = `${what} did not happen: ${describeError(error).message}`;
+      render();
+      return;
+    }
+    await refresh();
+  };
+
   app.querySelectorAll<HTMLButtonElement>('[data-remove]').forEach((b) => {
     b.onclick = async (): Promise<void> => {
       const id = b.dataset['remove'] as string;
@@ -513,15 +541,13 @@ function wireOrganizer(): void {
       // "are you sure?" is what people click through without reading, and what
       // is being destroyed is somebody's bed pick.
       if (!confirm(removalConfirmationText(entry?.name ?? 'this entry', score))) return;
-      await backend.removeEntry(id, score);
-      await refresh();
+      await attempt('The removal', () => backend.removeEntry(id, score));
     };
   });
 
   app.querySelectorAll<HTMLButtonElement>('[data-release]').forEach((b) => {
     b.onclick = async (): Promise<void> => {
-      await backend.releaseClaim(b.dataset['release'] as string);
-      await refresh();
+      await attempt('The release', () => backend.releaseClaim(b.dataset['release'] as string));
     };
   });
 
@@ -539,8 +565,7 @@ function wireOrganizer(): void {
         )
       )
         return;
-      await backend.setDeadline(iso);
-      await refresh();
+      await attempt('The deadline change', () => backend.setDeadline(iso));
     };
 
   const reset = app.querySelector<HTMLButtonElement>('#reset');
@@ -548,8 +573,7 @@ function wireOrganizer(): void {
     reset.onclick = async (): Promise<void> => {
       if (!confirm('Reset the draft? Every committed score is destroyed. There is no undo.'))
         return;
-      await backend.resetDraft();
-      await refresh();
+      await attempt('The reset', () => backend.resetDraft());
     };
 }
 
