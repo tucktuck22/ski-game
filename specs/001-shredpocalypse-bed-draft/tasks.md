@@ -228,7 +228,14 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 - [x] T092 [P] [US6] Implement chrome and neon title lettering in `src/ui/titles.ts`
 - [x] T093 [P] [US6] Implement comic-idiom panels, gutters, and caption boxes for menus and transitions per FR-053 in `src/ui/panels.ts`
 - [x] T094 [US6] Implement Web Audio chiptune and synthwave synthesis, original by construction, in `src/audio/synth.ts`
-- [x] T095 [US6] Gate audio behind the first deliberate gesture with a persistent mute toggle per FR-054 in `src/audio/gate.ts`
+- [ ] T095 [US6] Gate audio behind the first deliberate gesture with a persistent mute toggle per FR-054 in `src/audio/gate.ts`
+  - Un-ticked 2026-09-04. `src/audio/gate.ts` was never created. The gesture-gate half
+    landed in `src/main.ts` as `armAudioOnFirstGesture()`; the persistent mute half was
+    never written, because `Synth.muted` is an in-memory field, so muting does not
+    survive a reload. The persistence is deliberately deferred — see
+    [feature 003's Known deviations](../003-recorded-music-tracks/spec.md#known-deviations).
+    The tick was corrected because a task marked done against a file that does not
+    exist is what Definition of Done item 8 forbids.
 - [x] T096 [P] [US6] Display randomised wipeout insults drawn from the data file per FR-059 in `src/ui/wipeout.ts`
 - [x] T097 [US6] Implement the reduced-motion option disabling scanlines, shake, flashing, and parallax without changing timing per FR-056 in `src/render/reducedMotion.ts`
 - [x] T098 [P] [US6] Assert no effect flashes more than three times per second across a large screen area per FR-057 in `tests/e2e/us6-flash-limit.spec.ts`

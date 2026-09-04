@@ -39,12 +39,12 @@ built.
 **Gate**: FR-052 rejects any asset that cannot cite a style-bible rule. Until T001 and
 T002 land, both shipped music files are unreviewable regardless of how well they play.
 
-- [ ] T001 Amend rule A-1 in `assets/style-bible.md` to permit original recorded music alongside runtime synthesis, keeping "no licensed or third-party material of any kind", per FR-147
-- [ ] T002 Amend rule A-2 in `assets/style-bible.md` to scope its instrument set (two pulse leads, triangle bass, noise percussion) explicitly to synthesised audio, so recorded music is outside it rather than in breach of it, per FR-147
-- [ ] T003 Add a rule to the audio section of `assets/style-bible.md` that recorded music must cite its provenance record, so the new assets have a rule to cite at review per FR-052 and FR-148
-- [ ] T004 Write `docs/adr/0009-recorded-music.md` recording the A-1 reversal — what A-1 said, why it said it (the payload and originality argument in `src/audio/synth.ts`), what changed, and what stays synthesised — per FR-147
-- [ ] T005 [P] Correct T095 in `specs/001-shredpocalypse-bed-draft/tasks.md`: un-tick it, note that the gesture gate landed in `src/main.ts` as `armAudioOnFirstGesture()` and that `src/audio/gate.ts` was never created, and that the persistence half is deferred per this feature's Known deviations
-- [ ] T006 [P] Add the FR-054 / A-3 mute-persistence gap to the constitution's open-deviations list in `.specify/memory/constitution.md`, with the owner and rationale already recorded in [spec.md](spec.md#known-deviations)
+- [x] T001 Amend rule A-1 in `assets/style-bible.md` to permit original recorded music alongside runtime synthesis, keeping "no licensed or third-party material of any kind", per FR-147
+- [x] T002 Amend rule A-2 in `assets/style-bible.md` to scope its instrument set (two pulse leads, triangle bass, noise percussion) explicitly to synthesised audio, so recorded music is outside it rather than in breach of it, per FR-147
+- [x] T003 Add a rule to the audio section of `assets/style-bible.md` that recorded music must cite its provenance record, so the new assets have a rule to cite at review per FR-052 and FR-148
+- [x] T004 Write `docs/adr/0009-recorded-music.md` recording the A-1 reversal — what A-1 said, why it said it (the payload and originality argument in `src/audio/synth.ts`), what changed, and what stays synthesised — per FR-147
+- [x] T005 [P] Correct T095 in `specs/001-shredpocalypse-bed-draft/tasks.md`: un-tick it, note that the gesture gate landed in `src/main.ts` as `armAudioOnFirstGesture()` and that `src/audio/gate.ts` was never created, and that the persistence half is deferred per this feature's Known deviations
+- [x] T006 [P] Add the FR-054 / A-3 mute-persistence gap to the constitution's open-deviations list in `.specify/memory/constitution.md`, with the owner and rationale already recorded in [spec.md](spec.md#known-deviations)
 
 **Checkpoint**: `grep -n "A-1\|A-2" assets/style-bible.md` shows recorded music
 permitted; `docs/adr/0009-*.md` exists; T095 is `[ ]`. This is step 0 of

@@ -65,6 +65,14 @@ OPEN DEVIATIONS (Principle VI requires these be stated, not implied)
        Standards & Constraints since v1.1.0 and never implemented.
     4. Principle V remains knowingly violated pending ADR-0005, which is still
        Proposed. Recorded in the spec's Constitutional Compliance Notes.
+    5. The mute toggle is not persistent, though FR-054 and style-bible A-3 both
+       require it. `Synth.muted` is an in-memory field and has always been one, so
+       muting does not survive a reload. Feature 001's T095 was ticked against
+       `src/audio/gate.ts`, a file that was never created - the gesture-gate half
+       landed in `src/main.ts` and the persistence half was never written. The tick
+       is corrected; the gap is deferred deliberately as low impact, owned by the
+       maintainer, undated. Recorded in
+       specs/003-recorded-music-tracks/spec.md#known-deviations.
   An amendment that adds an obligation without adding its gate leaves the obligation
   in this list. It does not get to be described as enforced.
 
@@ -75,6 +83,14 @@ OPEN DEVIATIONS (Principle VI requires these be stated, not implied)
   waive it: the gate is the next deliverable after the game works, ahead of any
   further feature work. Deviation 3 has no date. Deviation 4 awaits a decision on
   ADR-0005.
+
+  Style-bible amendment, 2026-09-04: rule A-1 previously forbade sampled audio of any
+  kind. It now permits original recorded MUSIC while keeping every sound effect
+  synthesised; A-2's instrument set is scoped to synthesis; A-5 is added, requiring a
+  provenance record for any recorded asset. This is a Principle IV change to the style
+  bible rather than to this document, so no version bump applies here. Decision
+  record: docs/adr/0009-recorded-music.md. Governing feature:
+  specs/003-recorded-music-tracks/.
 
 Deferred TODOs:
   TODO(PRODUCT_TITLE): "Ski Game" is a working name. Final product title is a
