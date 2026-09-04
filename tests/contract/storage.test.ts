@@ -134,4 +134,33 @@ describe('the seeded rules version matches the rules the client sends (FR-023)',
   it('is the version both courses agree on, since one draft covers both', () => {
     expect(course('warmup.json').rulesVersion).toBe(course('official.json').rulesVersion);
   });
+
+  /**
+   * The repair script has to be right for exactly the same reason the seed
+   * does, and it is the more dangerous of the two: it is reached by somebody
+   * whose draft is already broken, so a stale value there fails to fix the
+   * thing it was opened to fix.
+   *
+   * It used to demand the version be filled in by hand and refuse to run until
+   * it was, which is not a safeguard - it is a puzzle handed to someone already
+   * unblocking a draft. The value is baked in and this test is what keeps it
+   * honest.
+   */
+  it('the repair script targets that same version', () => {
+    const fix = readFileSync(
+      new URL('../../supabase/fix-rules-version.sql', import.meta.url),
+      'utf8',
+    );
+    const target = /target\s+text\s*:=\s*'([^']+)'/.exec(fix)?.[1];
+    expect(target).toBe(course('official.json').rulesVersion);
+  });
+
+  it('the repair script asks the operator to edit nothing', () => {
+    const fix = readFileSync(
+      new URL('../../supabase/fix-rules-version.sql', import.meta.url),
+      'utf8',
+    );
+    // A CHANGE ME in an executable line is a script that stops rather than runs.
+    expect(fix).not.toMatch(/:=\s*'CHANGE ME'/);
+  });
 });

@@ -19,6 +19,11 @@
 -- version realigned so play can start. That is the only safe case, and the
 -- guard below enforces it — see the note at the bottom for why.
 --
+-- HOW TO RUN IT: paste the whole file into the Supabase SQL editor and run it.
+-- There is nothing to edit. An earlier version made you fill in the version
+-- by hand and refused to run until you had, which turned a fix into a puzzle
+-- at exactly the moment somebody was trying to unblock a draft.
+--
 -- Run supabase/setup.sql and seed-draft.sql first if you have not. This file
 -- fixes an existing draft; it does not create one.
 
@@ -26,15 +31,13 @@ begin;
 
 do $$
 declare
-  target   text := 'CHANGE ME';   -- CHANGE ME: rulesVersion from data/courses/official.json
+  -- The version the shipped build sends. Kept in step with
+  -- data/courses/official.json by tests/contract/storage.test.ts, which is
+  -- what stops this file becoming the stale thing it exists to repair.
+  target   text := '1.5.0';
   d        record;
   n_scores integer;
 begin
-  if target = 'CHANGE ME' then
-    raise exception
-      'Set "target" to the rulesVersion in data/courses/official.json before running this.';
-  end if;
-
   select count(*) into n_scores from draft;
   if n_scores <> 1 then
     raise exception
@@ -72,6 +75,14 @@ commit;
 -- Confirm it took, and check it against what the build sends.
 select id, rules_version, deadline from draft;
 
+-- WHY THE VERSION IS BAKED IN RATHER THAN ASKED FOR
+--
+-- Because the alternative is a file that tells you to go and look something up
+-- and then fails if you do not — which is the same class of mistake as the
+-- comment in seed-draft.sql that said "must match" and was wrong for five
+-- releases. A value a test keeps honest beats an instruction a human has to
+-- follow.
+--
 -- WHY THERE IS NO AUTOMATIC VERSION OF THIS
 --
 -- The client could send whatever the draft happens to hold and never mismatch,
