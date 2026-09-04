@@ -18,6 +18,35 @@
 - Q: How should the scoring reward a fast run over a slow one? → A: Through the controls rather than the scoring table. Fixed base speed; crouching accelerates above it; releasing the crouch produces the jump. Air is therefore only reachable by crouching, which gates every trick bonus behind the speed mechanic.
 - Q: If releasing the crouch always launches a jump, how does a player duck under a low obstacle and come back up without jumping into it? → A: Option D — he doesn't. Releasing under a low obstacle launches the skier into it and wipes out the run. The timing is the difficulty and learning it is the skill.
 
+### Session 2026-09-04 (defects found in a live draft)
+
+- **Q: Official runs are refused. The player takes his one run and the score
+  never reaches the board. Why?**
+  A: The draft's stored `rules_version` and the version the game sends had
+  drifted apart. FR-023 freezes the rules at the draft and the database enforces
+  it, so every commit was correctly refused for a reason nobody had made:
+  `seed-draft.sql` wrote `1.0.0` once, the simulation was revised five times
+  after that, and the seed was never revisited. The check was working; the seed
+  was stale. Resolved by FR-090 — the seeded version is now part of the test
+  suite rather than a comment asking someone to remember.
+
+- **Q: The organizer releases a claim and nothing happens to the player. Why?**
+  A: The claim lives in shared storage (FR-021), but the player's device was
+  treating its own session key as the answer rather than as the convenience
+  FR-010 intended. The release changed the row, the organizer watched it flip to
+  UNCLAIMED, and the released player's screen never re-read it: still his name,
+  still his practice runs, still able to take the official run that had just
+  been taken back. Resolved by FR-091 — claimed identity is re-checked against
+  every snapshot.
+
+- **Q: A player taps the wrong name. What can he do?**
+  A: Before this, nothing — and the organizer's remedy did not work either, so
+  the two defects concealed each other. FR-011 always required that a player be
+  able to re-select his name from the roster; there was simply no way back to
+  it. Resolved by FR-092, which lets a player release his own claim up until he
+  commits. After the commit the claim is permanent, exactly as this spec's edge
+  cases already say.
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Claim your name and commit the one run that counts (Priority: P1)
@@ -176,6 +205,8 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **FR-010**: System MUST resume a player's claimed identity automatically when he returns on the same device.
 - **FR-011**: System MUST allow a player to resume his identity on any other device by re-selecting his name from the roster, carrying his run counts and committed score with him.
 - **FR-012**: When two claims for the same name race, the first to be confirmed in shared storage MUST win and the second MUST be rejected with a clear message.
+- **FR-091**: A device MUST NOT treat its own record of a claim as authoritative. Claimed identity MUST be re-checked against shared storage, and an identity that is no longer claimed there — released, or removed — MUST return the player to name selection.
+- **FR-092**: A player who has not yet committed his official run MUST be able to release his own claim and return to name selection, and the released name MUST become claimable again. After the official commit the claim is permanent (FR-018).
 
 #### Run economy
 
@@ -270,6 +301,8 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 
 #### Stability and integrity
 
+- **FR-090**: The rules version recorded on a draft MUST match the version the shipped build submits, and that agreement MUST be enforced by an automated check rather than by a comment. A mismatch rejects 100% of official runs, and does so for a reason no player can see or act on.
+
 - **FR-062**: No input sequence may crash, hang, or soft-lock the game. Randomized input testing MUST be part of the automated suite.
 - **FR-063**: Any defect that interrupts an official run in progress is a release blocker.
 - **FR-064**: Official scores are accepted as reported by the player's device. No verification is performed in v1.
@@ -298,6 +331,8 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **SC-006**: Median official scores achieved on a mid-range phone are within 10% of median official scores achieved on desktop by players of comparable skill.
 - **SC-007**: 100% of committed scores reach the leaderboard, including those committed with connectivity fully unavailable for at least 60 seconds afterward.
 - **SC-008**: Zero crashes, hangs, or soft-locks across the full randomized input test suite and across all 8 players' complete sessions.
+- **SC-017**: A draft provisioned from the shipped setup scripts accepts official commits from the shipped build on the first attempt, with no manual step in between.
+- **SC-018**: A player who taps the wrong name can be playing under the right one within 30 seconds, without contacting the organizer.
 - **SC-009**: The run holds its frame budget on a mid-range phone with no hitch long enough to alter a player's line.
 - **SC-010**: The final leaderboard is unambiguous enough that eight friends can read the bed order off it and act on it without argument, including the placement and coin-flip handling of any forfeits.
 - **SC-011**: A full run is completable end to end with the reduced-motion option enabled and with audio muted, with no loss of information needed to score.

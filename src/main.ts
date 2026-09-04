@@ -108,6 +108,11 @@ let commitMessage = '';
 // Held in state rather than written straight to the DOM: refresh() re-renders,
 // and an error painted directly onto the node was wiped before anyone read it.
 let rosterError = '';
+// The same, for the player panel. US5 exists because this draft gets played on
+// lodge wifi, so an action that needs the network needs somewhere to say it
+// could not reach it - short of the error boundary, which takes down the whole
+// page for what is usually a passing failure.
+let playerError = '';
 /**
  * FR-151: the title screen is the first thing a player sees, and DROP IN is the
  * gesture that starts the music.
@@ -214,7 +219,51 @@ renderTitle();
 
 async function refresh(): Promise<void> {
   snapshot = await backend.snapshot();
+  reconcileIdentity();
   render();
+}
+
+/**
+ * FR-021: shared storage decides who you are. This device only remembers.
+ *
+ * The session key exists for FR-010 - resume on the same device without
+ * re-selecting - and was being treated as the answer rather than as a hint.
+ * So when the organizer released a claim, which the spec names as the fix for
+ * "a player claims the wrong name", the release landed in shared storage and
+ * the released player's own screen never noticed. He was still "You are
+ * <name>", still holding his practice runs, still able to take the official run
+ * that had just been taken back from him. The organizer watched the row flip to
+ * UNCLAIMED and nothing whatsoever happened to the one person it was aimed at.
+ *
+ * Re-checked against every snapshot, so a release reaches the player on his
+ * next refresh - the realtime subscription, or the 15s poll behind it.
+ */
+function reconcileIdentity(): void {
+  if (myEntryId === null) return;
+  // Not mid-run. A run already under way was legitimately started, and pulling
+  // the player's identity out from under it drops him onto the roster during
+  // his own wipeout and bins the score without a word. A release that lands
+  // during a run is applied when he comes back to the board, which is late
+  // rather than wrong - and FR-074 removal is the organizer's answer to a score
+  // he did not want, not a silent discard here.
+  if (game) return;
+  const mine = snapshot.entries.find((e) => e.id === myEntryId);
+  if (mine !== undefined && mine.claimed && !mine.removed) return;
+  forgetIdentity();
+}
+
+/**
+ * Drops this device's memory of who it is. Never touches shared storage: the
+ * claim itself is released by whoever is entitled to release it.
+ */
+function forgetIdentity(): void {
+  myEntryId = null;
+  safeSession.remove(`claim:${DRAFT_ID}`);
+  // A commit result belongs to the player it was about. Left standing it would
+  // greet whoever claims a name next with somebody else's confirmed score.
+  commitStatus = 'idle';
+  commitMessage = '';
+  playerError = '';
 }
 
 const myEntry = (): DraftSnapshot['entries'][number] | undefined =>
@@ -281,7 +330,18 @@ function renderRoster(): string {
 function renderPlayer(me: NonNullable<ReturnType<typeof myEntry>>): string {
   const a = availability(me, !canStartOfficialRun(deadline()));
   return `
-    <p>You are <strong style="color:var(--magenta)">${escapeHtml(me.name)}</strong>.</p>
+    <p>
+      You are <strong style="color:var(--magenta)">${escapeHtml(me.name)}</strong>.
+      ${
+        // Only before the official run. After it the claim is permanent - the
+        // score is already on the board under this name, and the spec's answer
+        // to a wrong name at that point is organizer removal, not a swap.
+        // availability() already explains the committed state just below.
+        me.score === null
+          ? `<button id="not-me" style="min-height:36px;padding:6px 10px">NOT YOU?</button>`
+          : ''
+      }
+    </p>
     <div class="stack">
       <div class="row">
         <button id="practice" ${a.practiceRemaining === 0 || a.freePlayOnly ? 'disabled' : ''}>
@@ -291,6 +351,7 @@ function renderPlayer(me: NonNullable<ReturnType<typeof myEntry>>): string {
         <button id="free" ${a.freePlayOnly ? '' : 'disabled'}>FREE PLAY</button>
       </div>
       ${a.blockedReason ? `<p id="blocked-reason" style="color:var(--yellow)">${escapeHtml(a.blockedReason)}</p>` : ''}
+      ${playerError ? `<p id="player-error" style="color:var(--yellow)">${escapeHtml(playerError)}</p>` : ''}
       ${commitStatus === 'pending' ? `<p class="pending">SCORE PENDING — not on the leaderboard until the server confirms it.</p>` : ''}
       ${commitStatus === 'confirmed' ? `<p class="confirmed">SCORE CONFIRMED. ${escapeHtml(commitMessage)}</p>` : ''}
       ${commitStatus === 'rejected' ? `<p style="color:var(--yellow)">${escapeHtml(commitMessage)}</p>` : ''}
@@ -332,6 +393,46 @@ function wire(): void {
       await refresh();
     };
   }
+
+  /**
+   * FR-011: a player must be able to re-select his name from the roster. There
+   * was no way back - the first name tapped became this device's identity for
+   * good, and a mis-tap could only be undone by an organizer who had to be told
+   * about it first.
+   *
+   * The claim is released rather than merely forgotten. Forgetting it locally
+   * would leave the name claimed by nobody, which is the same dead end from the
+   * other side: still unpickable, still needing the organizer.
+   *
+   * Honour system, as everywhere else here - anyone holding the link can claim
+   * any free name (spec.md, "The honor system is the security model").
+   */
+  const notMe = app.querySelector<HTMLButtonElement>('#not-me');
+  if (notMe)
+    notMe.onclick = async (): Promise<void> => {
+      const me = myEntry();
+      if (!me) return;
+      if (
+        !confirm(
+          `Put ${me.name} back on the list and pick again?\n\n` +
+            'Anyone can claim that name after you do, including you. Practice runs ' +
+            'already used stay with the name, not with you.',
+        )
+      )
+        return;
+      try {
+        await backend.releaseClaim(me.id);
+      } catch {
+        // Keep the identity. Forgetting it here would strand him: the name is
+        // still claimed in shared storage, so the roster would not offer it
+        // back and he would be nobody until someone else intervened.
+        playerError = 'Could not reach the draft to give the name back. Try again in a moment.';
+        render();
+        return;
+      }
+      forgetIdentity();
+      await refresh();
+    };
 
   const bind = (sel: string, kind: RunKind): void => {
     const el = app.querySelector<HTMLButtonElement>(sel);

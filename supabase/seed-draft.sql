@@ -32,7 +32,11 @@ values (
   '2026-09-10 23:00:00+00',
 
   19860214,   -- shared course seed: every official run faces this same mountain
-  '1.0.0',    -- must match rulesVersion in data/courses/official.json
+  -- MUST match rulesVersion in data/courses/official.json. A mismatch is not a
+  -- warning: the commit_deadline trigger rejects every official run with
+  -- "rules version mismatch", and the player is told his one run did not count.
+  -- tests/contract/storage.test.ts fails if these two drift apart again.
+  '1.5.0',
   encode(gen_random_bytes(16), 'hex')
 );
 

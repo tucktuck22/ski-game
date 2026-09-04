@@ -101,3 +101,37 @@ describe('error classification decides retry versus give up', () => {
     expect(classifyError(null)).toMatchObject({ kind: 'confirmed' });
   });
 });
+
+/**
+ * FR-023 freezes the rules at the first commit, and the trigger enforces it by
+ * comparing the submission's rules_version against the draft's. That makes the
+ * seeded value part of the contract rather than a comment: if it does not match
+ * what the client actually sends, EVERY official run is rejected with "rules
+ * version mismatch" and each of eight players is told his one run did not count.
+ *
+ * That is not hypothetical. rulesVersion was bumped five times (1.0.0 -> 1.5.0)
+ * while seed-draft.sql kept saying '1.0.0', and nothing failed until a player
+ * tried to commit. Grepping the seed is cheap; discovering this from the cabin
+ * is not.
+ */
+describe('the seeded rules version matches the rules the client sends (FR-023)', () => {
+  const seed = readFileSync(new URL('../../supabase/seed-draft.sql', import.meta.url), 'utf8');
+  const course = (f: string): { rulesVersion: string } =>
+    JSON.parse(readFileSync(new URL(`../../data/courses/${f}`, import.meta.url), 'utf8')) as {
+      rulesVersion: string;
+    };
+
+  const seeded = /rules_version[\s\S]*?values\s*\([\s\S]*?'([\d.]+)',/.exec(seed)?.[1];
+
+  it('seeds a rules_version at all', () => {
+    expect(seeded).toBeDefined();
+  });
+
+  it('seeds exactly the version the official course declares', () => {
+    expect(seeded).toBe(course('official.json').rulesVersion);
+  });
+
+  it('is the version both courses agree on, since one draft covers both', () => {
+    expect(course('warmup.json').rulesVersion).toBe(course('official.json').rulesVersion);
+  });
+});
