@@ -34,10 +34,12 @@ const MAX_GRADIENT = 1.732;
  * a quint lands on it with six ticks to spare. CV-8 exists to prove that every
  * finisher outranks every non-finisher (FR-034), and it proves it by pricing the
  * best run nobody finishes - so a ceiling set below what the course actually
- * permits does not make the rule pass, it makes it lie. Six, so the bound stays
- * above the achievable five as launches grow.
+ * permits does not make the rule pass, it makes it lie. Eighteen now: a floated
+ * booter buys 225 ticks against a 15-tick spin, so fifteen rotations fit in one
+ * air where four used to, and the bound has to sit above what the course allows
+ * rather than above what anyone expects a person to actually land.
  */
-const TRICK_CEILING = 6;
+const TRICK_CEILING = 18;
 
 /**
  * Apex height of a launch, in world units: v^2 / 2g under constant gravity.
@@ -285,7 +287,7 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
     }
     const reachable = entries.some((k) => {
       const impulse = Math.min(k.power * tuning.tuckSpeedMax, tuning.kickerImpulseMax);
-      return apexOf(launchParts(k, impulse).up, tuning.gravity) > l.height;
+      return apexOf(launchParts(k, impulse).up, tuning.gravity * (k.gravityScale ?? 1)) > l.height;
     });
     if (!reachable)
       v.push({
@@ -294,7 +296,7 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
       });
     for (const k of entries) {
       const impulse = Math.min(k.power * tuning.baseSpeed, tuning.kickerImpulseMax);
-      if (apexOf(launchParts(k, impulse).up, tuning.gravity) >= l.height)
+      if (apexOf(launchParts(k, impulse).up, tuning.gravity * (k.gravityScale ?? 1)) >= l.height)
         v.push({
           rule: 'CV-13',
           message:
@@ -499,7 +501,11 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
   // A quarter was margin enough while every launch landed on the slope it left.
   // A booter is now built over a knuckle - the ground steepens after the lip on
   // purpose - and that stretches the flight past what 2*v/g predicts. Half.
-  const LANDING_MARGIN = 1.5;
+  // Half was margin for the knuckles, which are gone. The flight terms now
+  // carry the physics that the crude factor used to stand in for - the vertical
+  // half of an angled launch, and the gravity a floated one actually falls
+  // under - so the fudge comes back down.
+  const LANDING_MARGIN = 1.3;
   for (const k of course.kickers) {
     const lip = k.x + k.width;
     const impulse = Math.min(k.power * tuning.tuckSpeedMax, tuning.kickerImpulseMax);
@@ -509,7 +515,7 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
     // so reading the reach off the impulse alone would clear a landing zone the
     // player sails clean over.
     const { up, along } = launchParts(k, impulse);
-    const airTicks = (2 * up) / tuning.gravity;
+    const airTicks = (2 * up) / (tuning.gravity * (k.gravityScale ?? 1));
     const reach = lip + airTicks * (tuning.tuckSpeedMax + along) * LANDING_MARGIN;
     for (const o of course.obstacles) {
       if (o.x + o.width <= lip || o.x >= reach) continue;
@@ -519,6 +525,35 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
           `ramp at x=${k.x} throws a full-tuck skier as far as x=${reach.toFixed(0)}, and the ` +
           `${o.kind} obstacle at x=${o.x} stands under that flight. He is committed to the ` +
           'launch before he can see what he is committed to.',
+      });
+    }
+  }
+
+  // CV-22: a ramp needs a run-up the skier is actually STANDING on.
+  //
+  // Kickers only fire from the ground - sailing over one is scenery, by design.
+  // So a log sitting just before a lip quietly disables the ramp behind it: the
+  // player jumps the log, is still airborne when he crosses the lip, and gets
+  // no launch at all. Nothing else catches this. CV-15 checks that a ramp does
+  // not OVERLAP a log, which this does not, and CV-21 looks downhill from the
+  // lip rather than uphill at it. It cost a booter its entire flight, and the
+  // only symptom was a jump that silently did not happen.
+  for (const k of course.kickers) {
+    const lip = k.x + k.width;
+    for (const o of course.obstacles) {
+      if (o.kind !== 'solid') continue;
+      if (o.x >= lip) continue;
+      // How far a minimum-charge clearing jump carries at full tuck: the widest
+      // reach that could still put him over this lip.
+      const jumpReach = ((2 * tuning.launchImpulseMin) / tuning.gravity) * tuning.tuckSpeedMax;
+      if (o.x + o.width + jumpReach < lip) continue;
+      v.push({
+        rule: 'CV-22',
+        message:
+          `the ${o.kind} obstacle at x=${o.x} sits ${(lip - o.x - o.width).toFixed(0)} before the ` +
+          `lip of the ramp at x=${k.x}, inside the ${jumpReach.toFixed(0)} a jump over it covers. ` +
+          'The player clears the log and is still in the air at the lip, so the ramp never fires ' +
+          'and the launch is silently lost.',
       });
     }
   }

@@ -15,7 +15,15 @@ import { official, tuning, scoring } from './fixtures.js';
  * show - the buffer is 180 tall, and the snow was out of frame for 85% of the
  * flight. Both faults are asserted against here, because both were shipped.
  *
- * The ladder, at full tuck:  small booter a triple, big booter a quad.
+ * Hang time is bought with LOW gravity and a WEAK launch, not a big one. Any arc
+ * under constant gravity peaks h = g*t^2/8 above its launch line, so four times
+ * the air would cost sixteen times the height - 2,025 units against a buffer 180
+ * tall. Read the same identity at fixed height, t = sqrt(8h/g), and the answer
+ * inverts: a small pop under a twentieth of gravity hangs for 197 ticks and never
+ * leaves the frame. That is why these powers look tiny.
+ *
+ * The ladder, at full tuck: eight rotations off the small booter, twelve off the
+ * big one, and fewer off both at base speed.
  */
 
 const booters = official.kickers
@@ -109,8 +117,12 @@ describe('the booters (FR-078, Principle III feel criteria)', () => {
     // never damped in flight, so if it does not arrive AT the lip it never comes.
     for (const b of booters) {
       const f = fly(official, b, true);
-      expect(f.vxAfter).toBeGreaterThan(f.vxBefore * 1.7);
-      expect(f.dist).toBeGreaterThan(380);
+      // 1.4, not the 1.7 a stiff launch gave. A deep float needs a weak pop -
+      // the impulse that would kick harder at the lip also throws the apex out
+      // of frame - so the forward feel now comes from the DISTANCE covered
+      // rather than from the size of the kick.
+      expect(f.vxAfter).toBeGreaterThan(f.vxBefore * 1.4);
+      expect(f.dist).toBeGreaterThan(700);
     }
   });
 
@@ -143,17 +155,25 @@ describe('the booters (FR-078, Principle III feel criteria)', () => {
     }
   });
 
-  it('pays a triple on the small booter and a quad on the big one', () => {
+  it('hangs long enough to be worth the name', () => {
+    // The whole point of the float. 58 ticks was the vertical toss this
+    // replaced; under a tenth of gravity the big one holds three times that.
     const [small, big] = booters as [Kicker, Kicker];
-    expect(fly(official, small, true, 3).why).toBeNull();
-    expect(fly(official, small, true, 4).why).toBe('spun_out');
-    expect(fly(official, big, true, 4).why).toBeNull();
-    expect(fly(official, big, true, 5).why).toBe('spun_out');
+    expect(fly(official, small, true).air).toBeGreaterThan(110);
+    expect(fly(official, big, true).air).toBeGreaterThan(170);
   });
 
-  it('charges speed for those rotations: base speed gets neither', () => {
-    for (const b of booters) {
-      expect(fly(official, b, false, 3).why).toBe('spun_out');
-    }
+  it('pays eight rotations off the small booter and twelve off the big one', () => {
+    const [small, big] = booters as [Kicker, Kicker];
+    expect(fly(official, small, true, 8).why).toBeNull();
+    expect(fly(official, small, true, 10).why).toBe('spun_out');
+    expect(fly(official, big, true, 12).why).toBeNull();
+    expect(fly(official, big, true, 14).why).toBe('spun_out');
+  });
+
+  it('charges speed for those rotations: base speed gets fewer', () => {
+    const [small, big] = booters as [Kicker, Kicker];
+    expect(fly(official, small, false, 8).why).toBe('spun_out');
+    expect(fly(official, big, false, 12).why).toBe('spun_out');
   });
 });

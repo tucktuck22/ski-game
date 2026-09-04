@@ -104,6 +104,7 @@ violation.** These are executable requirements, not review guidance.
 | CV-14    | Every ledge clears the top of every bough it crosses, with margin                                                                              | FR-035             |
 | CV-15    | No kicker sits inside a `low` obstacle's safe release window or overlaps a `solid` one                                                         | FR-088             |
 | CV-21    | Nothing stands under a kicker's flight, from its lip to where a full-tuck launch comes down                                                    | FR-088             |
+| CV-22    | No `solid` obstacle sits close enough before a kicker's lip that the jump over it carries the player across the lip, losing the launch         | FR-078             |
 
 **CV-18 has two halves for the same reason CV-13 does.** Ice too long to escape
 makes the countdown decoration; ice short enough to ride across makes the ice

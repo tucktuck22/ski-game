@@ -36,7 +36,13 @@ interface Built {
   obstacles: { x: number; kind: 'low' | 'solid'; width: number; clearance: number }[];
   pickups: { x: number; y: number; value: 'small' | 'large' }[];
   ledges: { x0: number; x1: number; height: number }[];
-  kickers: { x: number; width: number; power: number; launchAngle?: number }[];
+  kickers: {
+    x: number;
+    width: number;
+    power: number;
+    launchAngle?: number;
+    gravityScale?: number;
+  }[];
   rocks: { x: number; width: number; height: number }[];
   ice: { x0: number; x1: number }[];
 }
@@ -113,8 +119,8 @@ const CORNICE_H = 55;
  * keeps the upper track voluntary would read this launch as a way onto one.
  */
 const BOOTER_W = 96;
-const BOOTER_MID = 2.0;
-const BOOTER_BIG = 2.4;
+const BOOTER_MID = 0.7;
+const BOOTER_BIG = 0.75;
 
 /**
  * Booters throw FORWARD, not up. This is the whole shape of them.
@@ -138,8 +144,41 @@ const BOOTER_BIG = 2.4;
  * cap the snow was out of frame for two thirds of the flight even after the
  * camera was taught to lift. At these numbers it is in frame for all of it.
  */
-const BOOTER_MID_ANGLE = 62;
-const BOOTER_BIG_ANGLE = 56;
+const BOOTER_MID_ANGLE = 45;
+const BOOTER_BIG_ANGLE = 45;
+
+/**
+ * How much of gravity a booter flight falls under, and why the launches that go
+ * with it are so weak.
+ *
+ * Hang time and height are the same number. Any arc under constant gravity
+ * peaks h = g*t^2/8 above its launch line, so four times the air costs SIXTEEN
+ * times the height: at full gravity 225 ticks puts the skier 2,025 units up
+ * against a render buffer 180 tall. Eleven screens. No camera fits that, and
+ * zooming out until one does leaves him a pixel and a half wide, which LW-3
+ * does not allow.
+ *
+ * The identity has a second reading, though, and it is the one that solves
+ * this. Hold the HEIGHT fixed and it says t = sqrt(8h/g): at a given altitude,
+ * air time is bought with lower gravity, without limit. So four seconds of hang
+ * is not a bigger launch, it is a WEAKER one - a small pop that barely leaves
+ * the snow, falling under a twentieth of gravity, across a shallow runway.
+ * Measured: 225 ticks, 3.8 seconds, apex 111, and the ground in frame for every
+ * tick of it. The obvious version - a huge launch off a steep drop - measures
+ * 302 ticks with 69% of the flight showing no ground at all.
+ *
+ * The runways are shallow for the same reason, which is the counter-intuitive
+ * half: a steep drop under a floating skier does not show him more ground, it
+ * pulls the ground away from him faster and takes it out of frame sooner.
+ */
+const BOOTER_MID_FLOAT = 0.12;
+/**
+ * The warm-up floats less, because it has less hill. Its booter would otherwise
+ * still be in the air at the finish line, and a jump the player never lands is
+ * a poor way to teach him what landing one feels like.
+ */
+const BOOTER_WARMUP_FLOAT = 0.25;
+const BOOTER_BIG_FLOAT = 0.085;
 
 function official(): Built {
   const obstacles: Built['obstacles'] = [];
@@ -228,7 +267,13 @@ function official(): Built {
   // it pays in proportion to the speed carried into it. A launch is power times
   // carried speed, so coasting here is not a rest, it is a smaller trick.
   bough(7600, 12);
-  kickers.push({ x: 8100, width: BOOTER_W, power: BOOTER_MID, launchAngle: BOOTER_MID_ANGLE });
+  kickers.push({
+    x: 7900,
+    width: BOOTER_W,
+    power: BOOTER_MID,
+    launchAngle: BOOTER_MID_ANGLE,
+    gravityScale: BOOTER_MID_FLOAT,
+  });
 
   // ---- VI. THE LAST PITCH (8,800 - 12,000). Ask: everything, at speed. ----
   // Steepest sustained grade of the course, the big booter, and a shelf that
@@ -238,25 +283,37 @@ function official(): Built {
   // the piste beneath it. The two tracks resolve AT the line instead of petering
   // out 600 units short of it, which is where the old course stopped.
   bough(9000, 11);
-  deadfall(9250);
+  // No log between the bough and the booter. Jumping one launches the skier,
+  // and a skier already in the air crosses the lip without the ramp firing -
+  // he simply flies over his own jump and never gets it. CV-22 now refuses
+  // that layout; this is the course that taught it.
   // The big booter needs a RUNWAY, not a gap. It now covers some 640 units of
   // mountain, where the vertical toss it replaces covered 300, so the obstacles
   // that used to sit after it have moved ahead of it instead.
-  kickers.push({ x: 9500, width: BOOTER_W, power: BOOTER_BIG, launchAngle: BOOTER_BIG_ANGLE });
-  kickers.push({ x: 10500, width: RAMP_W, power: RAMP_POWER });
-  ledges.push({ x0: 10600, x1: 12000, height: SHELF_H });
-  ice.push({ x0: 10820, x1: 10868 });
-  rocks.push({ x: 11120, width: 16, height: 12 });
-  deadfall(11000);
-  bough(11300, 13);
-  shelfPickups(10600, 12000, SHELF_H, 8);
+  // A floated launch covers a THOUSAND units now, so everything downhill of it
+  // moved to give it a runway. The final ramp and its shelf start where the
+  // flight has already landed.
+  kickers.push({
+    x: 9300,
+    width: BOOTER_W,
+    power: BOOTER_BIG,
+    launchAngle: BOOTER_BIG_ANGLE,
+    gravityScale: BOOTER_BIG_FLOAT,
+  });
+  kickers.push({ x: 11000, width: RAMP_W, power: RAMP_POWER });
+  ledges.push({ x0: 11100, x1: 12000, height: SHELF_H });
+  ice.push({ x0: 11350, x1: 11398 });
+  rocks.push({ x: 11600, width: 16, height: 12 });
+  deadfall(11600);
+  bough(11850, 13);
+  shelfPickups(11100, 12000, SHELF_H, 6);
 
   // Piste pickups: small, low, and frequent enough to mark the racing line.
   // Skipped across the booters' run-ups and landings, so nothing invites the
   // player to duck into a launch he cannot see the far side of.
   const booterZones = [
-    [8080, 8720],
-    [9480, 10300],
+    [7880, 8800],
+    [9280, 10900],
   ];
   for (let x = 300; x < 11900; x += 320) {
     if (booterZones.some(([a, b]) => x >= (a as number) && x <= (b as number))) continue;
@@ -276,13 +333,14 @@ function official(): Built {
         { x: 5400, g: 0.5 }, // The Cornice eases, so shelf work is readable
         { x: 7400, g: 0.44 },
         { x: 7800, g: 0.2 }, // The Flats: speed bleeds
-        { x: 8800, g: 0.2 }, // held flat across booter 1's whole flight, so it
-        { x: 9100, g: 0.34 }, // takes off and lands on the same angle
-        { x: 9400, g: 0.34 }, // The Last Pitch opens moderate, because the big
-        { x: 10350, g: 0.34 }, // booter flies across all of it: a steep runway
-        { x: 10700, g: 0.56 }, // drops the snow out of frame under him
-        { x: 12200, g: 0.66 }, // and the steepest ground goes where it pays, the
-        // run to the line on the final shelf
+        { x: 8900, g: 0.2 }, // held flat across booter 1's whole flight, so it
+        { x: 9200, g: 0.2 }, // takes off and lands on the same angle
+        // The Last Pitch stays SHALLOW under the big booter. A steep runway does
+        // not show a floating skier more ground, it pulls the ground away from
+        // him faster and puts it out of frame sooner.
+        { x: 10900, g: 0.2 }, // shallow the whole way under the big float
+        { x: 11200, g: 0.5 }, // and the steepest ground goes where it pays: the
+        { x: 12200, g: 0.66 }, // run to the line, on the final shelf
       ],
       12000,
     ),
@@ -311,7 +369,7 @@ function warmup(): Built {
     pickups.push({ x: Math.round(1496 + (700 * k) / 5), y: -(SHELF_H + 6), value: 'large' });
   }
   for (let x = 300; x < 3000; x += 320) {
-    if (x >= 2380 && x <= 3050) continue; // the booter's run-up and landing
+    if (x >= 2380 && x <= 3100) continue; // the booter's run-up and landing
     pickups.push({ x, y: -(4 + (x % 7)), value: 'small' });
   }
   return {
@@ -333,7 +391,15 @@ function warmup(): Built {
     ledges: [{ x0: 1496, x1: 2196, height: SHELF_H }],
     kickers: [
       { x: 1400, width: RAMP_W, power: RAMP_POWER },
-      { x: 2400, width: BOOTER_W, power: BOOTER_MID, launchAngle: BOOTER_MID_ANGLE },
+      {
+        // Clear of the shelf that ends at 2196: a kicker under a ledge never
+        // fires, because the skier rides off the shelf already airborne.
+        x: 2400,
+        width: BOOTER_W,
+        power: BOOTER_MID,
+        launchAngle: BOOTER_MID_ANGLE,
+        gravityScale: BOOTER_WARMUP_FLOAT,
+      },
     ],
     rocks: [{ x: 1926, width: 16, height: 12 }],
     ice: [{ x0: 1726, x1: 1774 }],
