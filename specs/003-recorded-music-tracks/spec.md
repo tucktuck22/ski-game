@@ -193,9 +193,18 @@ run (FR-143). See FR-146 and FR-150.
   later tap was ignored for the rest of the session. That is the second half of
   the report — nothing happens when you tap anywhere either.
 
-  Resolved by FR-155 to FR-157: resume the context rather than assume it,
-  keep the gate bound until audio is genuinely running, and resume again when
-  the page returns to the foreground.
+  Resolved by FR-155 to FR-158: resume the context rather than assume it,
+  open the audio route with a silent frame inside the gesture, keep the gate
+  bound until audio is genuinely running, and resume again when the page
+  returns to the foreground.
+
+- **Q: The report came from Chrome on an iPhone, not Safari. Does the WebKit
+  diagnosis still hold?**
+  A: Yes, and it is the same engine. Apple requires every iOS browser to render
+  with WebKit, so Chrome on an iPhone is a WebKit shell rather than Chromium.
+  The requirements below say WebKit rather than Safari for exactly this reason:
+  naming the browser instead of the engine would invite someone to assume a
+  different browser needs different handling.
 
 ## Known deviations
 
@@ -393,6 +402,9 @@ run still starts, plays, ends, and commits its score.
 - **FR-155**: Audio MUST be resumed, not assumed. Where a browser provides a
   suspended audio context, the application MUST resume it rather than treat
   construction as success. Silence with nothing thrown is a failure.
+- **FR-158**: Where a browser requires audio output to be opened by playing
+  something inside the gesture, the application MUST do so. Reporting a context
+  as running is not evidence that anything can be heard.
 - **FR-156**: The gesture gate MUST remain active until audio is genuinely
   running, not merely until a first gesture has been seen. A gesture that
   achieves nothing MUST NOT consume the player's only chance to start the music.

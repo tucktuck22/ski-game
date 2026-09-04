@@ -43,13 +43,46 @@ export class Synth {
       this.master.gain.value = this.muted ? 0 : LEVEL;
       this.master.connect(this.ctx.destination);
     }
-    // Safari on iOS hands back a SUSPENDED context even when it was created
-    // inside the gesture handler. Without this the graph exists, nothing
-    // throws, and nothing is ever audible. Chromium resumes it for us, which
-    // is exactly why this was invisible in every test.
+    // WebKit hands back a SUSPENDED context even when it was created inside
+    // the gesture handler. Without this the graph exists, nothing throws, and
+    // nothing is ever audible. Chromium resumes it for us, which is exactly
+    // why this was invisible in every test.
+    //
+    // This matters on every iOS browser, not just Safari. Apple requires all
+    // of them to render with WebKit, so Chrome on an iPhone is a WebKit shell
+    // and behaves the same way.
     //
     // Safe to call repeatedly: the gate does, until `running` is true.
-    if (this.ctx.state !== 'running') void this.ctx.resume().catch(() => undefined);
+    if (this.ctx.state !== 'running') {
+      void this.ctx.resume().catch(() => undefined);
+      this.unlock();
+    }
+  }
+
+  /**
+   * Open the audio hardware by playing one silent frame.
+   *
+   * `resume()` alone is frequently not enough on WebKit: the context reports
+   * itself running and still produces no sound, because the audio route was
+   * never actually opened. Starting a buffer source INSIDE the user gesture is
+   * what opens it, and a one-frame silent buffer is the cheapest way to do
+   * that - it costs nothing and is inaudible by construction.
+   *
+   * Every failure here is swallowed. This is best-effort unlocking, and a
+   * browser that refuses must cost the player silence and nothing else
+   * (FR-143).
+   */
+  private unlock(): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    try {
+      const source = ctx.createBufferSource();
+      source.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      source.connect(ctx.destination);
+      source.start(0);
+    } catch {
+      // No unlock. The gate will try again on the next gesture.
+    }
   }
 
   get started(): boolean {

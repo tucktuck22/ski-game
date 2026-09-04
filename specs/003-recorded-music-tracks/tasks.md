@@ -298,3 +298,6 @@ or not that gesture worked, so one silent failure ended the session's chance.
 - [x] T065 [P] Add `tests/unit/audio-gate.test.ts` with a context that does NOT auto-resume, asserting the gate keeps listening after a failed gesture, per FR-156
 - [x] T066 [P] Extend `tests/unit/music-player.test.ts` with a suspended fake context, asserting resume on arm, a second gesture finishing the job, and recovery after backgrounding, per FR-155 and FR-157
 - [x] T067 Verify the new tests fail with the fix reverted and pass with it, so they are regression tests rather than decoration
+- [x] T068 Open the audio route with a one-frame silent buffer inside the gesture in `src/audio/synth.ts`, since `resume()` alone does not open it on WebKit, per FR-158
+- [x] T069 [P] Add `tests/unit/synth-unlock.test.ts` against a WebKit-shaped context that starts suspended and can refuse to resume — the `Synth` had no tests at all, which is part of why this shipped
+- [x] T070 Verify the unlock tests fail without it: 2 of 8 do
