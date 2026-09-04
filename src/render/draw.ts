@@ -583,9 +583,17 @@ function drawRocks(ctx: CanvasRenderingContext2D, course: Course, cam: Camera): 
 function drawKickers(ctx: CanvasRenderingContext2D, course: Course, cam: Camera): void {
   for (const k of course.kickers) {
     const px = k.x - cam.x;
-    if (px < -80 || px > INTERNAL_WIDTH + 80) continue;
+    // Culled against the ramp's OWN width, not a fixed 80. A booter is 96 wide
+    // against a 320-wide screen, so a fixed margin dropped it while its lip was
+    // still on camera - it popped into existence under the player's feet.
+    if (px < -(k.width + 40) || px > INTERNAL_WIDTH + 80) continue;
     const groundAt = (wx: number): number => terrainYAt(course.terrain, wx) - cam.y;
-    const lipRise = 19;
+    // The drawn ramp is as big as the launch it gives. A booter that throws a
+    // player three times as far as a hop does cannot look identical to one, or
+    // he reads two matching wedges and finds out which was which in the air -
+    // and by then he is committed. Ten times power puts the ordinary ramp at
+    // exactly the 19 it has always been, so nothing that shipped before moves.
+    const lipRise = Math.round(k.power * 10);
     const rampTop = (i: number): number => groundAt(k.x + i) - lipRise * (i / k.width) ** 2;
 
     const face = (): void => {

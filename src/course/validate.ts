@@ -26,8 +26,18 @@ function unit(dx: number, dy: number): { x: number; y: number } {
 /** Steepest segment the contact solver resolves cleanly: 60 degrees, as a gradient. */
 const MAX_GRADIENT = 1.732;
 
-/** Ceiling on rotations a single maximum-charge air could plausibly produce. */
-const TRICK_CEILING = 4;
+/**
+ * Ceiling on rotations a single air could plausibly produce.
+ *
+ * Was 4, which was true while the biggest launch on any course bought 50 ticks
+ * against a 15-tick spin. The booters changed that: the big one now buys 81, and
+ * a quint lands on it with six ticks to spare. CV-8 exists to prove that every
+ * finisher outranks every non-finisher (FR-034), and it proves it by pricing the
+ * best run nobody finishes - so a ceiling set below what the course actually
+ * permits does not make the rule pass, it makes it lie. Six, so the bound stays
+ * above the achievable five as launches grow.
+ */
+const TRICK_CEILING = 6;
 
 /**
  * Apex height of a launch, in world units: v^2 / 2g under constant gravity.
@@ -471,7 +481,10 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
   // under the arc, including a bough the flight would in fact clear - because a
   // conservative rule that is obviously right beats a precise one that is
   // subtly wrong about a case nobody has built yet.
-  const LANDING_MARGIN = 1.25;
+  // A quarter was margin enough while every launch landed on the slope it left.
+  // A booter is now built over a knuckle - the ground steepens after the lip on
+  // purpose - and that stretches the flight past what 2*v/g predicts. Half.
+  const LANDING_MARGIN = 1.5;
   for (const k of course.kickers) {
     const lip = k.x + k.width;
     const impulse = Math.min(k.power * tuning.tuckSpeedMax, tuning.kickerImpulseMax);

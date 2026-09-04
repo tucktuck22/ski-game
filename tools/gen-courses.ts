@@ -112,9 +112,29 @@ const CORNICE_H = 55;
  * A booter must have NO shelf within CV-13's reach after it, or the rule that
  * keeps the upper track voluntary would read this launch as a way onto one.
  */
-const BOOTER_W = 56;
-const BOOTER_MID = 2.2;
-const BOOTER_BIG = 2.5;
+const BOOTER_W = 96;
+const BOOTER_MID = 2.4;
+const BOOTER_BIG = 3.0;
+
+/**
+ * A booter is built over a KNUCKLE: the takeoff is levelled off and the ground
+ * falls away behind it.
+ *
+ * This matters more than the ramp does, and it is not obvious. Air time was
+ * measured at 66 ticks on a uniform 0.30 slope, a uniform 0.45 and a uniform
+ * 0.60 alike - identical, because the player and the ground descend together
+ * and a steeper hill moves both. Only a CHANGE in the slope buys hang time. So
+ * the terrain programme flattens through each booter's lip and then drops hard
+ * behind it, which is how a real one is shaped and, as it turns out, the only
+ * shape that does anything.
+ *
+ * The size of that change is bounded, and the bound is the reason these numbers
+ * are not larger. Orientation does not track velocity in the air - a spin
+ * restores exactly the orientation it began from - so the player lands pointing
+ * the way he took off. Landing on ground that has tilted away by more than
+ * landingAngleTolerance (0.42 rad, about 24 degrees) is a wipeout he could do
+ * nothing about. Every knuckle below lands inside 16 degrees of its takeoff.
+ */
 
 function official(): Built {
   const obstacles: Built['obstacles'] = [];
@@ -203,7 +223,7 @@ function official(): Built {
   // it pays in proportion to the speed carried into it. A launch is power times
   // carried speed, so coasting here is not a rest, it is a smaller trick.
   bough(7600, 12);
-  kickers.push({ x: 8400, width: BOOTER_W, power: BOOTER_MID });
+  kickers.push({ x: 8360, width: BOOTER_W, power: BOOTER_MID });
 
   // ---- VI. THE LAST PITCH (8,800 - 12,000). Ask: everything, at speed. ----
   // Steepest sustained grade of the course, the big booter, and a shelf that
@@ -215,7 +235,7 @@ function official(): Built {
   bough(9000, 11);
   deadfall(9300);
   bough(9600, 12);
-  kickers.push({ x: 10000, width: BOOTER_W, power: BOOTER_BIG });
+  kickers.push({ x: 10024, width: BOOTER_W, power: BOOTER_BIG });
   kickers.push({ x: 10500, width: RAMP_W, power: RAMP_POWER });
   ledges.push({ x0: 10600, x1: 12000, height: SHELF_H });
   ice.push({ x0: 10820, x1: 10868 });
@@ -228,8 +248,8 @@ function official(): Built {
   // Skipped across the booters' run-ups and landings, so nothing invites the
   // player to duck into a launch he cannot see the far side of.
   const booterZones = [
-    [8380, 8780],
-    [9980, 10380],
+    [8340, 8900],
+    [10004, 10620],
   ];
   for (let x = 300; x < 11900; x += 320) {
     if (booterZones.some(([a, b]) => x >= (a as number) && x <= (b as number))) continue;
@@ -248,10 +268,14 @@ function official(): Built {
         { x: 5000, g: 0.6 }, // The Narrows: steep AND technical
         { x: 5400, g: 0.5 }, // The Cornice eases, so shelf work is readable
         { x: 7400, g: 0.44 },
-        { x: 7800, g: 0.19 }, // The Flats: speed bleeds
-        { x: 8800, g: 0.19 }, // held flat THROUGH the booter, so its apron is straight
-        { x: 9400, g: 0.4 }, // The Last Pitch
-        { x: 12200, g: 0.62 },
+        { x: 7800, g: 0.2 }, // The Flats: speed bleeds
+        { x: 8560, g: 0.2 }, // levelled THROUGH booter 1's lip: a flat takeoff
+        { x: 9160, g: 0.72 }, // and the ground falls away behind it. Knuckle one.
+        { x: 9800, g: 0.72 }, // The Last Pitch, held steep
+        { x: 10120, g: 0.46 }, // levelled off again for booter 2's lip
+        { x: 10480, g: 0.78 }, // knuckle two, the big one
+        { x: 10700, g: 0.52 }, // eased before the final ramp, so its shelf still
+        { x: 12200, g: 0.62 }, // charges the entry fee CV-13 asserts
       ],
       12000,
     ),
@@ -280,7 +304,7 @@ function warmup(): Built {
     pickups.push({ x: Math.round(1496 + (700 * k) / 5), y: -(SHELF_H + 6), value: 'large' });
   }
   for (let x = 300; x < 3000; x += 320) {
-    if (x >= 2580 && x <= 2980) continue; // the booter's run-up and landing
+    if (x >= 2480 && x <= 3000) continue; // the booter's run-up and landing
     pickups.push({ x, y: -(4 + (x % 7)), value: 'small' });
   }
   return {
@@ -291,8 +315,10 @@ function warmup(): Built {
       [
         { x: 0, g: 0.22 },
         { x: 1400, g: 0.36 },
-        { x: 2400, g: 0.3 },
-        { x: 3400, g: 0.3 },
+        { x: 2300, g: 0.28 }, // levelled for the booter's lip
+        { x: 2650, g: 0.28 },
+        { x: 3000, g: 0.62 }, // a small knuckle, to learn the shape on
+        { x: 3400, g: 0.62 },
       ],
       3200,
     ),
@@ -301,7 +327,7 @@ function warmup(): Built {
     ledges: [{ x0: 1496, x1: 2196, height: SHELF_H }],
     kickers: [
       { x: 1400, width: RAMP_W, power: RAMP_POWER },
-      { x: 2600, width: BOOTER_W, power: BOOTER_MID },
+      { x: 2500, width: BOOTER_W, power: BOOTER_MID },
     ],
     rocks: [{ x: 1926, width: 16, height: 12 }],
     ice: [{ x0: 1726, x1: 1774 }],

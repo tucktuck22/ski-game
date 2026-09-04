@@ -10,9 +10,15 @@ import { official, tuning, scoring } from './fixtures.js';
  * III asks a mechanic to define, so it is asserted rather than described.
  *
  * The ladder these tests pin down:
- *   at base speed          a double, and no more
- *   at full tuck           a triple off either booter
- *   at full tuck, the big booter only   a quad
+ *   base speed, small booter    a double
+ *   base speed, big booter      a triple
+ *   full tuck, small booter     a quad
+ *   full tuck, big booter       a quint
+ *
+ * The big booter is worth exactly one more rotation than the small one at every
+ * speed, which is the whole reason there are two of them. It buys that with a
+ * stronger launch AND a steeper knuckle behind the lip - the ground falling away
+ * is worth as much as the ramp, and neither alone gets there.
  *
  * Speed buying rotations is the whole reason The Flats section exists. A launch
  * impulse is power times CARRIED speed, so coasting the flat is not a rest, it
@@ -44,7 +50,8 @@ function run(course: Course, spins: number, tuckIn: boolean, only?: number) {
     }
     const duck = !onShelf && boughs.some((o) => s.x + 30 >= o.x && s.x < o.x + o.width);
     const releasing = gap <= 34 && gap > -30;
-    const over = throwOver.some((k) => s.x > k.x && s.x < k.x + 500);
+    const over =
+      !s.grounded && throwOver.some((k) => airFrom >= k.x && airFrom <= k.x + k.width + 10);
     let rotate: -1 | 0 | 1 = 0;
     if (!s.grounded && over && thrown < spins && s.spinTicksLeft === 0) {
       rotate = 1;
@@ -82,29 +89,48 @@ describe('the booters (FR-078, Principle III feel criteria)', () => {
     expect(r.airOff(booters[1]!.x)).toBeGreaterThan(r.airOff(booters[0]!.x));
   });
 
-  it('buys enough air at full tuck for a triple, with margin', () => {
-    // Three spins is 45 ticks. Anything under about 55 is a ceiling pretending
-    // to be a trick: the player who hesitates for a quarter of a second dies.
+  it('buys enough air at full tuck for a quad, with margin', () => {
+    // Four spins is 60 ticks. A launch that only just covers its advertised
+    // trick is a ceiling pretending to be one: the player who hesitates for a
+    // quarter of a second dies, and cannot see why.
     const r = run(official, 0, true);
     for (const b of booters) {
-      expect(r.airOff(b.x)).toBeGreaterThanOrEqual(3 * tuning.spinDurationTicks + 10);
+      expect(r.airOff(b.x)).toBeGreaterThanOrEqual(4 * tuning.spinDurationTicks + 4);
     }
   });
 
-  it('lands a triple at full tuck, and pays for it', () => {
+  it('lands a quad at full tuck, and pays for it', () => {
     const plain = run(official, 0, true).state;
-    const tricked = run(official, 3, true).state;
+    const tricked = run(official, 4, true).state;
     expect(tricked.outcome).toBe('finished');
     expect(tricked.score).toBeGreaterThan(plain.score);
   });
 
-  it('refuses a triple at base speed: speed is what buys rotations', () => {
-    expect(run(official, 2, false).state.outcome).toBe('finished');
-    expect(run(official, 3, false).state.wipeoutReason).toBe('spun_out');
+  it('gives the quint to the big booter alone', () => {
+    expect(run(official, 5, true, booters[1]!.x).state.outcome).toBe('finished');
+    expect(run(official, 5, true, booters[0]!.x).state.wipeoutReason).toBe('spun_out');
   });
 
-  it('gives the quad only to the bigger booter', () => {
-    expect(run(official, 4, true, booters[0]!.x).state.wipeoutReason).toBe('spun_out');
-    expect(run(official, 4, true, booters[1]!.x).state.outcome).toBe('finished');
+  it('caps out: nothing on the course holds a sixth rotation', () => {
+    for (const b of booters) {
+      expect(run(official, 6, true, b.x).state.wipeoutReason).toBe('spun_out');
+    }
+  });
+
+  it('charges base speed a rotation on each booter: speed buys air', () => {
+    expect(run(official, 2, false, booters[0]!.x).state.outcome).toBe('finished');
+    expect(run(official, 3, false, booters[0]!.x).state.wipeoutReason).toBe('spun_out');
+    expect(run(official, 3, false, booters[1]!.x).state.outcome).toBe('finished');
+    expect(run(official, 4, false, booters[1]!.x).state.wipeoutReason).toBe('spun_out');
+  });
+
+  it('lands inside the angle tolerance the player cannot correct for', () => {
+    // Orientation does not track velocity in the air, so a knuckle that tilts
+    // the ground away by more than landingAngleTolerance is an unavoidable
+    // wipeout. Proven by landing them, not by trusting the terrain programme.
+    for (const b of booters) {
+      expect(run(official, 0, true, b.x).state.outcome).toBe('finished');
+      expect(run(official, 0, false, b.x).state.outcome).toBe('finished');
+    }
   });
 });
