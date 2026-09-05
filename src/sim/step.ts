@@ -57,6 +57,7 @@ export function initialState(course: Course, tuning: Tuning, seed: number): RunS
     spinFromOx: 1,
     spinFromOy: 0,
     rotateHeld: 0,
+    gravityScale: 1,
     grounded: true,
     ledge: -1,
     crouchHeld: false,
@@ -252,6 +253,9 @@ export function step(
   // carries the upper track's 2x through an air that starts on a shelf and ends
   // on the piste, and it is why the trick award above is paid at the rate of
   // the air rather than of the snow he landed on.
+  // Back on snow, back to full weight. A float belongs to one launch; carrying
+  // it into the next air would make the booter a state the player is stuck in.
+  if (s.grounded) s.gravityScale = 1;
   if (s.grounded) s.scoreMultiplier = s.ledge >= 0 ? UPPER_TRACK_MULTIPLIER : 1;
   s.rotateHeld = input.rotate;
 

@@ -130,11 +130,13 @@ describe('the committed spin (FR-124)', () => {
     expect(s.score).toBe(scoring.trickPerRotation);
   });
 
-  it('lets a big launch bank two, and punishes going for a third', () => {
-    // The skill ceiling, and the shape of the greed it rewards. Two spins fit
-    // inside a full-charge air with a tick to spare between them; a third does
-    // not, and starting one costs the player BOTH of the completed spins,
-    // because rotation only converts to score on a clean landing.
+  it('lets a big launch bank two, and has no air left for a third', () => {
+    // The skill ceiling of a CROUCH release, which is deliberately modest: the
+    // base jump was halved (launchImpulseMax 7.2 -> 5.0) so it could no longer
+    // put a skier on a shelf without a ramp. Thirty ticks of air is exactly two
+    // spins. A third cannot be started at all now rather than being started and
+    // punished - the greed trap lives on the ramps and booters, where the air is
+    // long enough to tempt someone into it.
     const derived = derive(tuning);
     const fly = (maxSpins: number): RunState => {
       let s = initialState(official, tuning, 1);
@@ -157,10 +159,12 @@ describe('the committed spin (FR-124)', () => {
     expect(disciplined.outcome).toBe('running');
     expect(disciplined.score).toBe(2 * scoring.trickPerRotation);
 
+    // A third never gets off the ground: the second spin completes on the last
+    // tick of the air, so there is no moment at which a third could be pressed.
+    // He banks the two he landed rather than losing them.
     const greedy = fly(3);
-    expect(greedy.outcome).toBe('wiped_out');
-    expect(greedy.wipeoutReason).toBe('spun_out');
-    expect(greedy.score).toBe(0);
+    expect(greedy.outcome).toBe('running');
+    expect(greedy.score).toBe(2 * scoring.trickPerRotation);
   });
 
   it('cannot be started from the ground', () => {
@@ -190,7 +194,10 @@ describe('the committed spin (FR-124)', () => {
  */
 describe('a trick is paid for in timing (AC-3, restated)', () => {
   it('a full-charge launch is forgiving about when the spin starts', () => {
-    for (const delay of [1, 5, 10, 20]) {
+    // Fifteen ticks of latitude, down from thirty: halving the base jump halved
+    // the air it buys, so the window narrowed with it. It is still an order
+    // wider than the zero-charge launch's, which is what AC-3 is about.
+    for (const delay of [1, 5, 10, 15]) {
       const { state } = attempt(tuning.chargeTicksToMax, delay);
       expect(state.outcome, `delay ${delay}`).toBe('running');
       expect(state.score, `delay ${delay}`).toBe(scoring.trickPerRotation);

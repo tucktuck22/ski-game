@@ -36,7 +36,7 @@ values (
   -- warning: the commit_deadline trigger rejects every official run with
   -- "rules version mismatch", and the player is told his one run did not count.
   -- tests/contract/storage.test.ts fails if these two drift apart again.
-  '1.5.0',
+  '1.6.0',
   encode(gen_random_bytes(16), 'hex')
 );
 

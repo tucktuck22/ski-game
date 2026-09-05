@@ -51,6 +51,27 @@ Modified sections:
     playable mechanically; Definition of Done gains items 7-9; a stop condition added
     for repeated fix-forward.
 
+Version change: 1.2.0 → 1.3.0
+Rationale: One principle added after the official course was found to be a single
+1,200-unit layout repeated nine times - a defect that passed every validator rule and
+both robot pilots, because none of them measures sameness. The project already
+required a human play pass, but only at completion, so the cheapest feedback in the
+project was also its last. One principle added and one workflow section materially
+expanded, so MINOR per the versioning policy.
+
+Added principles:
+  VIII. The Player Judges Fun, and Judges It Early (NON-NEGOTIABLE)
+
+Modified sections:
+  Development Workflow & Quality Gates - "Playtest cadence" now requires a play pass
+    at the earliest playable point, not only at feature completion; Definition of Done
+    item 6 gains the naming requirement for feel changes.
+
+Follow-up TODOs:
+  TODO(README_PRINCIPLE_TABLE): README.md still presents five principles and calls
+    them "all five". The document has carried eight since this amendment. Out of scope
+    for /speckit-constitution, which writes only this file.
+
 OPEN DEVIATIONS (Principle VI requires these be stated, not implied)
   The following are REQUIRED by this document and NOT YET ENFORCED. Each is a
   deviation under the Governance compliance-review clause, owned by the maintainer,
@@ -268,6 +289,39 @@ inserted eight rows while ignoring the unusable links it printed. Setup is where
 project has spent nearly all of its defect budget, and it was the only area under no
 automated obligation at all.
 
+### VIII. The Player Judges Fun, and Judges It Early (NON-NEGOTIABLE)
+
+A change to how the game feels - course geometry, tuning values, controls, or any
+rule the player meets as difficulty - MUST reach the end user's hands as a playable
+build before it is settled, and at the earliest point it can be made to run.
+
+- Any change to `data/courses/*.json`, `data/tuning.json`, `data/scoring.json`, or the
+  control surface MUST be published as a playable single-file build
+  (`npm run build:artifact`, packed by `tools/build-artifact.mjs`) and handed to the
+  end user for a play pass. The link and the commit it was built from MUST be named.
+- That play pass MUST happen at the FIRST point the change is playable, not at feature
+  completion. A change that could have been played three iterations earlier and was
+  not has already spent the iterations it skipped.
+- Measurements MUST NOT stand in for it. The course validator and the robot pilots
+  decide whether a course is legal, completable and survivable. They hold no opinion
+  on whether it is fun, and MUST NOT be cited as evidence that it is.
+- Where the two disagree - the pilots ride a stretch cleanly and the player finds it
+  dull, or the pilots struggle where the player has fun - the player's reading wins
+  and the measurement is what gets revised.
+- Findings MUST be recorded against the governing spec in the player's own words
+  before any further change to the same values.
+
+Rationale: the official course shipped as one 1,200-unit layout repeated nine times
+and nothing caught it. Every validator rule passed, both robot pilots completed it,
+and its numbers were unremarkable in every dimension this project measures - because
+"the same thing nine times" is not a property any of those checks look for. Only a
+person riding it notices. Principle III already required a human play pass, but at
+completion, which is too late to be cheap: by then the shape is built and the
+iterations that would have found the problem are spent. Remote development made this
+worse, since a container has no browser anyone can reach; naming the harness that
+removes that excuse is therefore part of the obligation rather than a convenience
+left to whoever remembers it.
+
 ## Technical Standards & Constraints
 
 **Simulation architecture.** The simulation MUST be separated from rendering and
@@ -344,7 +398,9 @@ MUST NOT be cited as such.
 3. Frame budget and memory ceiling are not regressed.
 4. Any new asset has passed style-bible review.
 5. Tuning values are in data files, not code.
-6. A human has played the result and recorded findings.
+6. A human has played the result and recorded findings. Where the change alters
+   gameplay feel, that play pass happened at the earliest playable point and the
+   change description names the published build the player rode (Principle VIII).
 7. The change has been exercised against the built artifact at its production base
    path, and the change description names the command run and the environment it ran
    in. "Verified" without a named command and environment is not a claim, and MUST be
@@ -360,8 +416,11 @@ explicitly confirm principle compliance and reject changes that trade a principl
 speed. Added complexity MUST be justified in writing against a simpler rejected
 alternative.
 
-**Playtest cadence.** Playtesting MUST occur at feature completion, not solely at
-milestone boundaries. Findings MUST be recorded against the governing spec.
+**Playtest cadence.** Playtesting MUST occur at the earliest point the change is
+playable, again at feature completion, and not solely at milestone boundaries. For a
+change to gameplay feel, the first of these is required by Principle VIII and MUST
+name the published build the player rode. Findings MUST be recorded against the
+governing spec.
 
 **Repeated fix-forward is a stop condition.** Where two consecutive changes attempt to
 fix the same user-visible failure, work on a third MUST NOT begin until the missing
@@ -397,4 +456,4 @@ reviewed at the next milestone.
 a project-root `CLAUDE.md` and MUST remain consistent with this constitution. Where
 the two disagree, this constitution governs and the guidance file MUST be corrected.
 
-**Version**: 1.2.0 | **Ratified**: 2026-09-01 | **Last Amended**: 2026-09-03
+**Version**: 1.3.0 | **Ratified**: 2026-09-01 | **Last Amended**: 2026-09-04

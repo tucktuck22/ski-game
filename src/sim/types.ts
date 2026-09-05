@@ -101,6 +101,36 @@ export interface Kicker {
   width: number;
   /** Multiplier on carried speed. The launch impulse is power * speed. */
   power: number;
+  /**
+   * Direction of the launch, in degrees above the horizontal. Omitted means 90:
+   * straight up, which is what every ramp did before this existed.
+   *
+   * Straight up is wrong for a booter and right for a hop. A shelf ramp only
+   * has to lift the skier 50 units onto a platform 96 away, so all of its
+   * impulse belongs in the vertical. A booter throwing 12.5 against a forward
+   * speed of 4.2 leaves the lip at 71 degrees and returns at 71 degrees - it
+   * tosses him up and drops him on the same spot, which reads as a fall rather
+   * than a launch however much air it technically buys. Tilting the launch
+   * forward spends the same impulse on distance instead of height, and lands
+   * the apex back inside a 180-tall frame as a side effect.
+   */
+  launchAngle?: number;
+  /**
+   * Gravity multiplier while airborne from this launch. Omitted means 1.
+   *
+   * This exists because hang time and height are the same number. For any arc
+   * under constant gravity the peak stands h = g*t^2/8 above the launch line,
+   * so four times the hang time costs SIXTEEN times the height - 2,025 units
+   * for 225 ticks, against a buffer 180 tall. There is no camera trick that
+   * fits eleven screens of air into one; zooming out far enough leaves the
+   * skier a pixel and a half, which rule LW-3 does not allow.
+   *
+   * Scaling gravity is the only remaining lever, and it is scoped to a single
+   * launch rather than applied to the whole game so that ducking a bough, a
+   * shelf hop and a fall through ice all keep the weight they were tuned with.
+   * A booter floats; nothing else does.
+   */
+  gravityScale?: number;
 }
 
 export type PickupValue = 'small' | 'large';
@@ -235,6 +265,13 @@ export interface RunState {
    * score. The crouch release is derived from state the same way.
    */
   rotateHeld: -1 | 0 | 1;
+  /**
+   * Gravity multiplier in force right now: 1 on the ground and in an ordinary
+   * air, less than 1 while floating a booter launch. Held in run state rather
+   * than looked up per tick because the launch that set it is long past by the
+   * time it matters, and the flight must not change weight halfway down.
+   */
+  gravityScale: number;
   grounded: boolean;
   /** Which surface the skier is riding: -1 for the piste, else an index into course.ledges. */
   ledge: number;

@@ -14,6 +14,7 @@ import type { Course, RunState, Tuning } from '../sim/types.js';
 import { terrainYAt, surfaceYAt, iceIndexAt, slopeAt } from '../sim/terrain.js';
 import { PALETTE, type PaletteToken } from './palette.js';
 import { INTERNAL_HEIGHT, INTERNAL_WIDTH } from './stage.js';
+import { cameraAirLift, rampLift, rampRise } from './rampGeometry.js';
 import type { MotionSettings } from './reducedMotion.js';
 import type { Shake } from './landing.js';
 import type { Tumble } from './death.js';
@@ -39,10 +40,20 @@ export interface Camera {
   y: number;
 }
 
-export const cameraFor = (state: RunState): Camera => ({
-  x: state.x - CAMERA_X_OFFSET,
-  y: state.y - INTERNAL_HEIGHT * 0.6,
-});
+/**
+ * Measured from the piste rather than from whatever he is standing on, so the
+ * lift is continuous. Keyed to the shelf instead, it would snap by 25 pixels
+ * the instant he rode off one - and a camera that jumps on landing trades one
+ * unreadable moment for another.
+ */
+export const cameraFor = (state: RunState, course: Course): Camera => {
+  const above = terrainYAt(course.terrain, state.x) - state.y;
+  const lift = cameraAirLift(above);
+  return {
+    x: state.x - CAMERA_X_OFFSET,
+    y: state.y - INTERNAL_HEIGHT * 0.6 + lift,
+  };
+};
 
 /**
  * Scenery placement hash.
@@ -582,13 +593,26 @@ function drawRocks(ctx: CanvasRenderingContext2D, course: Course, cam: Camera): 
  * ink face, and the lip gets the same emphatic treatment LW-4 gives the contact
  * line, because the lip is exactly where the launch fires.
  */
-function drawKickers(ctx: CanvasRenderingContext2D, course: Course, cam: Camera): void {
+
+function drawKickers(
+  ctx: CanvasRenderingContext2D,
+  course: Course,
+  cam: Camera,
+  tuning: Tuning,
+): void {
   for (const k of course.kickers) {
     const px = k.x - cam.x;
-    if (px < -80 || px > INTERNAL_WIDTH + 80) continue;
+    // Culled against the ramp's OWN width, not a fixed 80. A booter is 96 wide
+    // against a 320-wide screen, so a fixed margin dropped it while its lip was
+    // still on camera - it popped into existence under the player's feet.
+    if (px < -(k.width + 40) || px > INTERNAL_WIDTH + 80) continue;
     const groundAt = (wx: number): number => terrainYAt(course.terrain, wx) - cam.y;
-    const lipRise = 19;
-    const rampTop = (i: number): number => groundAt(k.x + i) - lipRise * (i / k.width) ** 2;
+    const lipRise = rampRise(k, tuning, course);
+    // Straight for a booter, curved for a pop - and taken from rampLift rather
+    // than repeated here, so the shape the skier rides and the shape drawn under
+    // him are the same shape by construction.
+    const rampTop = (i: number): number =>
+      groundAt(k.x + i) - rampLift(course, tuning, k.x + i, -1);
 
     const face = (): void => {
       ctx.beginPath();
@@ -805,7 +829,7 @@ export function drawRun(
   tumble: Tumble = { spin: 0, slide: 0 },
   skin: SkierSkin | null = null,
 ): void {
-  const cam = cameraFor(state);
+  const cam = cameraFor(state, course);
   // The kick is applied to the CAMERA, not to the finished frame. Translating
   // the buffer afterwards would drag the sky with it and leave a bare strip at
   // the edge; moving the camera shakes the world inside a frame that still
@@ -866,7 +890,7 @@ export function drawRun(
   drawSnowfall(ctx, cam, state.tick, motion);
 
   drawPiste(ctx, course, cam);
-  drawKickers(ctx, course, cam);
+  drawKickers(ctx, course, cam, tuning);
   drawLedges(ctx, course, cam, state);
   drawIce(ctx, course, state, cam);
   drawRocks(ctx, course, cam);
@@ -947,7 +971,8 @@ function drawSkier(
   // lying on the snow instead of drifting off it.
   const slope = slopeAt(course.terrain, state.x);
   const px = state.x - cam.x + slope.ux * tumble.slide;
-  const py = state.y - cam.y + slope.uy * tumble.slide;
+  const py =
+    state.y - cam.y + slope.uy * tumble.slide - rampLift(course, tuning, state.x, state.ledge);
   const height =
     tuning.standHeight - (tuning.standHeight - tuning.crouchHeight) * state.crouchProfile;
 
@@ -959,7 +984,12 @@ function drawSkier(
     for (let i = 0; i < 7; i++) {
       const age = ((state.tick * 1.7 + i * 5) % 18) / 18;
       const sx = px - age * 22 - 4;
-      const sy = surfaceYAt(course, state.x - age * 22, state.ledge) - cam.y - age * 7;
+      const behind = state.x - age * 22;
+      const sy =
+        surfaceYAt(course, behind, state.ledge) -
+        cam.y -
+        age * 7 -
+        rampLift(course, tuning, behind, state.ledge);
       const s = age < 0.5 ? 2 : 1;
       ctx.fillRect(Math.round(sx), Math.round(sy), s, s);
     }

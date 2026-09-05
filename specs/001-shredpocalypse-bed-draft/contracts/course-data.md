@@ -39,6 +39,13 @@ warm-up rehearses everything except the terrain, so it cannot differ in kind.
     // a ramp. Crossing the lip at x + width while grounded launches the skier
     // by power * carried speed, capped at `kickerImpulseMax`.
     { "x": 1400, "width": 56, "power": 1.9 },
+    // `launchAngle` is degrees above the horizontal, and defaults to 90 -
+    // straight up, which is right for a ramp whose only job is to lift the
+    // skier onto a shelf. A booter tilts it forward so the same impulse buys
+    // distance instead of height. Height is the expensive one: the render
+    // buffer is 180 tall, so an apex much past 200 leaves the snow out of
+    // frame for most of the flight and the jump stops reading as a jump.
+    { "x": 9500, "width": 96, "power": 2.4, "launchAngle": 56 },
   ],
   "rocks": [
     // stands proud of the shelf it sits on. Jumped, never ducked.
@@ -96,6 +103,8 @@ violation.** These are executable requirements, not review guidance.
 | CV-13    | **Every ledge is reachable at `tuckSpeedMax` and unreachable at `baseSpeed`**                                                                  | **FR-035, SC-015** |
 | CV-14    | Every ledge clears the top of every bough it crosses, with margin                                                                              | FR-035             |
 | CV-15    | No kicker sits inside a `low` obstacle's safe release window or overlaps a `solid` one                                                         | FR-088             |
+| CV-21    | Nothing stands under a kicker's flight, from its lip to where a full-tuck launch comes down                                                    | FR-088             |
+| CV-22    | No `solid` obstacle sits close enough before a kicker's lip that the jump over it carries the player across the lip, losing the launch         | FR-078             |
 
 **CV-18 has two halves for the same reason CV-13 does.** Ice too long to escape
 makes the countdown decoration; ice short enough to ride across makes the ice

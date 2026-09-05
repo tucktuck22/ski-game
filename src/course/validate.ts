@@ -9,7 +9,7 @@
  * protects — and it is invisible to review. It would surface as one friend
  * saying the game is broken, after the draft had already started.
  */
-import type { Course, Obstacle, Scoring, TerrainPoint, Tuning } from '../sim/types.js';
+import type { Course, Kicker, Obstacle, Scoring, TerrainPoint, Tuning } from '../sim/types.js';
 import { overheadClearanceAt, ledgeIndexAt } from '../sim/terrain.js';
 import { maxAchievableBonus } from '../sim/scoring.js';
 
@@ -26,8 +26,20 @@ function unit(dx: number, dy: number): { x: number; y: number } {
 /** Steepest segment the contact solver resolves cleanly: 60 degrees, as a gradient. */
 const MAX_GRADIENT = 1.732;
 
-/** Ceiling on rotations a single maximum-charge air could plausibly produce. */
-const TRICK_CEILING = 4;
+/**
+ * Ceiling on rotations a single air could plausibly produce.
+ *
+ * Was 4, which was true while the biggest launch on any course bought 50 ticks
+ * against a 15-tick spin. The booters changed that: the big one now buys 81, and
+ * a quint lands on it with six ticks to spare. CV-8 exists to prove that every
+ * finisher outranks every non-finisher (FR-034), and it proves it by pricing the
+ * best run nobody finishes - so a ceiling set below what the course actually
+ * permits does not make the rule pass, it makes it lie. Eighteen now: a floated
+ * booter buys 225 ticks against a 15-tick spin, so fifteen rotations fit in one
+ * air where four used to, and the bound has to sit above what the course allows
+ * rather than above what anyone expects a person to actually land.
+ */
+const TRICK_CEILING = 18;
 
 /**
  * Apex height of a launch, in world units: v^2 / 2g under constant gravity.
@@ -37,6 +49,21 @@ const TRICK_CEILING = 4;
  * validator is a build-time check, not the simulation.
  */
 const apexOf = (impulse: number, gravity: number): number => (impulse * impulse) / (2 * gravity);
+
+/**
+ * The vertical and horizontal halves of a launch, for a ramp that may throw
+ * forward as well as up.
+ *
+ * Everything downstream used to be able to assume impulse WAS the vertical
+ * component, because every ramp threw straight up. A booter does not, and the
+ * rules that decide whether a shelf is reachable and where a flight comes down
+ * are both wrong if they keep assuming it: one would over-estimate the height a
+ * ramp reaches, the other would under-estimate how far it throws.
+ */
+const launchParts = (k: Kicker, impulse: number): { up: number; along: number } => {
+  const rad = ((k.launchAngle ?? 90) * Math.PI) / 180;
+  return { up: impulse * Math.sin(rad), along: impulse * Math.cos(rad) };
+};
 
 /** Minimum vertical margin between a shelf and the boughs it sails over (CV-14). */
 const LEDGE_BRANCH_MARGIN = 8;
@@ -217,7 +244,12 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
         rule: 'CV-12',
         message: `ledge at x=${l.x0} has height ${l.height}: not above the piste`,
       });
-    const bestApex = apexOf(tuning.launchImpulseMax, tuning.gravity);
+    // Measured against the best RAMP, not the best crouch release. It used to be
+    // the crouch, which was true only while a max-charge release out-jumped every
+    // shelf on the mountain - and that was the bug: it meant the upper track could
+    // be entered anywhere, with no ramp, and CV-13's entry fee was optional. A
+    // shelf is reached by a kicker, so a kicker is what bounds how high one may be.
+    const bestApex = apexOf(tuning.kickerImpulseMax, tuning.gravity);
     if (l.height > bestApex)
       v.push({
         rule: 'CV-12',
@@ -260,7 +292,7 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
     }
     const reachable = entries.some((k) => {
       const impulse = Math.min(k.power * tuning.tuckSpeedMax, tuning.kickerImpulseMax);
-      return apexOf(impulse, tuning.gravity) > l.height;
+      return apexOf(launchParts(k, impulse).up, tuning.gravity * (k.gravityScale ?? 1)) > l.height;
     });
     if (!reachable)
       v.push({
@@ -269,7 +301,7 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
       });
     for (const k of entries) {
       const impulse = Math.min(k.power * tuning.baseSpeed, tuning.kickerImpulseMax);
-      if (apexOf(impulse, tuning.gravity) >= l.height)
+      if (apexOf(launchParts(k, impulse).up, tuning.gravity * (k.gravityScale ?? 1)) >= l.height)
         v.push({
           rule: 'CV-13',
           message:
@@ -451,6 +483,84 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
         rule: 'CV-20',
         message: `${prev.what} and ${cur.what} are ${cur.x0 - prev.x1} apart, under ${SHELF_HAZARD_GAP}`,
       });
+  }
+
+  // CV-21: a launch must have somewhere to come down.
+  //
+  // CV-15 keeps a ramp clear of the boughs BESIDE it. It says nothing about
+  // where the flight ends, which did not matter while every ramp on the course
+  // was a 40-unit hop onto a shelf 96 units away. A booter is a different
+  // object: it buys sixty-odd ticks of air and carries the player the better
+  // part of three hundred units downhill, over ground he committed to before he
+  // could see it. Landing on a log there is the same unfairness CV-4 and CV-15
+  // exist to prevent, arriving from above.
+  //
+  // The reach is bounded rather than simulated. Duplicating the flight solver in
+  // the validator would be a second copy of the physics to drift from the first,
+  // which Principle II will not have; 2*v/g matched the simulation's measured
+  // air to within a tick at both the old cap and the new one, and a quarter is
+  // added on top of that. The rule is deliberately strict - it forbids anything
+  // under the arc, including a bough the flight would in fact clear - because a
+  // conservative rule that is obviously right beats a precise one that is
+  // subtly wrong about a case nobody has built yet.
+  // A quarter was margin enough while every launch landed on the slope it left.
+  // A booter is now built over a knuckle - the ground steepens after the lip on
+  // purpose - and that stretches the flight past what 2*v/g predicts. Half.
+  // Half was margin for the knuckles, which are gone. The flight terms now
+  // carry the physics that the crude factor used to stand in for - the vertical
+  // half of an angled launch, and the gravity a floated one actually falls
+  // under - so the fudge comes back down.
+  const LANDING_MARGIN = 1.3;
+  for (const k of course.kickers) {
+    const lip = k.x + k.width;
+    const impulse = Math.min(k.power * tuning.tuckSpeedMax, tuning.kickerImpulseMax);
+    // Air comes from the vertical half of the launch; ground covered comes from
+    // the skier's own speed PLUS the horizontal half. A booter tilted forward
+    // travels two to three times as far as the same impulse thrown straight up,
+    // so reading the reach off the impulse alone would clear a landing zone the
+    // player sails clean over.
+    const { up, along } = launchParts(k, impulse);
+    const airTicks = (2 * up) / (tuning.gravity * (k.gravityScale ?? 1));
+    const reach = lip + airTicks * (tuning.tuckSpeedMax + along) * LANDING_MARGIN;
+    for (const o of course.obstacles) {
+      if (o.x + o.width <= lip || o.x >= reach) continue;
+      v.push({
+        rule: 'CV-21',
+        message:
+          `ramp at x=${k.x} throws a full-tuck skier as far as x=${reach.toFixed(0)}, and the ` +
+          `${o.kind} obstacle at x=${o.x} stands under that flight. He is committed to the ` +
+          'launch before he can see what he is committed to.',
+      });
+    }
+  }
+
+  // CV-22: a ramp needs a run-up the skier is actually STANDING on.
+  //
+  // Kickers only fire from the ground - sailing over one is scenery, by design.
+  // So a log sitting just before a lip quietly disables the ramp behind it: the
+  // player jumps the log, is still airborne when he crosses the lip, and gets
+  // no launch at all. Nothing else catches this. CV-15 checks that a ramp does
+  // not OVERLAP a log, which this does not, and CV-21 looks downhill from the
+  // lip rather than uphill at it. It cost a booter its entire flight, and the
+  // only symptom was a jump that silently did not happen.
+  for (const k of course.kickers) {
+    const lip = k.x + k.width;
+    for (const o of course.obstacles) {
+      if (o.kind !== 'solid') continue;
+      if (o.x >= lip) continue;
+      // How far a minimum-charge clearing jump carries at full tuck: the widest
+      // reach that could still put him over this lip.
+      const jumpReach = ((2 * tuning.launchImpulseMin) / tuning.gravity) * tuning.tuckSpeedMax;
+      if (o.x + o.width + jumpReach < lip) continue;
+      v.push({
+        rule: 'CV-22',
+        message:
+          `the ${o.kind} obstacle at x=${o.x} sits ${(lip - o.x - o.width).toFixed(0)} before the ` +
+          `lip of the ramp at x=${k.x}, inside the ${jumpReach.toFixed(0)} a jump over it covers. ` +
+          'The player clears the log and is still in the air at the lip, so the ramp never fires ' +
+          'and the launch is silently lost.',
+      });
+    }
   }
 
   // CV-8: FR-034 dominance — a finish must beat any wipeout

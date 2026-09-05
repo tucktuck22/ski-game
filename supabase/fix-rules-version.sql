@@ -13,7 +13,7 @@
 -- trigger correctly refuses a score the client is correctly sending.
 --
 -- Drafts seeded before this file existed carry '1.0.0' while the shipped game
--- sends '1.5.0'. That combination rejects 100% of official commits.
+-- sends '1.6.0'. That combination rejects 100% of official commits.
 --
 -- WHEN TO RUN THIS: the draft has no committed scores yet and you want the
 -- version realigned so play can start. That is the only safe case, and the
@@ -34,7 +34,7 @@ declare
   -- The version the shipped build sends. Kept in step with
   -- data/courses/official.json by tests/contract/storage.test.ts, which is
   -- what stops this file becoming the stale thing it exists to repair.
-  target   text := '1.5.0';
+  target   text := '1.6.0';
   d        record;
   n_scores integer;
 begin

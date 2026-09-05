@@ -109,7 +109,7 @@ describe('error classification decides retry versus give up', () => {
  * what the client actually sends, EVERY official run is rejected with "rules
  * version mismatch" and each of eight players is told his one run did not count.
  *
- * That is not hypothetical. rulesVersion was bumped five times (1.0.0 -> 1.5.0)
+ * That is not hypothetical. rulesVersion was bumped six times (1.0.0 -> 1.6.0)
  * while seed-draft.sql kept saying '1.0.0', and nothing failed until a player
  * tried to commit. Grepping the seed is cheap; discovering this from the cabin
  * is not.

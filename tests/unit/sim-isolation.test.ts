@@ -82,12 +82,22 @@ describe('the simulation cannot observe the renderer (FR-164)', () => {
     },
   );
 
-  it('RunState carries exactly the fields it carried before feature 004', () => {
+  it('RunState carries only fields the SIMULATION reads', () => {
     // A snapshot of the interface, not of a value. Feature 004 adds poses,
     // lean buckets and a landing absorb, and NONE of them may appear here:
     // a field added for presentation would put presentation inside the thing
     // FR-026's reproducibility is computed over. Changing this list is a
     // deliberate act that has to be justified against Principle V.
+    //
+    // `gravityScale` is such an act, and the justification is that it is the
+    // opposite of the thing this test guards against. It is not read by the
+    // renderer at all; applyAirborneMotion multiplies gravity by it on every
+    // airborne tick, so it changes where the skier goes. A booter sets it at
+    // the lip and landing clears it, which means the weight of a flight is
+    // part of the run and has to survive in the state the run is replayed
+    // from. Leaving it out would put a value the physics depends on OUTSIDE
+    // the hash - the same mistake in the other direction, and the one that
+    // actually breaks Principle V.
     const source = readFileSync(join(SIM_DIR, 'types.ts'), 'utf8');
     const body = source.slice(source.indexOf('export interface RunState {'));
     const fields = [...body.slice(0, body.indexOf('\n}')).matchAll(/^ {2}(\w+)[?]?:/gm)].map(
@@ -115,6 +125,7 @@ describe('the simulation cannot observe the renderer (FR-164)', () => {
         'crouchProfile',
         'landingGraceTicks',
         'crumbleTicks',
+        'gravityScale',
         'score',
         'maxX',
         'progress',
