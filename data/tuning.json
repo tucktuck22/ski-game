@@ -1,5 +1,5 @@
 {
-  "$comment": "Values and tolerances from specs/001-shredpocalypse-bed-draft/contracts/tuning-data.md. Opening positions for playtest, not measurements. Changing a value outside its documented tolerance is a feel change: re-run the acceptance scenarios and bump rulesVersion. kickerImpulseMax went 8.0 -> 10.5 -> 12.5 -> 10.0 on 2026-09-04; it came back down once booters started throwing FORWARD rather than up, because distance no longer had to be bought with height the 180-tall buffer cannot show so a booter can sell real hang time: at 8.0 a launch bought 50 ticks of air against a 15-tick spin, so a triple landed with five ticks to spare and nothing beyond it existed. It changes no ramp that shipped before it - every one of those saturated at 7.98, under the old cap - so the raise is only reachable by a kicker authored above power 1.91.",
+  "$comment": "Values and tolerances from specs/001-shredpocalypse-bed-draft/contracts/tuning-data.md. Opening positions for playtest, not measurements. Changing a value outside its documented tolerance is a feel change: re-run the acceptance scenarios and bump rulesVersion. launchImpulseMax came down 7.2 -> 5.0 on 2026-09-04: at 7.2 a max-charge crouch release apexed at 81 against shelves standing 50 and 55, so the upper track could be entered with no ramp at all and CV-13\u2019s entry fee was optional. At 5.0 the apex is 39 - over a 16-unit log with room, under either shelf, and well under the 99 an ordinary pop ramp gives. kickerImpulseMax went 8.0 -> 10.5 -> 12.5 -> 10.0 on 2026-09-04; it came back down once booters started throwing FORWARD rather than up, because distance no longer had to be bought with height the 180-tall buffer cannot show so a booter can sell real hang time: at 8.0 a launch bought 50 ticks of air against a 15-tick spin, so a triple landed with five ticks to spare and nothing beyond it existed. It changes no ramp that shipped before it - every one of those saturated at 7.98, under the old cap - so the raise is only reachable by a kicker authored above power 1.91.",
   "baseSpeed": 2.6,
   "tuckSpeedMax": 4.2,
   "tuckAccel": 0.055,
@@ -7,7 +7,7 @@
   "slopeAccelFactor": 0.04,
   "gravity": 0.32,
   "launchImpulseMin": 3.4,
-  "launchImpulseMax": 7.2,
+  "launchImpulseMax": 5.0,
   "chargeTicksToMax": 45,
   "spinDurationTicks": 15,
   "airControlFactor": 0.25,

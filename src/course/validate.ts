@@ -244,7 +244,12 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
         rule: 'CV-12',
         message: `ledge at x=${l.x0} has height ${l.height}: not above the piste`,
       });
-    const bestApex = apexOf(tuning.launchImpulseMax, tuning.gravity);
+    // Measured against the best RAMP, not the best crouch release. It used to be
+    // the crouch, which was true only while a max-charge release out-jumped every
+    // shelf on the mountain - and that was the bug: it meant the upper track could
+    // be entered anywhere, with no ramp, and CV-13's entry fee was optional. A
+    // shelf is reached by a kicker, so a kicker is what bounds how high one may be.
+    const bestApex = apexOf(tuning.kickerImpulseMax, tuning.gravity);
     if (l.height > bestApex)
       v.push({
         rule: 'CV-12',
