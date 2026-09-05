@@ -611,27 +611,47 @@ function drawRocks(ctx: CanvasRenderingContext2D, course: Course, cam: Camera): 
  * ink face, and the lip gets the same emphatic treatment LW-4 gives the contact
  * line, because the lip is exactly where the launch fires.
  */
+/** A booter is a wedge you ride ALONG. A pop ramp is a lip you unweight off. */
+const isBooter = (k: Kicker): boolean => (k.launchAngle ?? 90) < 90;
+
 /**
- * How tall a ramp is DRAWN: the flight it gives, not the constant that gives it.
+ * The angle a launch actually leaves the lip at, above horizontal, in radians.
  *
- * This was `power * 10`, which was honest while power WAS the size of the jump.
- * It stopped being that the moment booters started floating: hang time is now
- * bought with a weak pop under low gravity, so the biggest jump on the mountain
- * carries the smallest power on it, and the ramp in front of it was drawn eight
- * pixels tall. The player has no way to tell a launch from a kerb.
- *
- * The honest measure is the GROUND the flight covers, not the seconds it lasts.
- * Air time alone under-rates a booter, because a forward launch spends much of
- * its impulse on travel: the warm-up's booter hangs for about as long as a shelf
- * ramp and lands three hundred units further down the mountain, and the player
- * needs to be told that before he commits, not after.
- *
- * So: distance, against the 210 units an ordinary shelf ramp covers, which keeps
- * its drawn rise at exactly the 19 it has always had. The booters come out at 24,
- * 37 and 47. The exponent holds the biggest of them to about a quarter of the
- * buffer's height - it has to read as a ramp, not as a wall.
+ * Speed cancels out of this, which is what makes it usable as a drawn shape:
+ * the carried speed and the forward half of the impulse both scale with it, so
+ * `power*sin / (1 + power*cos)` is the same whether he arrives at a crawl or
+ * flat out. A booter always leaves along the same line.
  */
-function rampRise(k: Kicker, tuning: Tuning): number {
+function flightAngle(k: Kicker): number {
+  const rad = ((k.launchAngle ?? 90) * Math.PI) / 180;
+  return Math.atan((k.power * Math.sin(rad)) / (1 + k.power * Math.cos(rad)));
+}
+
+/** Terrain gradient at the lip, so a wedge can be built on the hill it stands on. */
+function gradeAtLip(course: Course, lip: number): number {
+  return (terrainYAt(course.terrain, lip + 4) - terrainYAt(course.terrain, lip - 4)) / 8;
+}
+
+/**
+ * How tall a ramp is DRAWN.
+ *
+ * Two rules, because there are two structures here. A shelf ramp is a POP: it
+ * throws a skier off at 62 degrees to lift him a shelf's height in ninety-six
+ * units, and no wedge with a 62-degree face could be built or ridden - it is a
+ * lip he unweights off, and it keeps the modest bump it has always had, sized
+ * by the ground its flight covers against the 210 units of an ordinary one.
+ *
+ * A booter is a WEDGE, and its face is the whole point. Height is not chosen
+ * here at all: it falls out of the width and the angle the launch leaves at, so
+ * the face the player rides up is the line he then flies along. Width is the
+ * size knob, which is also how a real one is built bigger - longer and taller
+ * at the same takeoff angle, not steeper.
+ */
+function rampRise(k: Kicker, tuning: Tuning, course: Course): number {
+  if (isBooter(k)) {
+    const lip = k.x + k.width;
+    return Math.round(k.width * (Math.tan(flightAngle(k)) + gradeAtLip(course, lip)));
+  }
   const impulse = Math.min(k.power * tuning.tuckSpeedMax, tuning.kickerImpulseMax);
   const rad = ((k.launchAngle ?? 90) * Math.PI) / 180;
   const airTicks = (2 * impulse * Math.sin(rad)) / (tuning.gravity * (k.gravityScale ?? 1));
@@ -645,16 +665,20 @@ const RAMP_FADE = 200;
 /**
  * The lift a skier gets from RIDING a ramp, which the simulation does not model.
  *
- * The physics launches him from the terrain: a ramp is a lip test, and its face
- * is not a surface. Drawn honestly that means he slides through the wedge at
- * snow level and is fired off the ground beside it, which at nineteen pixels
- * was a small lie and at forty is the whole reason the jump does not read.
+ * The physics launches him from the terrain: a ramp is a lip test and its face
+ * is not a surface, so drawn honestly he slides through the wedge at snow level
+ * and is fired off the ground beside it. The renderer carries him up instead.
  *
- * So the RENDERER carries him up the face and blends the offset out over the
- * first two hundred units of flight. Nothing here reaches the simulation - it
- * cannot, drawRun only ever reads state - so determinism is untouched. The fade
- * is slower than the launch climbs, which is what keeps him rising the whole way
- * rather than sagging back to the snow the moment he leaves the lip.
+ * Two things here exist to keep that from LOOKING disjointed, which is what it
+ * did on the first cut. The face is straight for a booter, so the drawn climb
+ * holds one angle - the flight's own - rather than a curve steepening to 49
+ * degrees at the lip and then handing over to a 19-degree parabola. And the
+ * blend past the lip is a smoothstep, which leaves the lip at zero rate: the
+ * drawn slope at takeoff is exactly the real one, so there is no second kink
+ * hiding where the lift starts coming off. A linear fade has a corner there,
+ * and it was visible.
+ *
+ * None of this reaches the simulation - drawRun only ever reads state.
  */
 function rampLift(course: Course, tuning: Tuning, x: number, ledge: number): number {
   if (ledge >= 0) return 0; // ramps are built on the piste; a shelf sails over them
@@ -662,8 +686,15 @@ function rampLift(course: Course, tuning: Tuning, x: number, ledge: number): num
   for (const k of course.kickers) {
     const lip = k.x + k.width;
     if (x < k.x || x > lip + RAMP_FADE) continue;
-    const rise = rampRise(k, tuning);
-    const here = x <= lip ? rise * ((x - k.x) / k.width) ** 2 : rise * (1 - (x - lip) / RAMP_FADE);
+    const rise = rampRise(k, tuning, course);
+    let here: number;
+    if (x <= lip) {
+      const t = (x - k.x) / k.width;
+      here = isBooter(k) ? rise * t : rise * t * t;
+    } else {
+      const u = (x - lip) / RAMP_FADE;
+      here = rise * (1 - (3 * u * u - 2 * u * u * u));
+    }
     if (here > lift) lift = here;
   }
   return lift;
@@ -682,8 +713,12 @@ function drawKickers(
     // still on camera - it popped into existence under the player's feet.
     if (px < -(k.width + 40) || px > INTERNAL_WIDTH + 80) continue;
     const groundAt = (wx: number): number => terrainYAt(course.terrain, wx) - cam.y;
-    const lipRise = rampRise(k, tuning);
-    const rampTop = (i: number): number => groundAt(k.x + i) - lipRise * (i / k.width) ** 2;
+    const lipRise = rampRise(k, tuning, course);
+    // Straight for a booter, curved for a pop - and taken from rampLift rather
+    // than repeated here, so the shape the skier rides and the shape drawn under
+    // him are the same shape by construction.
+    const rampTop = (i: number): number =>
+      groundAt(k.x + i) - rampLift(course, tuning, k.x + i, -1);
 
     const face = (): void => {
       ctx.beginPath();

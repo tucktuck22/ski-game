@@ -623,8 +623,8 @@
       "gravityScale": 0.12
     },
     {
-      "x": 9316,
-      "width": 80,
+      "x": 9284,
+      "width": 112,
       "power": 0.75,
       "launchAngle": 45,
       "gravityScale": 0.085

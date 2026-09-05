@@ -118,11 +118,19 @@ const CORNICE_H = 55;
  * A booter must have NO shelf within CV-13's reach after it, or the rule that
  * keeps the upper track voluntary would read this launch as a way onto one.
  */
-// Narrower than it was, and drawn far taller (see rampRise): a long low wedge
-// reads as a kerb, a steep one reads as something you commit to. The x values
-// below carry the difference so every LIP stays exactly where it was, and with
-// it every flight the course was measured against.
-const BOOTER_W = 80;
+/**
+ * Booter widths. Width is the size knob now, because height is no longer free:
+ * the renderer derives a wedge's rise from its width and the angle its launch
+ * actually leaves at, so the face the skier rides up is the line he then flies
+ * along. Building a bigger jump therefore means a LONGER wedge at the same
+ * takeoff angle, which is how one gets built on a real hill too.
+ *
+ * The x values carry each change so every LIP stays exactly where it was, and
+ * with it every flight the course was measured against.
+ */
+const BOOTER_W_WARMUP = 64;
+const BOOTER_W_MID = 80;
+const BOOTER_W_BIG = 112;
 const BOOTER_MID = 0.7;
 const BOOTER_BIG = 0.75;
 
@@ -273,7 +281,7 @@ function official(): Built {
   bough(7600, 12);
   kickers.push({
     x: 7916,
-    width: BOOTER_W,
+    width: BOOTER_W_MID,
     power: BOOTER_MID,
     launchAngle: BOOTER_MID_ANGLE,
     gravityScale: BOOTER_MID_FLOAT,
@@ -298,8 +306,8 @@ function official(): Built {
   // moved to give it a runway. The final ramp and its shelf start where the
   // flight has already landed.
   kickers.push({
-    x: 9316,
-    width: BOOTER_W,
+    x: 9284,
+    width: BOOTER_W_BIG,
     power: BOOTER_BIG,
     launchAngle: BOOTER_BIG_ANGLE,
     gravityScale: BOOTER_BIG_FLOAT,
@@ -398,8 +406,8 @@ function warmup(): Built {
       {
         // Clear of the shelf that ends at 2196: a kicker under a ledge never
         // fires, because the skier rides off the shelf already airborne.
-        x: 2416,
-        width: BOOTER_W,
+        x: 2432,
+        width: BOOTER_W_WARMUP,
         power: BOOTER_MID,
         launchAngle: BOOTER_MID_ANGLE,
         gravityScale: BOOTER_WARMUP_FLOAT,
