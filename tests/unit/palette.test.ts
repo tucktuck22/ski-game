@@ -23,9 +23,26 @@ describe('palette (style bible section 1)', () => {
     }
   });
 
-  it('has exactly the eight tokens the style bible declares', () => {
+  it('P-4/P-6: the skin token stays distinguishable from hazard orange under all three CVD types', () => {
+    // FR-182. Skin sits on the player, and orange means hazard. A skin tone that
+    // collapsed into orange would reintroduce by the back door exactly the
+    // confusion P-4 exists to prevent - so it is held to the same threshold as
+    // the magenta/orange pair, which it clears by a wide margin.
+    for (const kind of ['protanopia', 'deuteranopia', 'tritanopia'] as const) {
+      const a = simulateCvd(PALETTE.skin, kind);
+      const b = simulateCvd(PALETTE.orange, kind);
+      const distance = Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+      expect(distance, `skin vs orange under ${kind}`).toBeGreaterThan(40);
+    }
+  });
+
+  it('has exactly the nine tokens the style bible declares', () => {
+    // Exhaustive on purpose, and TIGHTENED rather than loosened when the palette
+    // went from eight to nine (feature 004, ADR-0010). This assertion is what
+    // makes "nothing outside this set" a fact rather than an intention, and it
+    // is the reason a ninth NAMED colour was chosen over a shading ramp.
     expect(Object.keys(PALETTE).sort()).toEqual(
-      ['blue', 'cyan', 'ink', 'magenta', 'orange', 'purple', 'snow', 'yellow'].sort(),
+      ['blue', 'cyan', 'ink', 'magenta', 'orange', 'purple', 'skin', 'snow', 'yellow'].sort(),
     );
   });
 });

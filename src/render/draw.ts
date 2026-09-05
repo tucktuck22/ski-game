@@ -18,6 +18,8 @@ import type { MotionSettings } from './reducedMotion.js';
 import type { Shake } from './landing.js';
 import type { Tumble } from './death.js';
 import { FULL_MOTION } from './reducedMotion.js';
+import type { SpriteSheets } from './sprites.js';
+import type { PoseKey } from './skierPose.js';
 
 const css = (t: PaletteToken): string => {
   const [r, g, b] = PALETTE[t];
@@ -801,6 +803,7 @@ export function drawRun(
   shake: Shake = { x: 0, y: 0 },
   flashAlpha = 0,
   tumble: Tumble = { spin: 0, slide: 0 },
+  skin: SkierSkin | null = null,
 ): void {
   const cam = cameraFor(state);
   // The kick is applied to the CAMERA, not to the finished frame. Translating
@@ -904,7 +907,7 @@ export function drawRun(
     else drawDeadfall(ctx, px, o.width, groundY, tuning.standHeight);
   }
 
-  drawSkier(ctx, state, course, tuning, cam, motion, tumble);
+  drawSkier(ctx, state, course, tuning, cam, motion, tumble, skin);
 
   // FR-111's whiteout, over everything and after the skier. Capped well below a
   // full white frame and rate-limited by the caller (FR-057).
@@ -914,6 +917,21 @@ export function drawRun(
   }
 }
 
+/**
+ * What the sprite path needs from the caller. Null means "no sheet", which is
+ * the normal state until the art loads and the permanent state if it never
+ * does - see drawSkier's two branches.
+ */
+export interface SkierSkin {
+  sheets: SpriteSheets;
+  pose: PoseKey;
+  /** Drives cycling within a multi-cell pose. Simulation ticks, never frames. */
+  tick: number;
+}
+
+/** The sheet id the manifest declares for the player. */
+const SKIER_SHEET = 'skier';
+
 function drawSkier(
   ctx: CanvasRenderingContext2D,
   state: RunState,
@@ -922,6 +940,7 @@ function drawSkier(
   cam: Camera,
   motion: MotionSettings,
   tumble: Tumble,
+  skin: SkierSkin | null,
 ): void {
   // A wipeout carries the body a little further down the slope before it
   // stops. The slide follows the ground rather than the screen, so he ends up
@@ -946,6 +965,40 @@ function drawSkier(
     }
   }
 
+  // The sprite path (FR-159). Alignment to the slope is carried by WHICH POSE
+  // is drawn, not by rotating the image (FR-169), so a skiing character is a
+  // plain drawImage at integer coordinates and the pixel grid survives intact.
+  //
+  // The two exceptions are the two places rotation is itself the subject and
+  // grid breakup is acceptable: a spin that is turning, and the wipeout tumble.
+  if (skin !== null && skin.sheets.ready(SKIER_SHEET)) {
+    const spinning = state.spinTicksLeft > 0;
+    const tumbling = tumble.spin !== 0;
+    if (spinning || tumbling) {
+      ctx.save();
+      ctx.translate(Math.round(px), Math.round(py));
+      ctx.rotate(Math.atan2(state.oy, state.ox) + tumble.spin);
+      skin.sheets.draw(ctx, SKIER_SHEET, skin.pose, skin.tick, 0, 0);
+      ctx.restore();
+    } else {
+      skin.sheets.draw(ctx, SKIER_SHEET, skin.pose, skin.tick, px, py);
+    }
+    return;
+  }
+
+  // The fallback (FR-172, research R4).
+  //
+  // This is not a placeholder written for the occasion - it is the renderer
+  // that has shipped every run so far, kept deliberately rather than deleted.
+  // A fallback that has never been played is a second untested path, and
+  // Principle VI is explicit that a failure path never executed is untested
+  // however carefully it was written. Keeping the incumbent makes its quality a
+  // fact rather than a hope, and tests/e2e-build/sprite-never-blocks.spec.ts
+  // plays a full run through it.
+  //
+  // The scarf below is drawn here and NOT in the sprite path, because the sheet
+  // draws its own. The two branches are allowed to differ in decoration; what
+  // they may not do is disagree about whether the player is visible.
   ctx.save();
   ctx.translate(px, py);
   // Orientation is a unit vector; atan2 is fine HERE because rendering is not
