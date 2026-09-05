@@ -3,6 +3,7 @@ import { derive, initialState, step } from '../../src/sim/step.js';
 import { MAX_TICKS } from '../../src/sim/run.js';
 import { terrainYAt } from '../../src/sim/terrain.js';
 import type { Course, Kicker, RunInput } from '../../src/sim/types.js';
+import { cameraAirLift, rampRise } from '../../src/render/rampGeometry.js';
 import { official, tuning, scoring } from './fixtures.js';
 
 /**
@@ -175,5 +176,71 @@ describe('the booters (FR-078, Principle III feel criteria)', () => {
     const [small, big] = booters as [Kicker, Kicker];
     expect(fly(official, small, false, 8).why).toBe('spun_out');
     expect(fly(official, big, false, 12).why).toBe('spun_out');
+  });
+});
+
+/**
+ * The wedge must point where the flight goes - AS SEEN, which is not the same
+ * line as where it actually goes.
+ *
+ * This has been wrong three times, and each was only caught by a person playing
+ * the game and saying the ramp looked steeper than the launch. It was, by 30
+ * degrees when the lip was a curve, by 6.6 when the launch formula forgot the
+ * skier arrives travelling downhill, and by 12 when the wedge was matched to
+ * the world flight while the camera compressed the drawn one by half. So it is
+ * measured here against the simulation, at the lip, in screen space.
+ */
+describe('the wedge points where the flight is seen to go', () => {
+  const DEG = 180 / Math.PI;
+
+  /** The skier's apparent height above the snow: the camera eats half his climb. */
+  const seenHeight = (h: number): number => h - cameraAirLift(h);
+
+  it('matches the launch it sits in front of, within a degree', () => {
+    for (const b of booters) {
+      const d = derive(tuning);
+      let s = initialState(official, tuning, 1);
+      const boughs = official.obstacles.filter((o) => o.kind === 'low');
+      const solids = official.obstacles.filter((o) => o.kind === 'solid');
+      let launched = false;
+      let x0 = 0;
+      const seen: { dx: number; h: number }[] = [];
+      while (s.outcome === 'running' && s.tick < MAX_TICKS && seen.length < 6) {
+        const onShelf = s.grounded && s.ledge >= 0;
+        const hz = onShelf
+          ? [...official.rocks.map((r) => r.x), ...official.ice.map((i) => i.x0)]
+          : solids.map((o) => o.x);
+        let gap = Infinity;
+        for (const hx of hz) {
+          const dd = hx - s.x;
+          if (dd > -30 && dd < gap) gap = dd;
+        }
+        const duck = !onShelf && boughs.some((o) => s.x + 30 >= o.x && s.x < o.x + o.width);
+        const rel = gap <= 34 && gap > -30;
+        const input: RunInput = {
+          crouch: !rel && (duck || (gap < 90 && gap > 34) || (s.grounded && s.ledge < 0)),
+          rotate: 0,
+        };
+        const before = s;
+        s = step(s, input, official, tuning, scoring, d);
+        if (before.grounded && !s.grounded && before.x >= b.x && before.x <= b.x + b.width + 14) {
+          launched = true;
+          x0 = before.x;
+        }
+        if (launched && !s.grounded) {
+          seen.push({ dx: s.x - x0, h: seenHeight(terrainYAt(official.terrain, s.x) - s.y) });
+        }
+      }
+      expect(seen.length, `booter at ${b.x} was never reached`).toBeGreaterThan(4);
+
+      const first = seen[0]!;
+      const last = seen[seen.length - 1]!;
+      const flightSeen = Math.atan((last.h - first.h) / (last.dx - first.dx)) * DEG;
+      const face = Math.atan(rampRise(b, tuning, official) / b.width) * DEG;
+      expect(
+        Math.abs(face - flightSeen),
+        `booter at ${b.x}: face ${face.toFixed(1)}deg vs seen flight ${flightSeen.toFixed(1)}deg`,
+      ).toBeLessThan(1.5);
+    }
   });
 });
