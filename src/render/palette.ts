@@ -1,6 +1,6 @@
 /**
- * The eight colours of assets/style-bible.md section 1. Nothing outside this set
- * appears in any asset (rule P-1..P-5).
+ * The nine colours of assets/style-bible.md section 1. Nothing outside this set
+ * appears in any asset (rule P-1..P-6).
  *
  * This file is in src/render, not src/sim: colour never touches the simulation.
  */
@@ -15,6 +15,23 @@ export const PALETTE = {
   orange: [0xfc, 0x60, 0x08],
   yellow: [0xff, 0xd2, 0x3f],
   snow: [0xf2, 0xf0, 0xff],
+  /**
+   * Skin. The ninth colour, and the only one added since ratification.
+   *
+   * Feature 004's Q1: the supplied skier art carries a skin tone that was not
+   * among the eight, and the maintainer chose to admit exactly one token rather
+   * than quantise the face away or open the palette to a shading ramp. A ramp
+   * would have been a rule about how many tones is too many, which nobody can
+   * enforce at review; a ninth named colour either appears in a file or does
+   * not, so `tests/unit/palette.test.ts` can keep asserting the set exhaustively.
+   *
+   * The value is SAMPLED from the supplied sheet rather than invented (FR-179) -
+   * the mean of its warm face pixels. See docs/adr/0010-a-ninth-colour.md.
+   *
+   * Rule P-6 confines it to player sprites: never a ground, never text, never a
+   * terrain edge, never a hazard.
+   */
+  skin: [0xec, 0xb2, 0x91],
 } as const satisfies Record<string, Rgb>;
 
 export type PaletteToken = keyof typeof PALETTE;

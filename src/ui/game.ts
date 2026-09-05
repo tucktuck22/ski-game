@@ -7,12 +7,15 @@
  */
 import type { Course, RunInput, RunState, Scoring, Tuning } from '../sim/types.js';
 import { derive, initialState, step, type DerivedTuning } from '../sim/step.js';
+import { slopeAt } from '../sim/terrain.js';
 import { TAU } from '../sim/trig.js';
 import { finalScore } from '../sim/scoring.js';
 import { createStage, type Stage } from '../render/stage.js';
 import { applyCrt, resetCrt } from '../render/filters/crt.js';
 import { resolveMotion, type MotionSettings } from '../render/reducedMotion.js';
-import { drawRun, resetSceneryCache } from '../render/draw.js';
+import { drawRun, resetSceneryCache, type SkierSkin } from '../render/draw.js';
+import { LeanState, PoseTimers, selectPose } from '../render/skierPose.js';
+import type { SpriteSheets } from '../render/sprites.js';
 import { LandingEffect } from '../render/landing.js';
 import { DeathSequence } from '../render/death.js';
 import { startLoop, type LoopHandle } from '../render/loop.js';
@@ -41,6 +44,14 @@ export class GameView {
   private skipListener: (() => void) | null = null;
   private readonly landing = new LandingEffect();
   private readonly death = new DeathSequence();
+  /**
+   * Render-owned pose state (FR-164). Advanced on the tick alongside the
+   * landing effect, for the same reason: a landing must last the same
+   * wall-clock time on a 60 Hz phone and a 120 Hz desktop. Nothing here is a
+   * simulation field and nothing here changes the state hash.
+   */
+  private readonly poseTimers = new PoseTimers();
+  private readonly lean = new LeanState();
   private resolveFinale: () => void = () => {};
   /**
    * Resolves when the mountain is finished being looked at.
@@ -63,6 +74,14 @@ export class GameView {
     private readonly onTrick: (t: TrickEvent) => void = () => {},
     /** Fired once when a run ends in a wipeout, so the caller can letter it. */
     private readonly onDeath: () => void = () => {},
+    /**
+     * The loaded sprite sheets, or null where none were supplied.
+     *
+     * Optional by design: a run must never depend on decoration having arrived
+     * (FR-172), so every path that cannot produce sheets simply passes nothing
+     * and gets the primitive renderer.
+     */
+    private readonly sheets: SpriteSheets | null = null,
   ) {
     const motion = resolveMotion();
     this.motion = motion;
@@ -127,6 +146,12 @@ export class GameView {
       this.landing.trigger(performance.now(), this.motion);
     }
 
+    // Landing compression, the launch extension and the crouch latch, all
+    // derived from the two states either side of this tick rather than from a
+    // field the simulation had to carry (FR-164, FR-168).
+    this.poseTimers.advance(this.prevState, this.state);
+    this.lean.update(slopeAt(this.course.terrain, this.state.x));
+
     // A trick is paid in the tick the skier lands: rotationAccum is converted to
     // score and cleared. Reading the transition here rather than adding a field
     // keeps the payout out of the simulation state, the same way the landing
@@ -161,6 +186,21 @@ export class GameView {
     }
   }
 
+  /**
+   * The pose to draw this frame, or null when there is no sheet to draw it
+   * from. Recomputed per frame rather than cached: it is a switch over a
+   * handful of fields and caching it would mean a second place for the pose to
+   * be wrong.
+   */
+  private skin(): SkierSkin | null {
+    if (this.sheets === null) return null;
+    return {
+      sheets: this.sheets,
+      pose: selectPose(this.state, this.poseTimers, this.lean.bucket),
+      tick: this.state.tick,
+    };
+  }
+
   private render(): void {
     // Interpolation reads the previous state; rendering never mutates either.
     drawRun(
@@ -172,6 +212,7 @@ export class GameView {
       this.landing.shake(),
       this.landing.flashAlpha(),
       this.death.tumble(),
+      this.skin(),
     );
     this.stage.present();
   }

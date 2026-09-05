@@ -119,6 +119,21 @@ Both values are public by design: there are no accounts, and Row Level Security
 is what enforces the rules. Without them the app runs in a clearly-labelled
 local session that is not a real draft.
 
+If your project was set up before the organizer functions existed, the organizer
+panel's REMOVE, deadline and RESET controls will be refused by the database —
+they need `supabase/migrations/0003_organizer.sql`, which is safe to run on its
+own against an existing project (it only creates functions and grants). See
+[ADR-0010](docs/adr/0010-organizer-actions-as-secret-gated-functions.md) for why
+they are functions rather than table writes.
+
+If official runs are refused with a **rules version mismatch**, the draft was
+seeded before a change to the simulation and is still holding the old version.
+FR-023 freezes the rules per draft and the database enforces it, so the refusal
+is the check working rather than a bug in the commit path. Run
+`supabase/fix-rules-version.sql` on a draft that has no committed scores yet; it
+refuses to touch one that has, because moving the version under scores already
+posted would put two rule sets on one leaderboard.
+
 **The keep-alive workflow is not optional.** A free Supabase project pauses
 after 7 days without database activity and needs a manual restore, which would
 leave the link dead exactly when everyone finally gets round to playing. A daily

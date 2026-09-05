@@ -17,7 +17,11 @@ asset that cannot cite a rule is rejected, not merged with a promise to fix late
 
 ## 1. Palette (rules P-*)
 
-Eight colours. Nothing outside this set appears in any asset.
+Nine colours. Nothing outside this set appears in any asset.
+
+> This said **eight** until 2026-09-04. The ninth, `skin`, was added for the player
+> sprite in feature 004; see [ADR-0010](../docs/adr/0010-a-ninth-colour.md) for why the
+> rule changed and why a single named token was chosen over a shading ramp.
 
 | Token     | Hex       | Role                                                   |
 | --------- | --------- | ------------------------------------------------------ |
@@ -29,6 +33,7 @@ Eight colours. Nothing outside this set appears in any asset.
 | `orange`  | `#FC6008` | Warning. Obstacle and hazard edges                     |
 | `yellow`  | `#FFD23F` | Alert and score. Wipeout lettering, HUD score          |
 | `snow`    | `#F2F0FF` | Body text, snow surface, high-contrast marks           |
+| `skin`    | `#ECB291` | Skin on player sprites. Nothing else — see P-6         |
 
 - **P-1** — Grounds are `ink` and `purple` only. Accents never fill a full background.
 - **P-2** — Body text is `snow` on `ink` or `purple`. Never accent-on-accent.
@@ -42,6 +47,16 @@ Eight colours. Nothing outside this set appears in any asset.
 - **P-5** — No information is carried by hue alone (FR-055). Every colour-coded
   state also differs in shape, position, or lettering. A player with any colour
   vision deficiency loses nothing. Verified by `tests/unit/palette.test.ts`.
+- **P-6** — `skin` appears on player sprites and nowhere else. It is never a
+  ground, never text, never a terrain edge, never a hazard marking, and never a
+  UI colour. It exists because the player is the one thing in this game drawn as
+  a person, and it earns its place only there (FR-181).
+
+  It carries no information, which is what makes it safe: a viewer who cannot
+  distinguish it from anything loses nothing, because the pose and the silhouette
+  are what say what the player is doing. `tests/unit/palette.test.ts` still holds
+  it to the same CVD separation from `orange` as `magenta`, so it can never be
+  mistaken for a hazard — a margin it clears comfortably.
 
 ### Colour vision validation
 
@@ -49,7 +64,7 @@ Eight colours. Nothing outside this set appears in any asset.
 
 - Every text pairing permitted by P-2 meets WCAG AA (≥ 4.5:1) for normal text.
 - Player `magenta` and hazard `orange` remain distinguishable under simulated
-  protanopia, deuteranopia, and tritanopia — **and** P-5 makes that redundant by
+  protanopia, deuteranopia, and tritanopia — as does `skin` against `orange` — **and** P-5 makes that redundant by
   requiring a shape difference anyway.
 
 ---

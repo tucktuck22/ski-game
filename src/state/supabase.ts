@@ -75,6 +75,12 @@ export class DraftStore {
     url: string,
     anonKey: string,
     private readonly draftId: string,
+    /**
+     * FR-006: present only for a holder of the organizer URL, and required by
+     * every organizer action below. Secrecy, not authentication - anyone who
+     * obtains the URL has these powers, exactly as src/state/links.ts says.
+     */
+    private readonly organizerSecret: string | null = null,
   ) {
     this.db = createClient(url, anonKey, { auth: { persistSession: false } });
   }
@@ -238,14 +244,25 @@ export class DraftStore {
 
   // ---- Organizer operations (FR-006) ----
   //
-  // These are reachable only from the organizer URL. In production they should
-  // run through a service-role endpoint rather than the anon key, because the
-  // RLS policies deliberately revoke UPDATE and DELETE on committed_score from
-  // every client role - that revocation is what makes FR-018 hold for players,
-  // and the organizer must not be given a client-side way around it.
+  // Through security-definer functions, NOT table writes. The RLS policies
+  // deliberately deny every client role the update on `draft`, the update on
+  // roster_entry's removal columns, and the delete on committed_score - and
+  // that denial is what makes FR-018 hold for the player holding the same anon
+  // key. The organizer carries no service role and this project has no server
+  // to put one behind, so these three actions were simply denied: verified
+  // against Postgres 16, each came back "permission denied", and the throw
+  // below reached the global unhandledrejection handler and replaced the page.
+  //
+  // supabase/migrations/0003_organizer.sql is the door. It takes the secret and
+  // runs as the schema owner; the table grants are unchanged, so nothing a
+  // player can reach has widened.
 
   async setDeadline(iso: string): Promise<void> {
-    const { error } = await this.db.from('draft').update({ deadline: iso }).eq('id', this.draftId);
+    const { error } = await this.db.rpc('organizer_set_deadline', {
+      p_draft: this.draftId,
+      p_secret: this.organizerSecret,
+      p_deadline: iso,
+    });
     if (error) throw error;
   }
 
@@ -259,25 +276,26 @@ export class DraftStore {
 
   /** FR-074: recorded and left visible, never a silent deletion. */
   async removeEntry(entryId: string, discardedScore: number | null): Promise<void> {
-    const { error } = await this.db
-      .from('roster_entry')
-      .update({ removed_at: new Date().toISOString(), removed_score: discardedScore })
-      .eq('id', entryId);
+    const { error } = await this.db.rpc('organizer_remove_entry', {
+      p_draft: this.draftId,
+      p_secret: this.organizerSecret,
+      p_entry: entryId,
+      // What the organizer confirmed discarding is what gets recorded as
+      // discarded, rather than whatever the row happens to say at write time.
+      p_score: discardedScore,
+    });
     if (error) throw error;
   }
 
   async resetDraft(): Promise<void> {
-    // Destructive and irreversible; the UI confirms before calling it.
-    await this.db.from('committed_score').delete().eq('draft_id', this.draftId);
-    await this.db
-      .from('roster_entry')
-      .update({
-        claimed_at: null,
-        practice_runs_used: 0,
-        abandoned_official_runs: 0,
-        official_status: 'unused',
-      })
-      .eq('draft_id', this.draftId);
+    // Destructive and irreversible; the UI confirms before calling it. One call
+    // rather than two writes, so a reset cannot half-happen and leave scores
+    // cleared against run counters that were not.
+    const { error } = await this.db.rpc('organizer_reset_draft', {
+      p_draft: this.draftId,
+      p_secret: this.organizerSecret,
+    });
+    if (error) throw error;
   }
 
   /** FR-042: a commit must reach other viewers within 10 seconds. */
