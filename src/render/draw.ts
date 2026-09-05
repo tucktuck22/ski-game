@@ -617,14 +617,23 @@ const isBooter = (k: Kicker): boolean => (k.launchAngle ?? 90) < 90;
 /**
  * The angle a launch actually leaves the lip at, above horizontal, in radians.
  *
- * Speed cancels out of this, which is what makes it usable as a drawn shape:
- * the carried speed and the forward half of the impulse both scale with it, so
- * `power*sin / (1 + power*cos)` is the same whether he arrives at a crawl or
- * flat out. A booter always leaves along the same line.
+ * The skier arrives already travelling DOWNHILL - applyGroundedMotion sets his
+ * velocity along the slope, not along the horizon - so the impulse has to spend
+ * part of itself cancelling that descent before any of it becomes height. Leave
+ * the term out and the answer comes back too steep, by 2.8 degrees on a pop ramp
+ * and 6.6 on a booter, which is a wedge visibly steeper than the flight leaving
+ * it. That was shipped once.
+ *
+ * Speed still cancels, which is what makes this usable as a drawn shape: the
+ * carried speed and the impulse both scale with it. The slope does not cancel,
+ * so a wedge is only correct for the gradient it stands on.
  */
-function flightAngle(k: Kicker): number {
+function flightAngle(k: Kicker, grade: number): number {
   const rad = ((k.launchAngle ?? 90) * Math.PI) / 180;
-  return Math.atan((k.power * Math.sin(rad)) / (1 + k.power * Math.cos(rad)));
+  const phi = Math.atan(grade);
+  return Math.atan(
+    (k.power * Math.sin(rad) - Math.sin(phi)) / (Math.cos(phi) + k.power * Math.cos(rad)),
+  );
 }
 
 /** Terrain gradient at the lip, so a wedge can be built on the hill it stands on. */
@@ -649,8 +658,10 @@ function gradeAtLip(course: Course, lip: number): number {
  */
 function rampRise(k: Kicker, tuning: Tuning, course: Course): number {
   if (isBooter(k)) {
-    const lip = k.x + k.width;
-    return Math.round(k.width * (Math.tan(flightAngle(k)) + gradeAtLip(course, lip)));
+    const m = gradeAtLip(course, k.x + k.width);
+    // The drawn top edge climbs at (rise/width - m) against the horizon, so this
+    // is what puts the face on the flight's own line.
+    return Math.round(k.width * (m + Math.tan(flightAngle(k, m))));
   }
   const impulse = Math.min(k.power * tuning.tuckSpeedMax, tuning.kickerImpulseMax);
   const rad = ((k.launchAngle ?? 90) * Math.PI) / 180;

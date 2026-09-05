@@ -128,9 +128,9 @@ const CORNICE_H = 55;
  * The x values carry each change so every LIP stays exactly where it was, and
  * with it every flight the course was measured against.
  */
-const BOOTER_W_WARMUP = 64;
-const BOOTER_W_MID = 80;
-const BOOTER_W_BIG = 112;
+const BOOTER_W_WARMUP = 80;
+const BOOTER_W_MID = 100;
+const BOOTER_W_BIG = 140;
 const BOOTER_MID = 0.7;
 const BOOTER_BIG = 0.75;
 
@@ -280,7 +280,7 @@ function official(): Built {
   // carried speed, so coasting here is not a rest, it is a smaller trick.
   bough(7600, 12);
   kickers.push({
-    x: 7916,
+    x: 7896,
     width: BOOTER_W_MID,
     power: BOOTER_MID,
     launchAngle: BOOTER_MID_ANGLE,
@@ -306,7 +306,7 @@ function official(): Built {
   // moved to give it a runway. The final ramp and its shelf start where the
   // flight has already landed.
   kickers.push({
-    x: 9284,
+    x: 9256,
     width: BOOTER_W_BIG,
     power: BOOTER_BIG,
     launchAngle: BOOTER_BIG_ANGLE,
@@ -406,7 +406,7 @@ function warmup(): Built {
       {
         // Clear of the shelf that ends at 2196: a kicker under a ledge never
         // fires, because the skier rides off the shelf already airborne.
-        x: 2432,
+        x: 2416,
         width: BOOTER_W_WARMUP,
         power: BOOTER_MID,
         launchAngle: BOOTER_MID_ANGLE,

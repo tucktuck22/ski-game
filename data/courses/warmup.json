@@ -161,8 +161,8 @@
       "power": 1.9
     },
     {
-      "x": 2432,
-      "width": 64,
+      "x": 2416,
+      "width": 80,
       "power": 0.7,
       "launchAngle": 45,
       "gravityScale": 0.25
