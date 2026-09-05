@@ -1,0 +1,35 @@
+{
+  "$comment": "Sprite manifest (FR-160). `file` is a BARE FILENAME: the base path is applied in src/render/sprites.ts, so it stays one decision in one place - a path here works in dev and 404s under the production base path, and a missing sprite fails silently because FR-172 requires the run to carry on without it. Sheets ship as 8-bit indexed PNG; tests/unit/sprite-palette.test.ts reads the PLTE chunk and fails on any colour outside the nine declared in assets/style-bible.md section 1.",
+  "sheets": [
+    {
+      "id": "skier",
+      "file": "skier.png",
+      "$comment": "Built by tools/build-sprite-sheet.mjs from four retained sources - run `npm run build:sprites` rather than editing this geometry or the sheet by hand, and note that the cell order below is POSE_ORDER in that tool, so the two move together. Every one of the fourteen poses is drawn art: no pose is derived by rotating another (FR-185), and the three carve leans and three crouch leans are separate drawings at different ski angles (FR-183). anchorX is the ski CENTRE, not the tail: research.md R1 shows centring splits the lean-bucket discrepancy between both ski ends, halving the largest visible gap. anchorY is the ski line, so the sprite sits on the snow with room below for the landing spray.",
+      "cellWidth": 32,
+      "cellHeight": 32,
+      "columns": 8,
+      "anchorX": 16,
+      "anchorY": 26,
+      "poses": {
+        "carveShallow": { "cells": [0] },
+        "carveMid": { "cells": [1] },
+        "carveSteep": { "cells": [2] },
+
+        "crouchShallow": { "cells": [3] },
+        "crouchMid": { "cells": [4] },
+        "crouchSteep": { "cells": [5] },
+
+        "launch": { "cells": [6] },
+        "air": { "cells": [7] },
+        "tuck": { "cells": [8] },
+        "spin": { "cells": [9] },
+
+        "absorbShallow": { "cells": [10] },
+        "absorbMid": { "cells": [11] },
+        "absorbSteep": { "cells": [12] },
+
+        "wipeout": { "cells": [13] }
+      }
+    }
+  ]
+}

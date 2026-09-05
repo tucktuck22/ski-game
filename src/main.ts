@@ -16,6 +16,7 @@ import { popTrickBadge } from './ui/trickBadge.js';
 import { showYouDied } from './ui/youDied.js';
 import { Synth } from './audio/synth.js';
 import { MusicPlayer } from './audio/music.js';
+import { SpriteSheets } from './render/sprites.js';
 import { armAudioOnFirstGesture } from './audio/gate.js';
 import { resolveMotion, setMotion, REDUCED_MOTION } from './render/reducedMotion.js';
 import { deadlineState, canStartOfficialRun, formatRemaining } from './state/deadline.js';
@@ -32,6 +33,7 @@ import warmupJson from '../data/courses/warmup.json';
 import officialJson from '../data/courses/official.json';
 import insultsJson from '../data/insults.json';
 import audioJson from '../data/audio.json';
+import spritesJson from '../data/sprites.json';
 
 type Backend = LocalDraftStore | DraftStore;
 
@@ -48,6 +50,7 @@ const data: GameData = assembleGameData({
   official: officialJson,
   insults: insultsJson,
   audio: audioJson,
+  sprites: spritesJson,
 });
 
 // Validated up front: a bad URL otherwise surfaces as an opaque
@@ -124,6 +127,20 @@ const synth = new Synth();
 // FR-135/FR-136: which piece is audible follows one rule - on the course, or not.
 // Set before the first gesture; arm() honours it when the gesture arrives.
 const music = new MusicPlayer(data.audio, import.meta.env.BASE_URL);
+
+// Sprite sheets are never awaited (FR-172): a run must not wait on decoration,
+// and until a sheet resolves the renderer draws the primitive fallback. The base
+// path is applied inside SpriteSheets, the one place it is applied, so a sheet
+// cannot 404 in production while succeeding in dev (FR-173).
+//
+// Loading starts on the DROP IN gesture, NOT here at module scope. Feature 003's
+// SC-051 requires the title screen to be drawn rather than downloaded, and it is
+// asserted by tests/e2e-build/title-screen.spec.ts - a sheet requested during
+// module evaluation is a media file on the title screen, which is exactly what
+// that requirement forbids. This is the same discipline FR-140 already imposes
+// on audio, applied to pixels, and there is time in hand: the gesture is several
+// screens before any run and the fallback covers the gap regardless.
+const sprites = new SpriteSheets(data.sprites, import.meta.env.BASE_URL);
 music.setContext('frontEnd');
 let reducedMotion = resolveMotion() === REDUCED_MOTION;
 
@@ -195,6 +212,9 @@ function renderTitle(): void {
       // FR-153: nothing here awaits the music. If it is slow, refused, or
       // missing entirely, the player still lands on the board.
       entered = true;
+      // The first deliberate gesture is also where the sprite sheets start
+      // loading - see the note beside the SpriteSheets construction above.
+      sprites.load();
       render();
     };
   // Focus it, so a keyboard player has one obvious thing to press (FR-154).
@@ -484,6 +504,7 @@ async function startRun(kind: RunKind): Promise<void> {
     },
     (trick) => popTrickBadge(badges, trick, motion),
     () => showYouDied(app, motion),
+    sprites,
   );
   game.start();
 
