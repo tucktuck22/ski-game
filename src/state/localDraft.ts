@@ -64,6 +64,7 @@ export class LocalDraftStore {
       claimed: true,
       practiceRunsUsed: 0,
       abandonedOfficialRuns: 0,
+      officialStatus: 'unused',
       removed: false,
       score: null,
       commitAt: null,
@@ -82,6 +83,7 @@ export class LocalDraftStore {
       claimed: false,
       practiceRunsUsed: 0,
       abandonedOfficialRuns: 0,
+      officialStatus: 'unused',
       removed: false,
       score: null,
       commitAt: null,
@@ -109,6 +111,13 @@ export class LocalDraftStore {
   async recordAbandonedRun(id: string, count: number): Promise<void> {
     const e = this.entries.get(id);
     if (e) this.entries.set(id, { ...e, abandonedOfficialRuns: count });
+    this.notify();
+  }
+
+  /** Spends the official run at run end, mirroring DraftStore (FR-017, FR-018). */
+  async markOfficialRunEnded(id: string): Promise<void> {
+    const e = this.entries.get(id);
+    if (e) this.entries.set(id, { ...e, officialStatus: 'committed' });
     this.notify();
   }
 
@@ -152,7 +161,13 @@ export class LocalDraftStore {
   async resetDraft(): Promise<void> {
     this.commits.clear();
     for (const [id, e] of this.entries) {
-      this.entries.set(id, { ...e, claimed: false, practiceRunsUsed: 0, abandonedOfficialRuns: 0 });
+      this.entries.set(id, {
+        ...e,
+        claimed: false,
+        practiceRunsUsed: 0,
+        abandonedOfficialRuns: 0,
+        officialStatus: 'unused',
+      });
     }
     this.notify();
   }

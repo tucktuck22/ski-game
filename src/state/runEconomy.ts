@@ -19,16 +19,38 @@ export interface RunAvailability {
   blockedReason: string | null;
 }
 
+/**
+ * Whether this name's official run is spent.
+ *
+ * TWO SOURCES, BOTH FROM SHARED STORAGE, AND THE SECOND IS THE POINT.
+ * A score on the board is the obvious one. `officialStatus` is the one that was
+ * missing: it is set when the run ENDS (FR-017), so a commit still queued in the
+ * outbox — or one the database refused — still closes the official run.
+ *
+ * Reading only the score is what produced the reported bug. The run ended, the
+ * insert was refused, no score row appeared, and every screen therefore
+ * concluded the official run had never happened: OFFICIAL RUN came back live and
+ * the player could take it again, and again.
+ */
+export const hasCommitted = (entry: EntryView): boolean =>
+  entry.score !== null || entry.officialStatus === 'committed';
+
 export function availability(entry: EntryView, draftFinal: boolean): RunAvailability {
   const practiceRemaining = Math.max(0, PRACTICE_RUNS - entry.practiceRunsUsed);
-  const committed = entry.score !== null;
+  const committed = hasCommitted(entry);
 
   if (committed) {
     return {
       practiceRemaining: 0,
       officialAvailable: false,
       freePlayOnly: true,
-      blockedReason: 'Your official run is committed. Nothing else counts.',
+      blockedReason:
+        entry.score !== null
+          ? 'Your official run is committed. Nothing else counts.'
+          : // Ended, so it is spent (FR-017), but the score is not on the board
+            // yet. Say which, because the two are not the same situation and the
+            // second one may need the organizer.
+            'Your official run is over. The score has not reached the board yet — see below.',
     };
   }
   if (draftFinal) {

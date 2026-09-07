@@ -6,6 +6,7 @@ const entry = (over: Partial<EntryView> & { id: string; name: string }): EntryVi
   claimed: true,
   practiceRunsUsed: 3,
   abandonedOfficialRuns: 0,
+  officialStatus: 'unused',
   removed: false,
   score: null,
   commitAt: null,

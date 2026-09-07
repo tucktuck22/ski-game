@@ -32,16 +32,34 @@ do $$ begin
   end;
 end $$;
 
--- FR-017: the first official commit succeeds.
+-- FR-023, first half: the FIRST commit sets the version rather than being
+-- measured against the one typed into seed-draft.sql before anyone played.
+--
+-- This is the assertion that was missing, and its absence is why a draft seeded
+-- at 1.0.0 refused every run from the 1.6.0 build for four days. The draft above
+-- is seeded at '1.0.0'; this commits under '1.7.0' and requires it to be taken
+-- AND to become the draft's frozen version.
 insert into committed_score (draft_id, entry_id, score, outcome, rules_version)
-values ('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222', 51000, 'finished', '1.0.0');
+values ('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222', 51000, 'finished', '1.7.0');
+
+do $$
+declare v text;
+begin
+  select rules_version into v from draft where id = '11111111-1111-1111-1111-111111111111';
+  if v <> '1.7.0' then
+    raise exception 'FR-023 VIOLATED: the first commit did not freeze the rules (draft is %)', v;
+  end if;
+  raise notice 'PASS FR-023: the first commit froze the rules at %', v;
+end $$;
 
 -- FR-017/FR-018: THE ONE-RUN RULE. A second commit for the same entry must be
 -- impossible. This is the single most important assertion in the project.
 do $$ begin
   begin
     insert into committed_score (draft_id, entry_id, score, outcome, rules_version)
-    values ('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222', 99999, 'finished', '1.0.0');
+    -- Sent under the FROZEN version on purpose, so what rejects it is the
+    -- one-run rule and not the rules check standing in front of it.
+    values ('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222', 99999, 'finished', '1.7.0');
     raise exception 'FR-018 VIOLATED: a second official score was accepted for the same name';
   exception when unique_violation then raise notice 'PASS FR-018: second commit rejected';
   end;
@@ -58,8 +76,9 @@ begin
   raise notice 'PASS FR-037: commit_at server-assigned';
 end $$;
 
--- FR-023: rules frozen. A submission under a different rules version is not
--- comparable with the others, and the leaderboard is the bed order.
+-- FR-023, second half: ONCE FROZEN, a submission under a different rules
+-- version is not comparable with the others, and the leaderboard is the bed
+-- order. This is the case the freeze exists for, and it is unchanged.
 do $$ begin
   begin
     insert into committed_score (draft_id, entry_id, score, outcome, rules_version)
@@ -87,7 +106,8 @@ update draft set deadline = now() - interval '1 hour' where id = '11111111-1111-
 do $$ begin
   begin
     insert into committed_score (draft_id, entry_id, score, outcome, rules_version)
-    values ('11111111-1111-1111-1111-111111111111','33333333-3333-3333-3333-333333333333', 4000, 'finished', '1.0.0');
+    -- The frozen version, so the deadline is the only thing left to reject it.
+    values ('11111111-1111-1111-1111-111111111111','33333333-3333-3333-3333-333333333333', 4000, 'finished', '1.7.0');
     raise exception 'FR-043 VIOLATED: a score was accepted after the deadline';
   exception when check_violation then raise notice 'PASS FR-043: post-deadline commit rejected';
   end;

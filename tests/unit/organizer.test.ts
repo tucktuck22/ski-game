@@ -13,6 +13,7 @@ const e = (o: Partial<EntryView> & { name: string; id: string }): EntryView => (
   claimed: false,
   practiceRunsUsed: 0,
   abandonedOfficialRuns: 0,
+  officialStatus: 'unused',
   removed: false,
   score: null,
   commitAt: null,

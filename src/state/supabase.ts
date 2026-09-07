@@ -145,6 +145,7 @@ export class DraftStore {
         claimed: e.claimed_at !== null,
         practiceRunsUsed: e.practice_runs_used as number,
         abandonedOfficialRuns: e.abandoned_official_runs as number,
+        officialStatus: (e.official_status as 'unused' | 'committed' | null) ?? 'unused',
         removed: e.removed_at !== null,
         score: s ? (s.score as number) : null,
         commitAt: s ? (s.commit_at as string) : null,
@@ -220,6 +221,28 @@ export class DraftStore {
   }
 
   /**
+   * Spends the official run, at the instant the run reached a finish or a
+   * wipeout (FR-017).
+   *
+   * SEPARATE FROM THE SCORE ON PURPOSE. The score goes through the outbox and
+   * may be queued for minutes on lodge wifi; this is one small write that says
+   * the run happened. Previously the only record of a used official run was the
+   * score row itself, so any commit that did not land — a queue waiting on a
+   * signal, or a database refusal — left the run looking untaken and handed the
+   * player the button back, in direct contradiction of FR-018.
+   *
+   * Throws on failure, so the caller can say the run is unrecorded rather than
+   * pretending otherwise.
+   */
+  async markOfficialRunEnded(entryId: string): Promise<void> {
+    const { error } = await this.db
+      .from('roster_entry')
+      .update({ official_status: 'committed' })
+      .eq('id', entryId);
+    if (error) throw error;
+  }
+
+  /**
    * The one irreversible write. Called only by the outbox, never directly, so
    * that a failure is queued rather than lost (FR-046).
    */
@@ -232,14 +255,11 @@ export class DraftStore {
       rules_version: c.rulesVersion,
       // commit_at deliberately omitted: the server assigns it (FR-037).
     });
-    const result = classifyError(error);
-    if (result.kind === 'confirmed') {
-      await this.db
-        .from('roster_entry')
-        .update({ official_status: 'committed' })
-        .eq('id', c.entryId);
-    }
-    return result;
+    // official_status is NOT set here any more. It used to be, and only on
+    // success, which made it a duplicate of the score row and therefore useless
+    // for the one case that mattered: a run that ended and did not commit.
+    // markOfficialRunEnded() writes it at run end instead.
+    return classifyError(error);
   }
 
   // ---- Organizer operations (FR-006) ----

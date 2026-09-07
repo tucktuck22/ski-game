@@ -10,7 +10,13 @@ import { LocalDraftStore } from './state/localDraft.js';
 import { DraftStore, discoverDraft, type DraftSnapshot } from './state/supabase.js';
 import { Outbox, indexedDbStore, type OutboxStore, type PendingCommit } from './state/outbox.js';
 import { OutboxRunner, browserEnvironment } from './state/outboxRunner.js';
-import { availability, courseFor, PRACTICE_RUNS, type RunKind } from './state/runEconomy.js';
+import {
+  availability,
+  courseFor,
+  hasCommitted,
+  PRACTICE_RUNS,
+  type RunKind,
+} from './state/runEconomy.js';
 import { renderLeaderboard, escapeHtml } from './ui/leaderboard.js';
 import { GameView, type RunReport } from './ui/game.js';
 import { popTrickBadge } from './ui/trickBadge.js';
@@ -26,6 +32,7 @@ import { renderOrganizer, removalConfirmationText } from './ui/organizer.js';
 import { safeSession } from './state/safeStorage.js';
 import { showFatalError, installGlobalErrorHandlers, describeError } from './ui/errorBoundary.js';
 import { titleScene } from './ui/title.js';
+import { explainRejection } from './ui/commitFailure.js';
 import { resolveConfig, describeUnreachable, isNetworkFailure } from './state/config.js';
 
 import tuningJson from '../data/tuning.json';
@@ -409,11 +416,28 @@ function renderPlayer(me: NonNullable<ReturnType<typeof myEntry>>): string {
       ${playerError ? `<p id="player-error" style="color:var(--yellow)">${escapeHtml(playerError)}</p>` : ''}
       ${commitStatus === 'pending' ? `<p class="pending">SCORE PENDING — not on the leaderboard until the server confirms it.</p>` : ''}
       ${commitStatus === 'confirmed' ? `<p class="confirmed">SCORE CONFIRMED. ${escapeHtml(commitMessage)}</p>` : ''}
-      ${commitStatus === 'rejected' ? `<p style="color:var(--yellow)">${escapeHtml(commitMessage)}</p>` : ''}
+      ${commitStatus === 'rejected' ? renderRejection(commitMessage) : ''}
       <p style="color:var(--cyan);font-size:12px">
         Practice is the warm-up slope. The official run is a course you have not seen.
         Hold to tuck and go faster — let go to jump. Let go under something low and you eat it.
       </p>
+    </div>`;
+}
+
+/**
+ * A refused commit, said out loud.
+ *
+ * It used to be one yellow line among four other yellow lines, carrying a raw
+ * Postgres message. A permanent refusal is the only outcome on this screen that
+ * waiting cannot fix, so it gets a box of its own and names who can fix it.
+ */
+function renderRejection(reason: string): string {
+  const f = explainRejection(reason);
+  return `
+    <div id="commit-rejected" class="panel" style="border-color:var(--magenta);margin:0">
+      <p style="color:var(--magenta);font-weight:bold;margin:0 0 8px">${escapeHtml(f.headline)}</p>
+      <p style="margin:0 0 8px">${escapeHtml(f.detail)}</p>
+      <p style="color:var(--yellow);font-size:12px;margin:0">${escapeHtml(f.raw)}</p>
     </div>`;
 }
 
@@ -624,7 +648,9 @@ function confirmOfficial(): void {
 async function startRun(kind: RunKind): Promise<void> {
   const me = myEntry();
   if (!me) return;
-  const which = courseFor(kind, me.score !== null);
+  // FR-068: free play moves to the official course once the official run is
+  // spent — which is at run end, not when the score row appears.
+  const which = courseFor(kind, hasCommitted(me));
   const course = which === 'official' ? data.official : data.warmup;
 
   app.innerHTML = `
@@ -703,6 +729,8 @@ async function endRun(report: RunReport): Promise<void> {
 
   if (report.kind === 'official') {
     commitStatus = 'pending';
+    // The score first, always: the queue is what makes it survivable, so
+    // nothing may run ahead of it and fail.
     await outbox.enqueue({
       id: `${me.id}-official`,
       draftId: snapshot.draft.id,
@@ -711,6 +739,30 @@ async function endRun(report: RunReport): Promise<void> {
       outcome: report.outcome,
       rulesVersion: data.official.rulesVersion,
     });
+
+    /**
+     * FR-017/FR-018: the run is spent the moment it ends, whatever the score
+     * insert goes on to do.
+     *
+     * This is the write that was missing. The only record of a used official
+     * run was the score row, so a commit that was refused or merely still
+     * queued left the run looking untaken — and `availability()`, reading only
+     * the score, put OFFICIAL RUN back on the screen, live. That is the "they
+     * can just do it again" half of the reported bug, and it is independent of
+     * why the insert failed.
+     *
+     * Best effort by design. If this write cannot get out either, the score is
+     * already safe in the outbox and this session's `commitStatus` still holds
+     * the button shut; the next successful commit closes the run properly. What
+     * must not happen is losing the score because the bookkeeping failed.
+     */
+    try {
+      await backend.markOfficialRunEnded(me.id);
+    } catch {
+      playerError =
+        'Your run is over and the score is queued, but the draft could not be told ' +
+        'the run is used up. Stay on this tab until it says CONFIRMED.';
+    }
     // Through the runner, not straight at the outbox: a pass that comes back
     // "retry" must leave a scheduled retry behind it. This one call used to BE
     // the whole of FR-046's "retried until confirmed".
@@ -740,15 +792,17 @@ async function endRun(report: RunReport): Promise<void> {
       <h2 class="sfx">${headline}</h2>
       ${report.outcome === 'wiped_out' ? `<p class="subtitle">${escapeHtml(insult)}</p>` : ''}
       <p style="font-size:22px;color:var(--yellow)">${report.score.toLocaleString()}</p>
-      <p>${
-        report.kind === 'official'
-          ? commitStatus === 'confirmed'
-            ? 'Committed. That is your bed pick.'
-            : commitStatus === 'rejected'
-              ? escapeHtml(commitMessage)
-              : 'Queued — it will post as soon as you have a signal. Do not close this tab.'
-          : 'Practice. Nothing was recorded.'
-      }</p>
+      ${
+        report.kind === 'official' && commitStatus === 'rejected'
+          ? renderRejection(commitMessage)
+          : `<p>${
+              report.kind === 'official'
+                ? commitStatus === 'confirmed'
+                  ? 'Committed. That is your bed pick.'
+                  : 'Queued — it will post as soon as you have a signal. Do not close this tab.'
+                : 'Practice. Nothing was recorded.'
+            }</p>`
+      }
       <button id="done">BACK TO THE BOARD</button>
     </div>`;
   (app.querySelector('#done') as HTMLButtonElement).onclick = (): void => {

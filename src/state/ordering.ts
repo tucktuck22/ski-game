@@ -13,6 +13,17 @@ export interface EntryView {
   claimed: boolean;
   practiceRunsUsed: number;
   abandonedOfficialRuns: number;
+  /**
+   * Whether this name's one official run has been used up.
+   *
+   * Set the moment the run reaches a finish or a wipeout (FR-017), which is
+   * BEFORE the score row is guaranteed to exist: the commit goes through the
+   * outbox and may still be queued. Without this the run vanished whenever the
+   * insert did not land, and the OFFICIAL RUN button came straight back —
+   * which is FR-018's "no player-accessible path to retake" defeated by a
+   * dropped request.
+   */
+  officialStatus: 'unused' | 'committed';
   removed: boolean;
   score: number | null;
   /** ISO timestamp assigned by shared storage, never by a device (FR-037). */
