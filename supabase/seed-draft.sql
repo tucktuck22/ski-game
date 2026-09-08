@@ -32,10 +32,14 @@ values (
   '2026-09-10 23:00:00+00',
 
   19860214,   -- shared course seed: every official run faces this same mountain
-  -- MUST match rulesVersion in data/courses/official.json. A mismatch is not a
-  -- warning: the commit_deadline trigger rejects every official run with
-  -- "rules version mismatch", and the player is told his one run did not count.
-  -- tests/contract/storage.test.ts fails if these two drift apart again.
+  -- The starting rules version. Kept in step with rulesVersion in
+  -- data/courses/official.json by tests/contract/storage.test.ts.
+  --
+  -- It no longer has to match for play to work: FR-023 freezes the rules at the
+  -- FIRST COMMIT, so a draft with no scores on it adopts the version of the
+  -- first run posted into it (supabase/migrations/0004_rules_freeze.sql). It
+  -- used to have to match exactly, and when it drifted — which it did, six
+  -- times in six days — every official run in the draft was refused for good.
   '1.6.0',
   encode(gen_random_bytes(16), 'hex')
 );

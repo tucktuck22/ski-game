@@ -5,7 +5,7 @@ const entry = (over: Partial<EntryView> & { id: string; name: string }): EntryVi
   origin: 'organizer',
   claimed: true,
   practiceRunsUsed: 3,
-  abandonedOfficialRuns: 0,
+  officialStatus: 'unused',
   removed: false,
   score: null,
   commitAt: null,

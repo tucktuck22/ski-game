@@ -1,5 +1,17 @@
 -- Shredpocalypse '86 — realign an existing draft's rules_version
 --
+-- YOU PROBABLY WANT supabase/migrations/0004_rules_freeze.sql INSTEAD.
+--
+-- This file repairs one draft, once, by hand. 0004 fixes the reason the repair
+-- was ever needed: the trigger froze the rules when the draft was SEEDED, but
+-- FR-023 says they freeze when the FIRST OFFICIAL RUN COMMITS. Apply 0004 and a
+-- draft with no scores on it simply takes the version of the first run posted
+-- into it — no SQL, no downtime, nothing for anyone to find and run.
+--
+-- Keep this file for the case 0004 deliberately does not cover: a draft that
+-- ALREADY has scores and needs its version moved anyway. That is a decision
+-- with consequences for the leaderboard, so it stays manual and stays guarded.
+--
 -- SYMPTOM: every official run is refused. The player takes his one run, the
 -- screen says the score was not committed, and the leaderboard stays empty.
 -- The reason, if you look, is "rules version mismatch: draft is X, submission

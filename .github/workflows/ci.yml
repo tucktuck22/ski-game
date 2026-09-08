@@ -63,6 +63,14 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Build, serve at the production base path, and play it
         run: npm run test:build
+      # Local mode is the one configuration no player is ever in, and
+      # LocalDraftStore.submitCommit() cannot fail — so nothing above this line
+      # can see a refused or queued official commit. That blind spot is where
+      # the "the run ended, no score, and OFFICIAL RUN is live again" bug lived
+      # for four days. This suite runs the shared-storage build with PostgREST
+      # mocked, including its failures.
+      - name: The official run is spent even when the commit is not
+        run: npm run test:shared
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

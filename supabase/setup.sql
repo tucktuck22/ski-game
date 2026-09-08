@@ -1,9 +1,13 @@
 -- Shredpocalypse '86 — complete database setup
 --
 -- Paste this whole file into the Supabase SQL editor and run it ONCE.
--- It is the three files in supabase/migrations/ concatenated, in order, for
+-- It is the files in supabase/migrations/ concatenated, in order, for
 -- convenience. If you are setting up a second time, start from a fresh
 -- project rather than re-running this.
+--
+-- ALREADY HAVE A DRAFT RUNNING? Re-running this whole file on it is not safe -
+-- the create tables would fail and leave you half-applied. To pick up
+-- 0004_rules_freeze.sql on a live draft, paste just that one file instead.
 --
 -- What it creates:
 --   draft            one contest: deadline, shared course seed, rules version
@@ -99,23 +103,50 @@ create trigger roster_cap before insert on roster_entry
 -- FR-043: no commits after the deadline. FR-044's grace for a run that started
 -- before it is handled by the client sending the run's start time; the server
 -- allows a short window rather than trusting an arbitrary claim.
-create or replace function enforce_deadline() returns trigger as $$
+--
+-- FR-023: the rules freeze AT THE FIRST COMMIT, which is what the requirement
+-- says and is NOT the moment the draft was seeded. Freezing at seed time is the
+-- defect 0004_rules_freeze.sql fixes - see that file for the full account. In
+-- short: rulesVersion moved 1.0.0 -> 1.6.0 during development, so a draft
+-- seeded early refused every official run for the rest of its life, and the
+-- player saw only a live OFFICIAL RUN button and no score.
+--
+-- security definer: the freeze writes to `draft`, which the client roles are
+-- deliberately granted no update on.
+create or replace function enforce_deadline() returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
 declare
   d record;
 begin
-  select deadline, rules_version into d from draft where id = new.draft_id;
+  -- FOR UPDATE serialises two players committing in the same instant, so they
+  -- cannot both take the "first commit" branch and freeze different versions.
+  select deadline, rules_version into d from draft where id = new.draft_id for update;
+  if not found then
+    raise exception 'no such draft: %', new.draft_id using errcode = 'foreign_key_violation';
+  end if;
+
   if now() > d.deadline + interval '5 minutes' then
     raise exception 'draft deadline has passed' using errcode = 'check_violation';
   end if;
-  -- FR-023: rules frozen at first commit. A mid-draft physics or scoring change
-  -- makes scores incomparable, and the leaderboard is the bed order.
-  if new.rules_version <> d.rules_version then
-    raise exception 'rules version mismatch: draft is %, submission is %', d.rules_version, new.rules_version
-      using errcode = 'check_violation';
+
+  if exists (select 1 from committed_score where draft_id = new.draft_id) then
+    -- Frozen. A mid-draft physics or scoring change makes scores incomparable,
+    -- and the leaderboard is the bed order.
+    if new.rules_version <> d.rules_version then
+      raise exception 'rules version mismatch: draft is %, submission is %', d.rules_version, new.rules_version
+        using errcode = 'check_violation';
+    end if;
+  else
+    -- This IS the moment FR-023 names.
+    update draft set rules_version = new.rules_version where id = new.draft_id;
   end if;
+
   return new;
 end;
-$$ language plpgsql;
+$$;
 
 create trigger commit_deadline before insert on committed_score
   for each row execute function enforce_deadline();

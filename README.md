@@ -126,13 +126,26 @@ own against an existing project (it only creates functions and grants). See
 [ADR-0010](docs/adr/0010-organizer-actions-as-secret-gated-functions.md) for why
 they are functions rather than table writes.
 
-If official runs are refused with a **rules version mismatch**, the draft was
-seeded before a change to the simulation and is still holding the old version.
-FR-023 freezes the rules per draft and the database enforces it, so the refusal
-is the check working rather than a bug in the commit path. Run
-`supabase/fix-rules-version.sql` on a draft that has no committed scores yet; it
-refuses to touch one that has, because moving the version under scores already
-posted would put two rule sets on one leaderboard.
+If official runs are refused with a **rules version mismatch**, and the draft has
+no committed scores yet, run `supabase/migrations/0004_rules_freeze.sql` against
+the project. It is safe on its own (it replaces one trigger function) and it
+fixes the cause rather than the symptom.
+
+FR-023 says the rules freeze "from the moment the first official run commits".
+The trigger used to freeze them when the draft was **seeded**, comparing every
+submission against the version typed into `seed-draft.sql`. Those are not the
+same moment: `rulesVersion` moved 1.0.0 → 1.6.0 over six days of development, so
+a draft seeded early refused 100% of official runs from then on. The player saw
+his run end, no score on the board, and the OFFICIAL RUN button live again — the
+reason being one line of yellow text quoting Postgres. After 0004, a draft with
+no scores adopts the version of the first run posted into it, which is the
+freeze the requirement describes; every commit after that is compared against it
+exactly as before.
+
+For a draft that **already has scores** and needs its version moved anyway,
+`supabase/fix-rules-version.sql` is still the tool, and it still refuses to do it
+— moving the version under scores already posted would put two rule sets on one
+leaderboard, and the leaderboard is the bed order.
 
 **The keep-alive workflow is not optional.** A free Supabase project pauses
 after 7 days without database activity and needs a manual restore, which would

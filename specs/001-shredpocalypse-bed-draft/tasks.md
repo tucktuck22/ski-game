@@ -151,9 +151,9 @@ These come from the plan's Constitution Check and Complexity Tracking. Violating
 - [ ] T059 [US2] Implement cross-device identity recovery by name re-selection per FR-011 in `src/state/identity.ts`
 - [ ] T060 [US2] Route all run counts and claims through shared storage, with no device-local read path, per FR-021 in `src/state/runEconomy.ts`
 - [ ] T061 [US2] Implement duplicate-commit rejection surfacing "already committed" without retry per contracts/storage-api.md in `src/state/commit.ts`
-- [x] T062 [US2] Implement abandonment detection and the public abandoned-run counter per FR-019, FR-065 in `src/state/abandonment.ts`
+- [~] T062 [US2] ~~Implement abandonment detection and the public abandoned-run counter per FR-019, FR-065 in `src/state/abandonment.ts`~~ REVERTED: FR-065 withdrawn 2026-09-08. The module was written and tested but never wired to anything, so the counter never counted; removed rather than finished.
 - [x] T063 [P] [US2] Ensure abandoned practice runs do not consume a practice run per FR-066 in `src/state/runEconomy.ts`
-- [x] T064 [P] [US2] Display the abandonment count on the leaderboard per FR-065, SC-013 in `src/ui/leaderboard.ts`
+- [~] T064 [P] [US2] ~~Display the abandonment count on the leaderboard per FR-065, SC-013 in `src/ui/leaderboard.ts`~~ REVERTED: FR-065 withdrawn 2026-09-08. The Bails column is removed.
 - [ ] T065 [US2] Assert device switching, private windows, and cleared storage grant no additional runs, per US2 acceptance scenarios, in `tests/e2e/us2-one-run-per-name.spec.ts`
 - [ ] T066 [P] [US2] Assert abandonment discards the run, leaves the official run unused, and increments the visible counter in `tests/e2e/us2-abandonment.spec.ts`
 

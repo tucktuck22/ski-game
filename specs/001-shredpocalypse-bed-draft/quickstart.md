@@ -80,9 +80,10 @@ Drops the network before a run ends, reloads mid-retry, restores the network.
 leaderboard place; the queued commit survives reload; it posts on reconnect. Also
 asserts that no run count or claim is ever read back from the outbox.
 
-## Scenario 5 — Abandonment is free and visible
+## Scenario 5 — Abandonment is free
 
-**Proves**: FR-019, FR-065, FR-066, ADR-0002.
+**Proves**: FR-019, FR-066, ADR-0002. (FR-065, the public bail counter, was
+withdrawn on 2026-09-08 — abandonment is free and now also unrecorded.)
 
 ```bash
 npm run test:e2e -- --grep "abandon"
