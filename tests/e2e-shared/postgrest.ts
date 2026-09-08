@@ -43,7 +43,6 @@ export function fixture(over: Partial<Fixture> = {}): Fixture {
       claimed_at: null,
       practice_runs_used: 0,
       official_status: 'unused',
-      abandoned_official_runs: 0,
       official_run_started_at: null,
       removed_at: null,
       removed_score: null,

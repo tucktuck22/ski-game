@@ -12,7 +12,6 @@ export interface EntryView {
   origin: 'organizer' | 'self_created';
   claimed: boolean;
   practiceRunsUsed: number;
-  abandonedOfficialRuns: number;
   /**
    * Whether this name's one official run has been used up.
    *

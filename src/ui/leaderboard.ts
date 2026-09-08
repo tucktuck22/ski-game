@@ -21,7 +21,6 @@ export function renderLeaderboard(entries: readonly EntryView[], final: boolean)
       <td class="${e.origin === 'self_created' ? 'self-created' : ''}${e.unresolvedTie ? ' tie' : ''}">${escapeHtml(e.name)}</td>
       <td>${e.score === null ? '—' : e.score.toLocaleString()}</td>
       <td>${e.outcome === 'wiped_out' ? 'WIPED OUT' : e.outcome === 'finished' ? 'FINISHED' : statusOf(e)}</td>
-      <td>${e.abandonedOfficialRuns > 0 ? `${e.abandonedOfficialRuns} bailed` : ''}</td>
     </tr>`;
 
   return `
@@ -30,13 +29,13 @@ export function renderLeaderboard(entries: readonly EntryView[], final: boolean)
       <p class="subtitle">Rank 1 picks a bed first.${final ? '' : ' Not final until the deadline.'}</p>
       <table>
         <thead>
-          <tr><th>Pick</th><th>Name</th><th>Score</th><th>Run</th><th>Bails</th></tr>
+          <tr><th>Pick</th><th>Name</th><th>Score</th><th>Run</th></tr>
         </thead>
         <tbody>
           ${s.ranked.map(row).join('')}
           ${
             s.forfeits.length > 0
-              ? `<tr><td colspan="5" style="color:var(--yellow);padding-top:14px">
+              ? `<tr><td colspan="4" style="color:var(--yellow);padding-top:14px">
             ${
               final
                 ? 'DID NOT POST A SCORE — settle the order below by coin flip at the cabin'

@@ -144,7 +144,6 @@ export class DraftStore {
         origin: e.origin as 'organizer' | 'self_created',
         claimed: e.claimed_at !== null,
         practiceRunsUsed: e.practice_runs_used as number,
-        abandonedOfficialRuns: e.abandoned_official_runs as number,
         officialStatus: (e.official_status as 'unused' | 'committed' | null) ?? 'unused',
         removed: e.removed_at !== null,
         score: s ? (s.score as number) : null,
@@ -213,11 +212,6 @@ export class DraftStore {
   /** Only a COMPLETED practice run increments the counter (FR-066). */
   async recordPracticeRun(entryId: string, used: number): Promise<void> {
     await this.db.from('roster_entry').update({ practice_runs_used: used }).eq('id', entryId);
-  }
-
-  /** FR-065: abandonment is permitted, and public. */
-  async recordAbandonedRun(entryId: string, count: number): Promise<void> {
-    await this.db.from('roster_entry').update({ abandoned_official_runs: count }).eq('id', entryId);
   }
 
   /**

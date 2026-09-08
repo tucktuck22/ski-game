@@ -63,7 +63,6 @@ export class LocalDraftStore {
       origin: 'self_created',
       claimed: true,
       practiceRunsUsed: 0,
-      abandonedOfficialRuns: 0,
       officialStatus: 'unused',
       removed: false,
       score: null,
@@ -82,7 +81,6 @@ export class LocalDraftStore {
       origin: 'organizer',
       claimed: false,
       practiceRunsUsed: 0,
-      abandonedOfficialRuns: 0,
       officialStatus: 'unused',
       removed: false,
       score: null,
@@ -105,12 +103,6 @@ export class LocalDraftStore {
   async recordPracticeRun(id: string, used: number): Promise<void> {
     const e = this.entries.get(id);
     if (e) this.entries.set(id, { ...e, practiceRunsUsed: used });
-    this.notify();
-  }
-
-  async recordAbandonedRun(id: string, count: number): Promise<void> {
-    const e = this.entries.get(id);
-    if (e) this.entries.set(id, { ...e, abandonedOfficialRuns: count });
     this.notify();
   }
 
@@ -165,7 +157,6 @@ export class LocalDraftStore {
         ...e,
         claimed: false,
         practiceRunsUsed: 0,
-        abandonedOfficialRuns: 0,
         officialStatus: 'unused',
       });
     }

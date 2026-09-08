@@ -7,7 +7,6 @@ const e = (o: Partial<EntryView> & { name: string }): EntryView => ({
   origin: 'organizer',
   claimed: true,
   practiceRunsUsed: 3,
-  abandonedOfficialRuns: 0,
   officialStatus: 'unused',
   removed: false,
   score: null,
@@ -24,7 +23,6 @@ describe('leaderboard view (SC-010)', () => {
       score: 1400,
       commitAt: '2026-09-01T10:00:00Z',
       outcome: 'wiped_out',
-      abandonedOfficialRuns: 3,
     }),
     e({ name: 'Zach', origin: 'self_created', claimed: false, practiceRunsUsed: 0 }),
     e({ name: 'Al', practiceRunsUsed: 1 }),
@@ -48,8 +46,18 @@ describe('leaderboard view (SC-010)', () => {
     expect(html).not.toMatch(/PICK 3[\s\S]*Zach/);
   });
 
-  it('publishes the abandonment count (FR-065, SC-013)', () => {
-    expect(renderLeaderboard(entries, false)).toContain('3 bailed');
+  /**
+   * FR-065 is withdrawn. The Bails column counted official runs abandoned
+   * mid-descent, and it never counted anything: nothing in the app ever wrote
+   * the column it read, so it displayed a permanent zero for the whole life of
+   * the project. The organizer's decision is that mid-run bailing is not a
+   * problem worth policing among eight friends, so the column is gone rather
+   * than finished. This asserts it stays gone.
+   */
+  it('does not carry a bails column (FR-065 withdrawn)', () => {
+    const html = renderLeaderboard(entries, false);
+    expect(html).not.toContain('Bails');
+    expect(html).not.toContain('bailed');
   });
 
   it('marks self-created entries (FR-073)', () => {
