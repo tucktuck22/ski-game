@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-09
 
-**Status**: Draft — 3 open clarifications, see [Clarifications](#clarifications)
+**Status**: Clarified 2026-09-09 — ready for `/speckit-plan`
 
 **Input**: User description: "in addition to the features called out below from our
 initial chat, I would like to expand the practice runs to include an initial
@@ -76,19 +76,33 @@ appeared.
 
 ## Clarifications
 
-Three questions are open. Each changes what gets built rather than how, so they are
-asked rather than defaulted. Everything else the description left unstated is
-recorded in [Assumptions](#assumptions).
+### Session 2026-09-09
 
-- **Q1 — Does the coached opening run on every practice run, or only the first?**
-  Bears on scope: "only the first" needs a durable record of who has been coached,
-  and that record has to answer to FR-021.
-- **Q2 — How does the flip badge word itself on a keyboard?** The supplied copy says
-  "swipe forward or backward to flip!", which is the touch verb. Roughly half of an
-  eight-person draft will read it on a laptop, where there is nothing to swipe.
-- **Q3 — What happens when a player wipes out inside the coached opening?** Under
-  today's rules that ends the run and spends one of three practice runs, so a player
-  can burn all three learning to duck and then meet the scored course cold.
+Three questions were put to the maintainer rather than defaulted, because each one
+changed what gets built. All three are answered and folded into the requirements
+below. Everything else the description left unstated was defaulted and is recorded
+in [Assumptions](#assumptions).
+
+- **Q: Does the coached opening run on every practice run, or only the first?**
+  → **A: Every practice run, always.** No record of who has been coached, no new
+  field on the roster entry, no migration, and nothing for a device switch or a
+  cleared browser to get wrong. The section is short and gentle; a player who
+  already knows it rides through it in seconds. Encoded as FR-186a.
+
+- **Q: How does the flip badge word itself for a player with no touchscreen?**
+  → **A: Name both verbs in one string, using arrow glyphs rather than the word
+  "arrow".** The badge reads **SWIPE OR ← → TO FLIP!** on every device. One string
+  is simpler than device detection and has no failure mode: there is no state in
+  which a player is shown a verb his hardware cannot perform. Encoded as FR-190.
+
+- **Q: What happens when a player wipes out inside the coached opening?**
+  → **A: Normal rules apply. A wipeout is a wipeout — it ends the run and spends
+  one of the three practice runs.** Nothing special is built. The consequence, which
+  was raised before the decision and accepted, is that a player can spend his whole
+  practice allowance inside the teaching section and then meet the scored course
+  cold. Encoded as FR-192a, which also records what now carries the weight of
+  preventing it: FR-187's gentler slope and FR-192's "completable by a player who
+  does nothing" are no longer comfort requirements, they are the only guard.
 
 ## User Scenarios & Testing _(mandatory)_
 
@@ -101,8 +115,9 @@ off it, and above it a badge in the game's own sound-effect lettering: **HOLD TO
 CROUCH!**. He holds, he ducks under it, the badge clears. A box of deadfall comes
 next with **RELEASE TO JUMP!** over it; he lets go and pops over it. Then a small
 ramp with **STAY CROUCHED!**, and holding through the lip throws him further than
-letting go would have. Then a big kicker with **SWIPE FORWARD OR BACKWARD TO FLIP!**,
-and for the first time he spins in the air and a trick badge pays him for it. The
+letting go would have. Then a big kicker with **SWIPE OR ← → TO FLIP!**, which
+tells him what to do whether he is holding a phone or sitting at a laptop, and for
+the first time he spins in the air and a trick badge pays him for it. The
 coached section ends, the slope steepens into the warm-up course he has always had,
 and he rides the rest of it knowing four things he previously had to guess.
 
@@ -133,9 +148,12 @@ second start.
    approaches, **Then** a badge reading **STAY CROUCHED!** appears, and holding the
    crouch across the lip produces a visibly longer launch than releasing it.
 5. **Given** the player has taken the small ramp, **When** the big kicker
-   approaches, **Then** a badge naming the flip verb appears, and executing it in
-   the air pays a trick badge on landing.
-6. **Given** the coached section is complete, **When** the player passes its end,
+   approaches, **Then** a badge reading **SWIPE OR ← → TO FLIP!** appears, and
+   executing either verb in the air pays a trick badge on landing.
+6. **Given** a player on a laptop with no touchscreen, **When** the flip badge
+   appears, **Then** it names a verb he can perform, without the product having
+   detected anything about his device.
+7. **Given** the coached section is complete, **When** the player passes its end,
    **Then** the slope steepens into the existing warm-up course, no further coaching
    badges appear, and the run ends as practice runs end today.
 
@@ -177,37 +195,47 @@ moved, the simulation did not.
 
 ---
 
-### User Story 3 — A player who already knows is not made to sit through it (Priority: P3)
+### User Story 3 — The same run every time (Priority: P3)
 
-A player on his second or third practice run, or one who has already been coached
-and simply wants to warm up, is not held in a teaching section he no longer needs.
+A player takes his second and third practice runs and gets exactly what he got the
+first time: the same gentle opening, the same four objects, the same four badges,
+then the same warm-up course. Nothing is remembered about him, nothing is skipped,
+and nothing behaves differently because of what he did before.
 
-**Why this priority**: A quality-of-life concern, not a correctness one, and its
-shape depends entirely on Q1. Ranked last deliberately: the cost of over-coaching a
-returning player is mild irritation, and the cost of under-coaching a new one is his
-official run.
+**Why this priority**: This is the sameness the clarification bought, and it is
+worth asserting rather than assuming. The alternative designs all needed a record of
+who had been coached, and a record that can be wrong is a way for a player to be
+dropped into the wrong terrain. Ranked last because it delivers no new capability —
+it protects one.
 
-**Independent Test**: Take a second practice run under the same name and confirm the
-behaviour matches whatever Q1 settles, consistently and without a state that leaves
-the player unable to reach the warm-up terrain.
+**Independent Test**: Take three practice runs in a row under the same name, on a
+fresh device and then on a second device, and confirm all three are identical from
+the start line to the end of the coached section.
 
 **Acceptance Scenarios**:
 
-1. **Given** a player who has completed a coached practice run, **When** he starts
-   another practice run, **Then** the coached opening behaves as Q1 specifies, and
-   the same way every time.
+1. **Given** a player who has already completed a coached practice run, **When** he
+   starts another practice run, **Then** the coached opening is present and
+   identical.
+2. **Given** a player who switches device, clears browser data, or opens a private
+   window, **When** he starts a practice run, **Then** the coached opening is
+   present and identical — nothing about it is remembered anywhere.
 
 ---
 
 ### Edge Cases
 
-- **A player wipes out inside the coached section.** Open as Q3. Today this ends the
-  run and spends a practice run, which means the teaching section can consume the
-  entire practice allowance of the player who most needs it.
-- **A player ignores every badge.** The section MUST remain completable by a player
-  who reads nothing and does nothing: he takes the rope's clearance at standing
-  height and wipes out, or he coasts. The section must not require an input to be
-  survivable that the badge is simultaneously trying to teach — see FR-192.
+- **A player wipes out inside the coached section.** Settled: normal rules apply
+  (FR-192a). The run ends and a practice run is spent, exactly as anywhere else.
+  The accepted consequence is that a player can spend all three practice runs inside
+  the teaching section and then meet the scored course cold. FR-187 and FR-192 are
+  what keep that from happening in practice, which is why both are stated as hard
+  requirements rather than as guidance.
+- **A player ignores every badge.** The section MUST remain survivable by a player
+  who reads nothing and presses nothing — he coasts through it and reaches the
+  warm-up course. This is the single most important geometric constraint in the
+  feature, because with FR-192a in force it is the only thing standing between a
+  confused player and a spent practice allowance. See FR-192.
 - **A player wipes out on the boundary rope in an official run.** No change: the
   rope collides exactly as the bough did, and the outcome commits per FR-017.
 - **Reduced motion is on.** The coaching badges are score-adjacent information, not
@@ -233,6 +261,11 @@ the player unable to reach the warm-up terrain.
   existing warm-up terrain within the same continuous run. The player MUST NOT have
   to start, load, or select anything between the coached section and the warm-up
   course.
+- **FR-186a**: The coached section MUST appear on every practice run, identically,
+  for every player. The product MUST NOT record, anywhere, whether a player has
+  been coached before, and MUST NOT vary the section on the basis of practice runs
+  used, device, or session. Clearing browser data, switching device, or opening a
+  private window MUST make no difference to it.
 - **FR-187**: The coached section's terrain MUST be materially gentler than the
   warm-up course that follows it, such that a player travels it slowly enough to
   read a badge and act on it before reaching the object it describes.
@@ -241,9 +274,17 @@ the player unable to reach the warm-up terrain.
 - **FR-189**: Each coached object MUST carry a badge naming the verb that object
   answers to, rendered in the same visual idiom as the existing trick badges
   (FR-128): sound-effect lettering, panelled, in the style bible's lettering rules.
-- **FR-190**: The four badges MUST read, in order: **HOLD TO CROUCH!**, **RELEASE TO
-  JUMP!**, **STAY CROUCHED!**, and a flip instruction whose exact wording is open as
-  Q2.
+- **FR-190**: The four badges MUST read, in order and verbatim: **HOLD TO CROUCH!**,
+  **RELEASE TO JUMP!**, **STAY CROUCHED!**, **SWIPE OR ← → TO FLIP!**.
+- **FR-190a**: The flip badge MUST carry both verbs in one string on every device.
+  The product MUST NOT detect the input device and word the badge differently for
+  each: one string that is always correct has no state in which a player is told to
+  perform a gesture his hardware cannot perform.
+- **FR-190b**: The two arrow marks in the flip badge MUST render legibly at badge
+  size on the platform baseline, in the game's own typeface stack. Where a glyph
+  does not, it MUST be replaced by a drawn arrow mark of the same meaning — the
+  wording MUST NOT fall back to the word "arrow", which is what these marks were
+  chosen over.
 - **FR-191**: A coaching badge MUST appear while its object is visible and before
   the player reaches it, and MUST clear once that object is behind him. No two
   coaching badges may be legible at the same time.
@@ -251,6 +292,10 @@ the player unable to reach the warm-up terrain.
   instructed verb, and MUST NOT be a dead end for one who does not. No coached
   object may be positioned such that failing to act on its badge makes the remainder
   of the section impossible to reach.
+- **FR-192a**: A wipeout inside the coached section MUST behave exactly as a wipeout
+  anywhere else: the run ends and one practice run is spent. No forgiving hazards, no
+  refunded run, no mid-run restart, and no distinction in the run economy between
+  where in a practice run the player came to grief.
 - **FR-193**: The coached section MUST teach rotation explicitly, and MUST be the
   first place in the product where rotation is named. Rotation is the verb whose
   absence from the product this feature exists to correct.
@@ -366,6 +411,13 @@ as a requirement so the work is traceable per Principle I.
   Standards.
 - **SC-070**: Every document this feature contradicts is corrected in the same change
   set: the style bible, feature 001's spec, ADR-0002, the ADR index, and the README.
+- **SC-071**: No playtester spends more than one practice run inside the coached
+  section. A second one spent there means FR-187's slope or FR-192's geometry is
+  wrong, and the section — not the player — is what gets revised.
+- **SC-072**: A player on a device with no touchscreen, and a player on a phone,
+  each read the flip badge and perform the rotation without asking what it means.
+- **SC-073**: Three consecutive practice runs, across two devices and a cleared
+  browser, present a byte-identical coached section.
 
 ## Assumptions
 
@@ -409,6 +461,16 @@ not a gap left.
   style bible in the game's own palette, as every other terrain object is.
 - **Eight players, one cabin.** The audience is fixed and known, which is what makes
   FR-208 defensible and would not survive a public release.
+- **The practice allowance is allowed to be spent on the tutorial.** FR-192a keeps
+  normal wipeout rules inside the coached section, so a player who repeatedly fails
+  the first rope can use all three practice runs without reaching the warm-up
+  course, and then rides the scored course cold. This was raised before the decision
+  and accepted: the alternatives each required either a hazard that does not hurt or
+  a new distinction in the run economy, and neither was judged worth building for
+  eight people on a gentle slope. The mitigation is geometric rather than
+  procedural — FR-187 makes the section slow and FR-192 makes it survivable by a
+  player who does nothing — which is why both are MUSTs and why SC-071 measures the
+  outcome rather than trusting it.
 
 ## Out of Scope
 
