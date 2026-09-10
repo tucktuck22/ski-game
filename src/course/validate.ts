@@ -39,17 +39,24 @@ const MAX_GRADIENT = 1.732;
 const STALL_MARGIN = 3;
 
 /**
- * Ceiling on rotations a single air could plausibly produce.
+ * Ceiling on rotations a single RUN could plausibly land.
  *
- * Was 4, which was true while the biggest launch on any course bought 50 ticks
- * against a 15-tick spin. The booters changed that: the big one now buys 81, and
- * a quint lands on it with six ticks to spare. CV-8 exists to prove that every
- * finisher outranks every non-finisher (FR-034), and it proves it by pricing the
- * best run nobody finishes - so a ceiling set below what the course actually
- * permits does not make the rule pass, it makes it lie. Eighteen now: a floated
- * booter buys 225 ticks against a 15-tick spin, so fifteen rotations fit in one
- * air where four used to, and the bound has to sit above what the course allows
- * rather than above what anyone expects a person to actually land.
+ * Read the name carefully: maxAchievableBonus adds this once, so it bounds the
+ * whole run, not one air. It said "a single air" and was justified by one - the
+ * floated booter bought 225 ticks against a 15-tick spin, so fifteen rotations
+ * fit in one launch and 18 covered it.
+ *
+ * Real gravity ended that (2026-09-10). The longest air on the course is now 66
+ * ticks, which is four rotations, and the five kickers together permit
+ * 2 + 2 + 3 + 4 + 2 = 13 in one run. Eighteen still holds as the bound, and now
+ * covers those thirteen plus the crouch-release jumps a player can throw
+ * anywhere between them.
+ *
+ * The reasoning the old comment got right, and worth keeping: CV-8 proves every
+ * finisher outranks every non-finisher (FR-034) by pricing the best run nobody
+ * finishes, so a ceiling set below what the course actually permits does not
+ * make the rule pass - it makes it lie. It has to sit above what the course
+ * ALLOWS, not above what anyone expects a person to land.
  */
 const TRICK_CEILING = 18;
 

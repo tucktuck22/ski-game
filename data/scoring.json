@@ -1,8 +1,8 @@
 {
-  "$comment": "completionBase MUST exceed the maximum achievable bonus total so every finisher outranks every non-finisher (FR-034). Enforced by CV-8 and tests/unit/scoring-dominance.test.ts against the real course files, not assumed.",
-  "completionBase": 120000,
+  "$comment": "completionBase MUST exceed the maximum achievable bonus total so every finisher outranks every non-finisher (FR-034). Enforced by CV-8 and tests/unit/scoring-dominance.test.ts against the real course files, not assumed.\n\n2026-09-10: trickPerRotation 1,200 -> 12,000, asked for as '10x the value of flips' after real gravity took the trick ceiling from twelve rotations to four. completionBase went 120,000 -> 480,000 in the same edit, and ONLY to keep FR-034: at 12,000 a run's achievable bonus reaches 452,750 and would otherwise let a spectacular crash outrank a clean finish.\n\nRaising the base does NOT dilute the change. completionBase is identical for every finisher, so it cancels out of the comparison that decides the bed order - among finishers the ranking is tricks plus pickups plus progress, and nothing else. What actually moved is what a rotation is worth against the other two: one rotation was 4.8 small pickups and 1,200 units of ground, and is now 48 small pickups and 12,000 units - the entire length of the official course. The 10x is fully delivered where it is scored.\n\nFR-034 is the ceiling on this. The most flips can EVER be worth is just under completionBase, whatever that number is, because the rule says a finisher must beat any non-finisher. Going further than 10x means overturning FR-034 - which feature 001's spec already anticipates as 'the single clause to revisit first if the game plays timid'.",
+  "completionBase": 480000,
   "progressPerUnit": 1,
   "pickupSmall": 250,
   "pickupLarge": 750,
-  "trickPerRotation": 1200
+  "trickPerRotation": 12000
 }

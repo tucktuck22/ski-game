@@ -492,6 +492,42 @@ The `gravityScale` mechanism itself is left in the code with a harmless default
 and a docstring saying plainly that no shipped course exercises it. Removing it,
 or reaching for it again, should be a decision rather than a drift.
 
+### Flips are worth 10x (2026-09-10)
+
+Real gravity took the trick ceiling from twelve rotations to four, so a trick run
+had far less to earn. `trickPerRotation` 1,200 -> **12,000**.
+
+`completionBase` went 120,000 -> 480,000 in the same edit, and **only** to keep
+FR-034: at 12,000 a run's achievable bonus reaches 452,750, which would otherwise
+let a spectacular crash outrank a clean finish.
+
+**Raising the base does not dilute the change.** `completionBase` is identical for
+every finisher, so it cancels out of the only comparison that decides the bed
+order — among finishers the ranking is tricks plus pickups plus progress, and
+nothing else. What moved is what a rotation is worth against the other two:
+
+| One rotation is worth      | Before | After                         |
+| -------------------------- | ------ | ----------------------------- |
+| in small pickups           | 4.8    | **48**                        |
+| in units of ground covered | 1,200  | **12,000** — the whole course |
+
+The 10x lands in full where it is scored.
+
+**FR-034 is the ceiling on this, and it is now nearly reached.** The rule caps the
+achievable bonus below `completionBase` whatever that number is, so the most flips
+can ever be worth is just under a finish. At 12,000 the bound sits at 452,750
+against a base of 480,000 — 94% of the way to the cap. Going further means
+overturning FR-034, which feature 001's spec already names as "the single clause
+to revisit first if the game plays timid."
+
+**Two rotation bounds were wrong and are now right.** `TRICK_CEILING` in the
+validator was 18, justified by a floated booter fitting fifteen rotations into one
+air — no longer true. It stays at 18 but is now justified as a per-RUN bound: the
+five kickers permit 2 + 2 + 3 + 4 + 2 = 13 rotations in a run, plus the
+crouch-release jumps between them. And `tests/unit/scoring-dominance.test.ts` was
+passing **4**, so the unit test was proving a weaker claim than the validator it
+exists to back up and would have gone on passing while CV-8 failed. Both now use 18. A bound below what the course permits does not prove FR-034 — it assumes it.
+
 ## Interaction with feature 005
 
 The two features touch and the order matters.
