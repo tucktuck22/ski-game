@@ -24,6 +24,13 @@ approved requirement. They are set out in [research.md](./research.md); in short
   `9 < clearance < 16` by construction. The rope is authored at **15**, the most
   forgiving legal value, and it is allowed to bite.
 
+**Feature 006 changes two of those three.** The physics change specified in
+[`specs/006-slope-driven-speed/`](../006-slope-driven-speed/spec.md) makes a gentle
+slope genuinely slow — the coached section runs at 1.23 rather than 2.60, which turns
+1.38 s of reading time into 2.90 s. R1 reverses and R2's constraint lifts; R3 is
+unaffected. Shipping order therefore matters, and it is not yet settled — see
+[Dependency on feature 006](#dependency-on-feature-006).
+
 Everything else is arranged so the simulation is untouched. The rope is a drawing
 change inside the collision slab the game already computes; the coached section is
 course data emitted by the existing generator; the badges are a sibling of
@@ -63,6 +70,29 @@ argument (SC-006). `branchThickness` = 18 is frozen, so the rope is designed to 
 `game.ts`, `main.ts`), one modified tool (`gen-courses.ts`), one regenerated data file
 (`warmup.json`), one style-bible amendment, six documentation corrections, and roughly
 seven new or amended test files.
+
+## Dependency on feature 006
+
+Feature 006 replaces the speed model this plan's measurements were taken against. The
+two features do not conflict — 006 _improves_ the conditions 005 needs — but the order
+decides how much of 005 gets built and then unbuilt.
+
+| Order         | What it costs                                                                                                                                                                                                                |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **005 → 006** | 005 ships mid-draft safely, as scoped. Its 389-unit cue lead is built, and then becomes redundant machinery once 006 lands. Two separate playtests of the coached section, the first against speeds that will not ship.      |
+| **006 → 005** | One physics playtest, then 005 built once against the speeds it will actually run on. FR-191 keeps close to its original wording and the lead-distance workaround is never written. Requires the draft-reset decision first. |
+
+**Recommended: 006 first**, if the reset is acceptable. It builds each thing once
+against real numbers.
+
+**But 005 is not blocked.** It was scoped specifically to be safe mid-draft — no
+physics, no tuning, no `rulesVersion` movement — and that property is worth keeping.
+If the reset is not acceptable yet, 005 ships alone and unchanged, and the 389-unit
+lead is the right answer for the game as it actually is today.
+
+What this plan must not do is assume the answer. The amendments below are written for
+**005 shipping first**; if 006 lands ahead of it, FR-187 and FR-191 are revisited
+before the code that depends on them is written.
 
 ## Constitution Check
 

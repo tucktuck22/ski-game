@@ -11,9 +11,23 @@ Three of these findings contradict requirements in the approved spec. Principle 
 requires the spec to be amended in the same change set rather than quietly worked
 around, so each names the amendment it forces.
 
+> **Feature 006 changes the ground under R1 and R2.**
+> [`specs/006-slope-driven-speed/`](../006-slope-driven-speed/spec.md) replaces the
+> speed model these two findings measured. Both were correct about a game where speed
+> was pinned to a `baseSpeed` floor; neither survives a game where the mountain sets
+> the speed. R1 **reverses** and R2's constraint **lifts**. Each is flagged in place
+> below, and the consequences are worked through in
+> [R7](#r7--what-feature-006-does-to-r1-and-r2). If 006 ships first, the FR-187 and
+> FR-191 amendments R1 and R2 force should be reconsidered rather than carried in out
+> of habit.
+
 ---
 
 ## R1 — A gentler slope does not slow the player down. It speeds him up.
+
+> **Superseded if feature 006 ships.** Under 006's model a gentler slope genuinely is
+> slower — the coached section at gradient 0.08 runs at 1.23 rather than 2.60. This
+> finding is true of the game as it stands today and false of the game 006 delivers.
 
 **Decision**: The coached section's gentle gradient is retained for what it _looks_
 like, not for what it does to speed. Reading time is bought by **spacing**, and by
@@ -54,6 +68,10 @@ simulation whose determinism argument depends on there being one.
 ---
 
 ## R2 — The frame caps on-screen reading time at 1.38 seconds, and 0.95 s where it matters most.
+
+> **Constraint lifts if feature 006 ships.** The 213.3-unit lookahead does not change,
+> but the player crosses it more slowly on gentle terrain: 2.90 s rather than 1.38 s.
+> The 389-unit lead below is a workaround for a budget 006 removes.
 
 **Decision**: Coaching badges key off the **skier's x position with a lead
 distance**, not off their object being visible. The badge is up before its object
@@ -236,6 +254,35 @@ contact line sits at 60% of frame height (`cameraFor`), well below.
 **Alternatives considered**: a second container — rejected, two absolutely-positioned
 overlays competing for the same band is how the coaching badge ends up on top of the
 score. One container, two slots.
+
+---
+
+## R7 — What feature 006 does to R1 and R2
+
+**Measured** with 006's model and constants (friction 0.02, standing drag 0.01270),
+at the coached section's gradient of 0.08:
+
+| Quantity                                | Today  | Under feature 006 |
+| --------------------------------------- | ------ | ----------------- |
+| Standing speed in the coached section   | 2.60   | **1.23**          |
+| Horizontal progress (units/sec)         | ~156   | **~74**           |
+| On-screen reading time over 213.3 units | 1.38 s | **2.90 s**        |
+
+**Consequence for R1**: it reverses. The gentle gradient stops being cosmetic and
+starts doing exactly what FR-187 originally claimed — a beginner slope that is
+actually slower. The amendment R1 forces ("the gentle gradient is for how it reads,
+not what it does") becomes wrong in the opposite direction.
+
+**Consequence for R2**: the constraint lifts. With 2.90 s available, FR-191 as
+**originally written** — the badge appears while its object is visible — is
+comfortable, and the 389-unit lead is unnecessary machinery.
+
+**Decision**: do not resolve this here. It depends on shipping order, and the ordering
+depends on a decision the organizer has not yet made (feature 006 destroys the scores
+in a live draft). Both orderings are viable and both are set out in
+[006's spec](../006-slope-driven-speed/spec.md#interaction-with-feature-005). What
+this document must not do is let R1 and R2 be read as timeless when they are
+measurements of a model that is under active revision.
 
 ---
 
