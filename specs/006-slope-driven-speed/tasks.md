@@ -79,7 +79,7 @@ points; confirm the two are monotonically related and the spread exceeds 2×.
 ### The stall guard
 
 - [x] T013 [P] [US1] Add `CV-19` to `src/course/validate.ts`: reject any terrain segment whose gradient is too shallow to overcome `slopeFriction` with margin, expressed against the tuning value so re-tuning friction re-tunes the rule (FR-220, research R5)
-- [ ] T014 [P] [US1] Extend `tests/course/validate.test.ts` with a CV-19 case that actually fires — a scratch course carrying a near-flat segment — plus confirmation that both shipped courses pass. A rule that has never fired is untested (Principle VI)
+- [x] T014 [P] [US1] Extend `tests/course/validate.test.ts` with a CV-19 case that actually fires — a scratch course carrying a near-flat segment — plus confirmation that both shipped courses pass. A rule that has never fired is untested (Principle VI)
 
 ### Re-tuning the courses — the largest piece of work
 
@@ -135,9 +135,9 @@ it should be.
 **Purpose**: The organizer accepted that committed scores are destroyed. That acceptance
 is not the same as the players knowing, and it is not the same as the procedure working.
 
-- [ ] T026 Write the draft-reset procedure as a checked-in script under `supabase/`, superseding any README paragraph that tells a human to do it by hand (FR-229, Principle VII)
-- [ ] T027 Execute that procedure verbatim in CI against a scratch project and **assert on its output**, not merely its exit status — a script that succeeds while printing something unusable has failed (FR-229, Principle VII)
-- [ ] T028 [P] Document the deploy order in `README.md` and make it unmissable: tell the players FIRST, deploy SECOND, reset THIRD. Reversing one and three means eight people discover that a run they were told was irreversible was quietly taken back (FR-230)
+- [x] T026 Write the draft-reset procedure as a checked-in script under `supabase/`, superseding any README paragraph that tells a human to do it by hand (FR-229, Principle VII)
+- [x] T027 Execute that procedure verbatim in CI against a scratch project and **assert on its output**, not merely its exit status — a script that succeeds while printing something unusable has failed (FR-229, Principle VII)
+- [x] T028 [P] Document the deploy order in `README.md` and make it unmissable: tell the players FIRST, deploy SECOND, reset THIRD. Reversing one and three means eight people discover that a run they were told was irreversible was quietly taken back (FR-230)
 
 **Checkpoint**: The reset is a tested deliverable and the order that protects players is
 written down.
@@ -146,8 +146,8 @@ written down.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T029 Run the full gate: `npm run lint && npm run build && npm run test && npm run test:build`
-- [ ] T030 [P] Update `README.md` if any rules-version guidance it carries is now wrong — it already documents a rules-version mismatch incident and this feature deliberately causes one
+- [x] T029 Run the full gate: `npm run lint && npm run build && npm run test && npm run test:build`
+- [x] T030 [P] Update `README.md` if any rules-version guidance it carries is now wrong — it already documents a rules-version mismatch incident and this feature deliberately causes one
 - [ ] T031 **Playtest (Principle VIII — binding, not optional).** Run `npm run build:artifact`, publish it, and name the link and the commit. Answer quickstart §7's four questions, above all whether the tuck still feels responsive at 60 ticks against today's 30. Record findings against `spec.md` in the player's own words before touching any of these values again
 - [ ] T032 Apply whatever the playtest says. Principle VIII: where the player and the measurement disagree, the player's reading wins and the measurement is what gets revised
 
