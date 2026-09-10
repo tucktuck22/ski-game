@@ -118,12 +118,13 @@ describe('the booters (FR-078, Principle III feel criteria)', () => {
     // never damped in flight, so if it does not arrive AT the lip it never comes.
     for (const b of booters) {
       const f = fly(official, b, true);
-      // 1.4, not the 1.7 a stiff launch gave. A deep float needs a weak pop -
-      // the impulse that would kick harder at the lip also throws the apex out
-      // of frame - so the forward feel now comes from the DISTANCE covered
-      // rather than from the size of the kick.
+      // 1.4 still, but the distance floor came 700 -> 450 when the float was
+      // removed (2026-09-10). Under real gravity a launch that covers 700 units
+      // has to apex past the frame; 606 and 843 are what 3 and 4 rotations
+      // actually cover. The forward feel now comes from the KICK again, which
+      // is what raising power from 0.7/0.75 to 2.0/2.4 bought.
       expect(f.vxAfter).toBeGreaterThan(f.vxBefore * 1.4);
-      expect(f.dist).toBeGreaterThan(700);
+      expect(f.dist).toBeGreaterThan(450);
     }
   });
 
@@ -157,25 +158,33 @@ describe('the booters (FR-078, Principle III feel criteria)', () => {
   });
 
   it('hangs long enough to be worth the name', () => {
-    // The whole point of the float. 58 ticks was the vertical toss this
-    // replaced; under a tenth of gravity the big one holds three times that.
+    // Rewritten 2026-09-10 with the float removed. It used to want 110 and 170
+    // ticks, which a tenth of gravity bought: 214 ticks off the big one is
+    // three and a half seconds of hang off a single jump, and the playtest
+    // called that what it was. Under real gravity the numbers are 53 and 66 -
+    // just under a second - and the ceiling is the FRAME, not the physics: a
+    // fifth rotation needs an apex of 282 in a buffer 180 tall.
     const [small, big] = booters as [Kicker, Kicker];
-    expect(fly(official, small, true).air).toBeGreaterThan(110);
-    expect(fly(official, big, true).air).toBeGreaterThan(170);
+    expect(fly(official, small, true).air).toBeGreaterThan(45);
+    expect(fly(official, big, true).air).toBeGreaterThan(60);
   });
 
-  it('pays eight rotations off the small booter and twelve off the big one', () => {
+  it('pays three rotations off the small booter and four off the big one', () => {
+    // 8 and 12 before the float came off. Four is the measured maximum at true
+    // gravity and the frame sets it, not the impulse: the old kickerImpulseMax
+    // of 10.0 saturated first and capped the big one at three with headroom
+    // going spare, so the cap moved to 12.0 and the frame took over.
     const [small, big] = booters as [Kicker, Kicker];
-    expect(fly(official, small, true, 8).why).toBeNull();
-    expect(fly(official, small, true, 10).why).toBe('spun_out');
-    expect(fly(official, big, true, 12).why).toBeNull();
-    expect(fly(official, big, true, 14).why).toBe('spun_out');
+    expect(fly(official, small, true, 3).why).toBeNull();
+    expect(fly(official, small, true, 5).why).toBe('spun_out');
+    expect(fly(official, big, true, 4).why).toBeNull();
+    expect(fly(official, big, true, 6).why).toBe('spun_out');
   });
 
   it('charges speed for those rotations: base speed gets fewer', () => {
     const [small, big] = booters as [Kicker, Kicker];
-    expect(fly(official, small, false, 8).why).toBe('spun_out');
-    expect(fly(official, big, false, 12).why).toBe('spun_out');
+    expect(fly(official, small, false, 3).why).toBe('spun_out');
+    expect(fly(official, big, false, 4).why).toBe('spun_out');
   });
 });
 
@@ -233,8 +242,15 @@ describe('the wedge points where the flight is seen to go', () => {
       }
       expect(seen.length, `booter at ${b.x} was never reached`).toBeGreaterThan(4);
 
+      // The chord from the first sample to the sixth used to stand in for the
+      // launch direction, and did, while a tenth of gravity kept the flight
+      // nearly straight over those six ticks. Under real gravity it curves from
+      // the first tick, so that chord reads about 3 degrees shallower than the
+      // line the skier actually leaves on - and the ramp face IS that line, the
+      // tangent at the lip, because it is a shape he rides up. Two samples, one
+      // tick apart, is the tangent; six is a chord of a parabola.
       const first = seen[0]!;
-      const last = seen[seen.length - 1]!;
+      const last = seen[1]!;
       const flightSeen = Math.atan((last.h - first.h) / (last.dx - first.dx)) * DEG;
       const face = Math.atan(rampRise(b, tuning, official) / b.width) * DEG;
       expect(

@@ -243,21 +243,28 @@ const BOOTER_W_WARMUP = 110;
 const BOOTER_W_MID = 144;
 const BOOTER_W_BIG = 208;
 /**
- * The booters. Power is a RAW multiplier on carried speed, deliberately.
+ * The booters. Power is a RAW multiplier on carried speed, deliberately, and
+ * they now fly under REAL GRAVITY.
  *
  * A launch is power x carried speed, so leaving these fixed is what makes a
- * booter pay for the run-in: hit the lip at 5.9 off the steep and the impulse is
- * 1.7x what it is at 3.4, and the jump is bigger because you rode faster.
+ * booter pay for its run-in: hit the lip off the steep and the impulse is
+ * bigger, because you rode faster. An earlier cut normalised them against a
+ * fixed carried speed, which made them completely indifferent to how you rode
+ * in — the defect the first playtest reported.
  *
- * An earlier cut of feature 006 normalised these against the 4.2 that used to be
- * carried everywhere, so the impulse came out the same whatever speed you
- * arrived with. That preserved the flights the course had been measured against,
- * and it also made the booters completely indifferent to how you rode into them
- * - which is the defect the playtest reported as "it should be a conversion of
- * that speed into a massive jump".
+ * gravityScale is GONE. Both booters used to fly at a tenth of gravity (0.085
+ * on the big one), which bought 214 ticks of hang and twelve rotations off a
+ * single jump: three and a half seconds of airtime, which is cartoon physics
+ * rather than skiing. The second playtest asked for real gravity and accepted
+ * what it costs, which is the trick ceiling: 12 rotations -> 4.
+ *
+ * Four is the measured maximum, and the frame is what sets it. At full gravity
+ * a fifth rotation needs an apex of 282 units in a buffer 180 tall — the ground
+ * leaves the shot for most of the flight and the jump reads as a fall. Power
+ * 2.4 on the big one lands at apex 183, which keeps 17 units of margin.
  */
-const BOOTER_MID = 0.7;
-const BOOTER_BIG = 0.75;
+const BOOTER_MID = 2.0;
+const BOOTER_BIG = 2.4;
 
 /**
  * Booters throw FORWARD, not up. This is the whole shape of them.
@@ -308,14 +315,11 @@ const BOOTER_BIG_ANGLE = 45;
  * half: a steep drop under a floating skier does not show him more ground, it
  * pulls the ground away from him faster and takes it out of frame sooner.
  */
-const BOOTER_MID_FLOAT = 0.139;
 /**
  * The warm-up floats less, because it has less hill. Its booter would otherwise
  * still be in the air at the finish line, and a jump the player never lands is
  * a poor way to teach him what landing one feels like.
  */
-const BOOTER_WARMUP_FLOAT = 0.25;
-const BOOTER_BIG_FLOAT = 0.108;
 
 const OFFICIAL_GRADE: GradeKey[] = [
   // Re-paced 2026-09-10 against slope-driven speed, after the first playtest.
@@ -463,7 +467,6 @@ function official(): Built {
     width: BOOTER_W_MID,
     power: BOOTER_MID,
     launchAngle: BOOTER_MID_ANGLE,
-    gravityScale: BOOTER_MID_FLOAT,
   });
 
   // ---- VI. THE LAST PITCH (8,800 - 12,000). Ask: everything, at speed. ----
@@ -488,7 +491,6 @@ function official(): Built {
     width: BOOTER_W_BIG,
     power: BOOTER_BIG,
     launchAngle: BOOTER_BIG_ANGLE,
-    gravityScale: BOOTER_BIG_FLOAT,
   });
   kickers.push({ x: 11000, width: RAMP_W, power: rampPowerFor(SHELF_H, grade(11000)) });
   ledges.push({ x0: 11100, x1: 12000, height: SHELF_H });
@@ -575,7 +577,6 @@ function warmup(): Built {
         width: BOOTER_W_WARMUP,
         power: BOOTER_MID,
         launchAngle: BOOTER_MID_ANGLE,
-        gravityScale: BOOTER_WARMUP_FLOAT,
       },
     ],
     rocks: [{ x: 1926, width: 16, height: 12 }],

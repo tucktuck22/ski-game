@@ -163,9 +163,8 @@
     {
       "x": 2386,
       "width": 110,
-      "power": 0.7,
-      "launchAngle": 45,
-      "gravityScale": 0.25
+      "power": 2,
+      "launchAngle": 45
     }
   ],
   "rocks": [

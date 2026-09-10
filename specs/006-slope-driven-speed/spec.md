@@ -443,6 +443,55 @@ each run-in is held steep to the _foot_ of its ramp and eased across the ramp it
 which costs about 0.8 of speed at the lip and keeps the ramp drawn as the jump it
 gives.
 
+### Real gravity, and the trick ceiling that comes with it (2026-09-10)
+
+Asked how many rotations would be realistic at consistent gravity, measured, and
+the answer was taken: **real gravity, four rotations.**
+
+`gravityScale` is gone from every shipped kicker. Both booters used to fly at
+about a tenth of gravity — 0.085 on the big one — which bought 214 ticks of hang
+and twelve rotations off one jump. Three and a half seconds of airtime is cartoon
+physics; it was a defensible choice for a 1986 arcade game and it is not what the
+maintainer wanted.
+
+**Four is the measured maximum, and the frame sets it.** At full gravity a fifth
+rotation needs an apex of 282 units inside a buffer 180 tall, where the ground
+leaves the shot for most of the flight and the jump reads as a fall — which is
+exactly how the first booter cut was reported.
+
+Getting there needed the impulse cap moved. At `kickerImpulseMax` 10.0 the big
+booter saturated at power 2.07 and stopped at **three** rotations with an apex of
+135 — headroom above the skier and nothing left to spend on it. The **cap**, not
+the frame, was the limit. At 12.0 the frame takes over, which is where the limit
+belongs.
+
+|                           | Before            | After                 |
+| ------------------------- | ----------------- | --------------------- |
+| Big booter `gravityScale` | 0.085             | **1.0 (real)**        |
+| Big booter power          | 0.75              | 2.4                   |
+| Big booter hang           | 214 ticks (3.6 s) | **66 ticks (1.10 s)** |
+| Big booter apex           | 193               | 180                   |
+| Big booter rotations      | 12                | **4**                 |
+| Small booter rotations    | 8                 | **3**                 |
+| `kickerImpulseMax`        | 10.0              | 12.0                  |
+
+Three feel criteria in `tests/sim/booters.test.ts` were requirements under
+Principle III and were changed deliberately, each with its reason in place: the
+hang-time floors (110/170 → 45/60 ticks), the rotation budget (8/12 → 3/4), and
+the distance floor (700 → 450 units, because under real gravity a 700-unit flight
+has to apex past the frame).
+
+A fourth changed for a different reason. The wedge test compared the ramp face
+against the chord from the first to the sixth tick of flight, which stood in for
+the launch direction only while the float kept flights nearly straight. Under real
+gravity the arc bends from the first tick, so that chord reads about 3 degrees
+shallow. The face **is** the tangent at the lip — it is a shape the skier rides up
+— so the test now measures the tangent, two samples one tick apart.
+
+The `gravityScale` mechanism itself is left in the code with a harmless default
+and a docstring saying plainly that no shipped course exercises it. Removing it,
+or reaching for it again, should be a decision rather than a drift.
+
 ## Interaction with feature 005
 
 The two features touch and the order matters.
