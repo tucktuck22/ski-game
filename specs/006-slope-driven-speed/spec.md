@@ -316,6 +316,80 @@ them is acceptable. If it is not, this feature waits until the draft is finalise
 feature 005 — which is safe mid-draft by construction — ships on its own in the
 meantime.
 
+## Playtest findings — 2026-09-10, build d385ac3
+
+Principle VIII: recorded in the player's own words, before any further change to
+these values.
+
+> "I think the overall speed is feeling better. However, you go from very fast on
+> the steep to extremely slow as you go into the transition before the big kicker.
+> How are we maintaining momentum of the player? I feel like the speed instantly
+> drops based on the slope and doesn't feel realistic. It should be a conversion of
+> that speed into a massive jump, not instantly slowing down and still somehow
+> flying due to the reduced gravity off of the kicker."
+
+**Verdict: the spread is right and the momentum is wrong.** Both halves of the
+report are confirmed by measurement, and the second half turns out to be a
+limitation of the model rather than of its constants.
+
+### F1 — The player is pinned to terminal velocity everywhere
+
+Traced tucked down the official course, grounded speed equals the terminal speed of
+the gradient under the skier at every sample:
+
+| x      | gradient | speed | terminal |
+| ------ | -------- | ----- | -------- |
+| 4,007  | 0.510    | 5.26  | 5.36     |
+| 7,209  | 0.443    | 5.08  | 5.04     |
+| 9,206  | 0.200    | 3.44  | 3.41     |
+| 10,807 | 0.200    | 3.57  | 3.41     |
+
+Speed has no history. It is a lookup on the current gradient with about a 0.4 s
+lag, which is exactly what "the speed instantly drops based on the slope" describes.
+
+### F2 — No friction/drag retune fixes it, because the Flats are too long
+
+The time constant is `terminal / (2 x net driving force)`, so a longer one needs a
+smaller driving force, i.e. more friction. Swept across the usable range, holding
+the steepest terminal at 6.5 (the frame limit — 213 units of lookahead means 6.5 is
+about 0.55 s of reaction time):
+
+| friction | tau at 0.20 | speed entering Flats at 5.1 -> at the big booter |
+| -------- | ----------- | ------------------------------------------------ |
+| 0.02     | 33 ticks    | 3.78                                             |
+| 0.10     | 48 ticks    | 3.02                                             |
+| 0.17     | 94 ticks    | 1.77                                             |
+
+Every row arrives at exactly the terminal for gradient 0.20. The Flats run 1,388
+units to the big booter — 365 to 677 ticks, five to ten times any achievable time
+constant. **Whatever the constants, the player arrives at whatever gradient 0.20 is
+worth.** Raising friction makes it worse, not better.
+
+The transition itself is not the problem and never was: `applyGroundedMotion`
+carries the speed magnitude across a gradient change and only rotates the
+direction, which is momentum conserved correctly. The loss happens over the
+hundreds of ticks that follow.
+
+### F3 — Both booters sit in the shallowest terrain on the course
+
+Terrain is gradient 0.20 continuously from x≈7,800 to x≈10,900. The booters are at
+7,852 and 9,188 — both inside it, the big one 1,388 units deep. They are placed
+where the course is slowest and made to fly with `gravityScale` 0.12 and **0.085**,
+cutting gravity to 8.5%. That is the "somehow flying due to the reduced gravity" in
+the report, and it is accurate.
+
+### F4 — Removing the gravity cheat outright is not available
+
+For the big booter to buy its present 165 ticks of hang at full gravity, arriving at
+a realistic 5.0, it would need power ≈ 7.5 and would apex **1,089 units** above the
+lip. The frame is 180 tall. `data/tuning.json` already records this: "There is no
+camera trick that fits eleven screens of air into one."
+
+So the float is load-bearing. What is available is making the jump **more**
+speed-driven and **less** float-driven, by raising the speed the player arrives with
+and giving back some gravity — which is a change to the COURSE (the run-in) rather
+than to the physics.
+
 ## Interaction with feature 005
 
 The two features touch and the order matters.
