@@ -243,36 +243,21 @@ const BOOTER_W_WARMUP = 110;
 const BOOTER_W_MID = 144;
 const BOOTER_W_BIG = 208;
 /**
- * The speed the booters were originally measured against.
+ * The booters. Power is a RAW multiplier on carried speed, deliberately.
  *
- * They were tuned by riding them, not by algebra: their powers were chosen so a
- * triple lands with margin and a quad is available, against the tuckSpeedMax of
- * 4.2 that used to be carried EVERYWHERE. Feature 006 made carried speed local,
- * and both big booters sit on the Flats at gradient 0.20, where a tuck is now
- * worth 3.41 rather than 4.2 — so their launches lost 19% and their hang time
- * went with it: the measured flight fell to 109 ticks against the 110 a triple
- * needs, and the quad stopped existing.
+ * A launch is power x carried speed, so leaving these fixed is what makes a
+ * booter pay for the run-in: hit the lip at 5.9 off the steep and the impulse is
+ * 1.7x what it is at 3.4, and the jump is bigger because you rode faster.
  *
- * boosterPowerFor() restores the impulse those measurements were taken at, by
- * scaling power by exactly the speed the pitch no longer supplies. The
- * measurements stay valid because the thing they measured — the impulse — is
- * unchanged.
+ * An earlier cut of feature 006 normalised these against the 4.2 that used to be
+ * carried everywhere, so the impulse came out the same whatever speed you
+ * arrived with. That preserved the flights the course had been measured against,
+ * and it also made the booters completely indifferent to how you rode into them
+ * - which is the defect the playtest reported as "it should be a conversion of
+ * that speed into a massive jump".
  */
-const BOOTER_TUNED_AGAINST = 4.2;
 const BOOTER_MID = 0.7;
 const BOOTER_BIG = 0.75;
-
-/**
- * A booter's power, restated for the pitch it stands on.
- *
- * Unlike a ramp, a booter is not aiming at a shelf — it sells hang time, and
- * hang time comes from impulse. Preserving `power * carried` therefore
- * preserves every flight the course was measured against.
- */
-function booterPowerFor(tunedPower: number, gradient: number): number {
-  const carried = terminalAt(gradient, true);
-  return Math.round(((tunedPower * BOOTER_TUNED_AGAINST) / carried) * 1000) / 1000;
-}
 
 /**
  * Booters throw FORWARD, not up. This is the whole shape of them.
@@ -323,31 +308,61 @@ const BOOTER_BIG_ANGLE = 45;
  * half: a steep drop under a floating skier does not show him more ground, it
  * pulls the ground away from him faster and takes it out of frame sooner.
  */
-const BOOTER_MID_FLOAT = 0.12;
+const BOOTER_MID_FLOAT = 0.139;
 /**
  * The warm-up floats less, because it has less hill. Its booter would otherwise
  * still be in the air at the finish line, and a jump the player never lands is
  * a poor way to teach him what landing one feels like.
  */
 const BOOTER_WARMUP_FLOAT = 0.25;
-const BOOTER_BIG_FLOAT = 0.085;
+const BOOTER_BIG_FLOAT = 0.108;
 
 const OFFICIAL_GRADE: GradeKey[] = [
-  { x: 0, g: 0.2 }, // Drop In: mellow enough to read
-  { x: 1200, g: 0.26 },
-  { x: 3200, g: 0.42 }, // Shelf School builds
-  { x: 5000, g: 0.6 }, // The Narrows: steep AND technical
-  { x: 5400, g: 0.5 }, // The Cornice eases, so shelf work is readable
-  { x: 7400, g: 0.44 },
-  { x: 7800, g: 0.2 }, // The Flats: speed bleeds
-  { x: 8900, g: 0.2 }, // held flat across booter 1's whole flight, so it
-  { x: 9200, g: 0.2 }, // takes off and lands on the same angle
-  // The Last Pitch stays SHALLOW under the big booter. A steep runway does
-  // not show a floating skier more ground, it pulls the ground away from
-  // him faster and puts it out of frame sooner.
-  { x: 10900, g: 0.2 }, // shallow the whole way under the big float
-  { x: 11200, g: 0.5 }, // and the steepest ground goes where it pays: the
-  { x: 12200, g: 0.66 }, // run to the line, on the final shelf
+  // Re-paced 2026-09-10 against slope-driven speed, after the first playtest.
+  //
+  // The old programme ran 0.20 to 0.66 and was authored when speed was the same
+  // everywhere, so a gradient only ever meant "how the hill looks". Under
+  // feature 006 a gradient IS a speed, and that range mapped to 3.41 up to 5.86
+  // tucked — so the two booters, which both sat down in the 0.20 floor, were
+  // reached having shed 42% of the speed the steeps had just given, and had to
+  // be flown on gravityScale 0.085 rather than on carried speed.
+  //
+  // The range is now 0.25 to 0.60, which is 4.00 to 5.91 tucked. The FLOOR came
+  // up, because the floor is what a player feels as "slow"; the ceiling stayed
+  // where it was, because 213 units of lookahead at 5.9 is already only 0.6s of
+  // reaction and the frame cannot show more.
+  //
+  // The booter run-ins are the other half. A steep pitch is held RIGHT TO THE
+  // LIP and dropped immediately after it: the speed is bought on the steep and
+  // spent at the lip, and the shallow ground beyond is what keeps a floating
+  // skier inside a 180-tall frame. Steep before, shallow after — the two jobs
+  // want opposite things, and they happen 100 units apart.
+  { x: 0, g: 0.25 }, // Drop In: the gentlest ground on the hill, and still moving
+  { x: 1200, g: 0.3 }, // Shelf School: pitch enough to pay the ramp's entry fee
+  { x: 3000, g: 0.34 },
+  { x: 3200, g: 0.46 }, // The Narrows: steep and technical at the same time
+  { x: 4600, g: 0.6 }, // the steepest ground on the course
+  { x: 5000, g: 0.52 }, // the Cornice ramp is taken with real speed under you
+  { x: 5400, g: 0.42 }, // eases, so shelf work up there stays readable
+  { x: 6800, g: 0.38 },
+  { x: 7300, g: 0.56 }, // RUN-IN to the first booter: the pitch that buys the air
+  { x: 7700, g: 0.56 }, // held steep to the foot of the ramp
+  // ...and eased ACROSS the ramp itself rather than at its lip. The drawn wedge
+  // is built from the gradient at the lip (rampGeometry.gradeAtLip), and that
+  // formula was derived on shallow ground: put the lip on 0.58 and the face
+  // comes out 9 degrees off the flight leaving it. Easing here costs a little
+  // of the speed the steep just bought — he reaches the lip near 5.0 instead of
+  // 5.8 — and keeps the ramp drawn as the jump it actually gives.
+  { x: 7800, g: 0.34 },
+  { x: 8400, g: 0.26 }, // and shallow beyond, so the flight stays in frame
+  { x: 8700, g: 0.26 }, // landing and roll-out
+  { x: 8800, g: 0.58 }, // RUN-IN to the big booter, on the same bargain
+  { x: 9100, g: 0.58 }, // held steep to the foot of its ramp
+  { x: 9200, g: 0.34 }, // eased across the ramp, same reason
+  { x: 10600, g: 0.25 }, // the long shallow landing the big one needs
+  { x: 10900, g: 0.44 }, // the Last Pitch builds again
+  { x: 11200, g: 0.52 },
+  { x: 12200, g: 0.6 }, // and the run to the line
 ];
 
 function official(): Built {
@@ -441,11 +456,12 @@ function official(): Built {
   // is the only breath in the run - but not empty, because the booter that ends
   // it pays in proportion to the speed carried into it. A launch is power times
   // carried speed, so coasting here is not a rest, it is a smaller trick.
+  bough(7000, 12);
   bough(7600, 12);
   kickers.push({
     x: 7852,
     width: BOOTER_W_MID,
-    power: booterPowerFor(BOOTER_MID, grade(7852)),
+    power: BOOTER_MID,
     launchAngle: BOOTER_MID_ANGLE,
     gravityScale: BOOTER_MID_FLOAT,
   });
@@ -457,7 +473,6 @@ function official(): Built {
   // largest pickup cluster on the mountain behind it; the low line crosses on
   // the piste beneath it. The two tracks resolve AT the line instead of petering
   // out 600 units short of it, which is where the old course stopped.
-  bough(9000, 11);
   // No log between the bough and the booter. Jumping one launches the skier,
   // and a skier already in the air crosses the lip without the ramp firing -
   // he simply flies over his own jump and never gets it. CV-22 now refuses
@@ -471,7 +486,7 @@ function official(): Built {
   kickers.push({
     x: 9188,
     width: BOOTER_W_BIG,
-    power: booterPowerFor(BOOTER_BIG, grade(9188)),
+    power: BOOTER_BIG,
     launchAngle: BOOTER_BIG_ANGLE,
     gravityScale: BOOTER_BIG_FLOAT,
   });
@@ -516,9 +531,11 @@ function official(): Built {
  * its job is to introduce the verbs rather than to test them.
  */
 const WARMUP_GRADE: GradeKey[] = [
-  { x: 0, g: 0.22 },
-  { x: 1400, g: 0.36 },
-  { x: 2200, g: 0.3 }, // held flat across the booter's flight
+  // Same band as the official course, so practice teaches the speeds the scored
+  // run is actually ridden at. It used to open at 0.22, below the new floor.
+  { x: 0, g: 0.26 },
+  { x: 1400, g: 0.38 },
+  { x: 2200, g: 0.3 }, // held steady across the booter's flight
   { x: 3200, g: 0.3 },
   { x: 3400, g: 0.34 },
 ];
@@ -556,7 +573,7 @@ function warmup(): Built {
         // fires, because the skier rides off the shelf already airborne.
         x: 2386,
         width: BOOTER_W_WARMUP,
-        power: booterPowerFor(BOOTER_MID, grade(2386)),
+        power: BOOTER_MID,
         launchAngle: BOOTER_MID_ANGLE,
         gravityScale: BOOTER_WARMUP_FLOAT,
       },

@@ -40,6 +40,13 @@ interface Result {
  * worth 2.11 rather than a flat 2.60; the ticks barely moved, which is the
  * cross-check that the traces still die in the same places.
  *
+ * Regenerated again the same day after the first playtest re-paced the course
+ * (gradient range 0.20-0.64 -> 0.25-0.60, friction 0.02 -> 0.012, booter power
+ * no longer normalised against a fixed carried speed). Scores rose against the
+ * first cut because the course's gentlest ground is now worth 4.00 tucked
+ * rather than 3.41; tick counts did not move at all, which says the traces
+ * still end where they ended and only the speed under them changed.
+ *
  * The MAJOR version bump is deliberate: this invalidates every committed score,
  * and the organizer accepted the draft reset that follows. See
  * specs/006-slope-driven-speed/spec.md#the-draft-reset-decision.
@@ -49,9 +56,9 @@ interface Result {
  * from src/sim, and determinism.html recomputes them in three browsers.
  */
 const GOLDEN: Result[] = [
-  { seed: '5eed', score: 211, ticks: 85, hash: 'd7e24f76' },
-  { seed: '1986', score: 104, ticks: 46, hash: 'd03ff6a4' },
-  { seed: 'beef', score: 140, ticks: 54, hash: '2782a930' },
+  { seed: '5eed', score: 254, ticks: 85, hash: '0a716591' },
+  { seed: '1986', score: 126, ticks: 46, hash: '23e89116' },
+  { seed: 'beef', score: 168, ticks: 54, hash: '00b06c87' },
 ];
 
 test('the simulation reproduces the golden run exactly on this engine', async ({

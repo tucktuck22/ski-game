@@ -390,6 +390,59 @@ speed-driven and **less** float-driven, by raising the speed the player arrives 
 and giving back some gravity — which is a change to the COURSE (the run-in) rather
 than to the physics.
 
+### What was changed in response (2026-09-10)
+
+Three things, which the playtest asked for as a combination.
+
+**1. The gradient range narrowed to 0.25-0.60, and the anchor moved to its floor.**
+F2 showed the constants could not buy momentum, so the course did. The floor came
+up because the floor is what a player feels as "slow": the gentlest ground is now
+worth **4.00** tucked rather than 3.41. The ceiling stayed at 5.91, because 213
+units of lookahead at that speed is already 0.6 s of reaction and the frame cannot
+show more. The anchor moved from gradient 0.30 to 0.25 for the same reason.
+
+**2. Friction 0.02 -> 0.012**, as asked. Worth recording what it does and does not
+do: the response time is `1 / (2 x terminal x drag)`, so for a fixed top speed a
+_longer_ response needs _more_ friction. Slippery snow makes speed track the slope
+**faster**, not slower. What it buys is the higher floor, which is why it went down.
+
+**3. Booter power is no longer normalised against a fixed carried speed.** This is
+the "conversion of that speed into a massive jump". Power is now a raw multiplier,
+so a launch is genuinely `power x whatever you arrived with`, and each booter gets
+a steep run-in held to the foot of its ramp.
+
+### Measured result
+
+|                               | Before | After     |
+| ----------------------------- | ------ | --------- |
+| Speed at the big booter's lip | 3.44   | **7.21**  |
+| Gentlest ground, tucked       | 3.41   | 4.00      |
+| Steepest ground, tucked       | 5.86   | 5.91      |
+| Big booter `gravityScale`     | 0.085  | **0.108** |
+| Small booter `gravityScale`   | 0.12   | **0.139** |
+
+Momentum is now visible in the trace rather than argued for: at x=5,408 the skier
+is doing 6.21 where the gradient is worth 5.09, still carrying from the pitch above;
+at x=10,808 he is doing 4.44 where it is worth 5.21, still building. Speed sits on
+both sides of terminal depending on what came before, which is what it did not do
+before.
+
+### What could not be fixed, and why
+
+**The big booter still needs a gravity cheat.** It gave back 27% of it (0.085 ->
+0.108) and no more, and the constraint is not the physics — it is the trick budget.
+Twelve rotations at `spinDurationTicks` 15 is 180 ticks of hang, and hang, height
+and gravity are one number: `apex = up x air / 4`. Holding 180+ ticks of air inside
+a 180-tall frame pins the float. **Twelve rotations or real gravity — not both.**
+Reducing the promised rotation count is the only thing that would buy more, and that
+is a separate decision about what the booters are for.
+
+**The wedge is drawn from the gradient at the lip**, and that formula was derived on
+shallow ground: a lip on 0.58 draws a face 9 degrees off the flight leaving it. So
+each run-in is held steep to the _foot_ of its ramp and eased across the ramp itself,
+which costs about 0.8 of speed at the lip and keeps the ramp drawn as the jump it
+gives.
+
 ## Interaction with feature 005
 
 The two features touch and the order matters.

@@ -57,12 +57,24 @@ function settle(gradient: number, input: RunInput, ticks: number): number {
 }
 
 describe('slope response (FR-214)', () => {
-  it('holds the anchor: gradient 0.30 is worth exactly what shipped before', () => {
-    // The 2.60 / 4.20 this pins are the pre-feature-006 baseSpeed and
-    // tuckSpeedMax. Anchoring here is what keeps this a change to the ENDS of
-    // the game rather than to all of it.
-    expect(terminalSpeedAtGradient(0.3, tuning, false)).toBeCloseTo(2.6, 4);
-    expect(terminalSpeedAtGradient(0.3, tuning, true)).toBeCloseTo(4.2, 4);
+  it('holds the anchor: the gentlest ground on the course is worth 2.60 / 4.00', () => {
+    // Re-anchored 2026-09-10 after the first playtest. It used to sit at
+    // gradient 0.30 while the course ran down to 0.20, so the gentlest ground
+    // was worth only 3.41 tucked and the player reached the big booter having
+    // lost 42% of what the steeps gave him. The anchor now sits at the FLOOR of
+    // the gradient range, because the floor is the number a player feels as
+    // "slow" — and the course's floor is 0.25.
+    expect(terminalSpeedAtGradient(0.25, tuning, false)).toBeCloseTo(2.6, 4);
+    expect(terminalSpeedAtGradient(0.25, tuning, true)).toBeCloseTo(4.0, 4);
+  });
+
+  it('keeps every gradient the courses use inside the playable band', () => {
+    // The ceiling is the frame, not the physics: 213 units of lookahead at 5.9
+    // is 0.6s of reaction, and the 320x180 buffer cannot show more.
+    for (const g of [0.25, 0.6]) {
+      expect(terminalSpeedAtGradient(g, tuning, true)).toBeLessThanOrEqual(6.0);
+      expect(terminalSpeedAtGradient(g, tuning, false)).toBeGreaterThanOrEqual(2.5);
+    }
   });
 
   it('rises monotonically with gradient, standing and tucked (FR-215)', () => {
