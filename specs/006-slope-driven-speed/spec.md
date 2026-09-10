@@ -528,6 +528,47 @@ crouch-release jumps between them. And `tests/unit/scoring-dominance.test.ts` wa
 passing **4**, so the unit test was proving a weaker claim than the validator it
 exists to back up and would have gone on passing while CV-8 failed. Both now use 18. A bound below what the course permits does not prove FR-034 — it assumes it.
 
+### The drop after a flip was the camera (2026-09-10)
+
+Reported from play: _"I think flipping mid air may be causing a drop to occur
+immediately thereafter."_
+
+**The flip is innocent, and that is measured, not argued.** The big booter was
+flown three ways — no flip, flip at tick 2, flip at tick 40 — and `vy` is
+identical tick for tick in all three (−4.363 at t8, +3.317 at t32, +13.557 at
+t64), with all three landing at t67. `applyAirborneMotion` adds gravity and
+rotates orientation; it never writes `vy`. The only difference a spin makes is
+`vx`, 12.65 → 12.69, which is the deliberately weak air control.
+
+**The drop is the camera.** `cameraAirLift` tracked a climb only to 148 units and
+the big booter now apexes at 180.7. Past the cap the lift freezes while the skier
+keeps climbing, so he sat pinned at screen row 34 for 24 ticks either side of the
+apex and then fell 63 pixels in the next 18 as the lift re-engaged.
+
+The two coincide, which is why it read as cause and effect: a flip thrown near
+the apex — the natural moment — runs its 15 ticks and finishes right as the
+camera lets go.
+
+`AIR_LIFT_MAX` 74 → **92**, which covers the apex with nothing saturating, so the
+rise and fall read as one arc.
+
+**This was a gap in the gates, and it is now closed.** The frame test bounded the
+apex at 200; nothing checked the camera could follow that high. Two tests were
+added and they tie the limits together: the camera must be able to track the
+tallest launch any course permits, and the cap must stay under
+`180 × 0.6 − standHeight` so the skier's head does not leave the buffer. The
+first caught 90 as a third of a unit short on the first attempt.
+
+**The frame is now fully spent**, and knowingly. The apex needs 90.3 of lift and
+the head limit allows 92 — 1.7 units of slack. Four rotations at real gravity is
+the most a 320×180 buffer can draw. A taller launch now fails a test rather than
+shipping as a freeze.
+
+**Not fixed, because it cannot be:** the ground still leaves the bottom of the
+frame above 144 units, which is inherent to a 180-unit apex in a 180-tall buffer.
+Keeping the snow in shot up there would need 108 of lift, which puts the skier at
+screen row zero.
+
 ## Interaction with feature 005
 
 The two features touch and the order matters.

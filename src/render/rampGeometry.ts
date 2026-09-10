@@ -30,7 +30,38 @@ import { terminalSpeedAtGradient } from '../sim/slopeResponse.js';
  * rampRise below has to know about it.
  */
 export const AIR_LIFT = 0.5;
-export const AIR_LIFT_MAX = 74;
+/**
+ * How far the camera will follow a climb, 74 -> 90 on 2026-09-10.
+ *
+ * 74 meant the lift stopped at 148 units up. That was ample while every launch
+ * apexed under it, and it stopped being ample the moment the booters went to
+ * real gravity: the big one now peaks at 180.
+ *
+ * Past the cap the camera freezes while the skier keeps climbing, so he sits
+ * PINNED at the same screen row for 24 ticks either side of the apex and then
+ * falls 63 pixels in the next 18 as the lift re-engages. Reported from play as
+ * the flip causing a drop, which it does not — a flip never touches vy, and the
+ * trajectory is identical tick for tick with and without one. The two only
+ * coincide: a flip thrown near the apex finishes its 15 ticks just as the camera
+ * lets go.
+ *
+ * 92 is the ceiling, and it is now touching both walls at once. The big booter
+ * apexes at 180.7 and so needs 90.3 of lift; the skier's feet sit at 108 - lift
+ * and he stands 16 tall, so a lift past 92 puts his head out of the top of the
+ * buffer. 90 was tried first and the new camera test caught it short by a third
+ * of a unit — which is the whole reason that test exists.
+ *
+ * That leaves 1.7 units of slack. It is thin on purpose rather than by neglect:
+ * four rotations at real gravity spends the frame, and that was the trade taken
+ * knowingly. A taller launch than this one cannot be drawn, and the test above
+ * fails rather than letting it ship as a freeze.
+ *
+ * What this does NOT fix, because nothing can: the ground still leaves the
+ * bottom of the frame above 144 units, which is inherent to a 180-unit apex in
+ * a buffer 180 tall. Keeping the snow in shot up there would need a lift of 108,
+ * and that puts the skier at screen row zero.
+ */
+export const AIR_LIFT_MAX = 92;
 
 /** The camera's vertical offset for a skier `h` units above the piste. */
 export const cameraAirLift = (h: number): number =>

@@ -3,7 +3,7 @@ import { derive, initialState, step } from '../../src/sim/step.js';
 import { MAX_TICKS } from '../../src/sim/run.js';
 import { terrainYAt } from '../../src/sim/terrain.js';
 import type { Course, Kicker, RunInput } from '../../src/sim/types.js';
-import { cameraAirLift, rampRise } from '../../src/render/rampGeometry.js';
+import { cameraAirLift, rampRise, AIR_LIFT, AIR_LIFT_MAX } from '../../src/render/rampGeometry.js';
 import { official, tuning, scoring } from './fixtures.js';
 
 /**
@@ -144,6 +144,33 @@ describe('the booters (FR-078, Principle III feel criteria)', () => {
     for (const b of booters) {
       expect(fly(official, b, true).apex).toBeLessThan(200);
     }
+  });
+
+  it('the camera can follow the biggest jump the course allows', () => {
+    // The gap that let the drop ship. The test above bounds the apex at 200,
+    // but nothing checked the CAMERA could follow that high — and it could
+    // only follow to 148. Past its cap the lift freezes while the skier keeps
+    // climbing, so he sits at one screen row through the apex and then falls
+    // 63 pixels in 18 ticks when it re-engages. Played, that reads as the flip
+    // dropping him, though a flip never touches vy.
+    //
+    // So the two limits are tied together here: whatever apex the course
+    // permits, the camera has to be able to track it.
+    for (const b of booters) {
+      const apex = fly(official, b, true).apex;
+      expect(
+        apex * AIR_LIFT,
+        `booter at ${b.x} apexes at ${apex.toFixed(0)}, needing ${(apex * AIR_LIFT).toFixed(0)} of ` +
+          `camera lift against a cap of ${AIR_LIFT_MAX}`,
+      ).toBeLessThanOrEqual(AIR_LIFT_MAX);
+    }
+  });
+
+  it('keeps the skier inside the buffer at the top of that jump', () => {
+    // The other side of it: lift moves him UP the frame, so covering a taller
+    // apex costs head room. His feet sit at 108 - lift and he stands
+    // standHeight tall, so the cap cannot pass 108 - standHeight.
+    expect(AIR_LIFT_MAX).toBeLessThanOrEqual(180 * 0.6 - tuning.standHeight);
   });
 
   it('lands on the angle it took off from', () => {
