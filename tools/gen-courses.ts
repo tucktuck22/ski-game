@@ -22,9 +22,45 @@
  * identical everywhere. It is now a programme of keyed gradients, so the hill
  * itself does some of the pacing.
  */
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+
+/**
+ * Feature 006 made every "how fast will he be going here" question local.
+ *
+ * The generator used to author one RAMP_POWER for every ordinary ramp, because
+ * carried speed was the same everywhere: baseSpeed 2.6 standing, tuckSpeedMax
+ * 4.2 tucked, on a nursery slope and on a headwall alike. It no longer is, so a
+ * single power cannot hold CV-13's entry fee across ramps sitting on different
+ * pitches — and it did not: the ramp at x=11,000 sits on gradient 0.400 and its
+ * UNTUCKED impulse rose from 4.94 to 5.67, which threw the cautious pilot onto
+ * a shelf he never asked for.
+ *
+ * So powers and ice spans are DERIVED here from the gradient each feature
+ * actually stands on. Tuning is read from the same file the game reads, rather
+ * than copied, because two copies of a feel constant is how they drift.
+ */
+const TUNING = JSON.parse(
+  readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../data/tuning.json'), 'utf8'),
+) as {
+  gravity: number;
+  slopeFriction: number;
+  dragStanding: number;
+  dragTucked: number;
+  launchImpulseMin: number;
+  iceCrumbleTicks: number;
+};
+
+/** Terminal speed on a gradient — the same model as src/sim/slopeResponse.ts. */
+function terminalAt(gradient: number, tucked: boolean): number {
+  const len = Math.sqrt(1 + gradient * gradient);
+  const ux = 1 / len;
+  const uy = gradient / len;
+  const net = TUNING.gravity * (uy - TUNING.slopeFriction * ux);
+  if (net <= 0) return 0;
+  return Math.sqrt(net / (tucked ? TUNING.dragTucked : TUNING.dragStanding));
+}
 
 type P = { x: number; y: number };
 
@@ -79,29 +115,99 @@ function terrain(keys: GradeKey[], length: number, step = 200): P[] {
   return pts;
 }
 
+/**
+ * Gradient of the generated segment containing x — the same value `slopeAt`
+ * will read at run time.
+ *
+ * Derived from the emitted POINTS rather than from the gradient programme, so
+ * the generator and the validator cannot disagree by the half-step terrain()
+ * samples at. That half-step is not academic: at x=11,000 the programme
+ * interpolates to 0.300 and the emitted segment is 0.400, and CV-13's entry fee
+ * is decided on the second of those.
+ */
+function gradeAtPoints(pts: P[], x: number): number {
+  let i = 0;
+  for (let k = 1; k < pts.length - 1; k++) {
+    if ((pts[k] as P).x <= x) i = k;
+    else break;
+  }
+  const a = pts[i] as P;
+  const b = pts[i + 1] as P | undefined;
+  if (!b || b.x === a.x) return 0;
+  return (b.y - a.y) / (b.x - a.x);
+}
+
+/**
+ * The power a ramp needs to keep CV-13's entry fee on the pitch it stands on.
+ *
+ * CV-13 wants both halves: a tucking player reaches the shelf, an untucked one
+ * does NOT. For a vertical launch the apex is impulse^2 / 2g, so reaching a
+ * shelf of height H needs an impulse of sqrt(2gH), and impulse is power times
+ * carried speed. That brackets power:
+ *
+ *     sqrt(2gH)/tucked  <  power  <  sqrt(2gH)/standing
+ *
+ * We take the geometric mean of the two bounds, which sits centrally in the
+ * window on the ratio scale the bounds are defined on — so the fee has the same
+ * proportional margin on both sides however steep the pitch is. Authoring a
+ * single number for every ramp cannot do this: on a gentle pitch the window is
+ * wide, on a steep one it is narrow, and 1.9 fell outside it.
+ */
+function rampPowerFor(height: number, gradient: number, gravityScale = 1): number {
+  const need = Math.sqrt(2 * TUNING.gravity * gravityScale * height);
+  const lo = need / terminalAt(gradient, true);
+  const hi = need / terminalAt(gradient, false);
+  return Math.round(Math.sqrt(lo * hi) * 1000) / 1000;
+}
+
+/**
+ * How long a stretch of ice has to be on this pitch.
+ *
+ * CV-18 has two bounds and they both move with speed now: the span must exceed
+ * what a tucking player covers in iceCrumbleTicks (or he outruns the countdown
+ * and the hazard fires on nobody), and stay under what one minimum-charge hop
+ * carries (or he cannot escape it at all). Sized at 1.35x the outrun floor,
+ * which lands mid-window on both courses.
+ */
+function iceSpanFor(gradient: number): number {
+  const outrun = TUNING.iceCrumbleTicks * terminalAt(gradient, true);
+  const escape = ((2 * TUNING.launchImpulseMin) / TUNING.gravity) * terminalAt(gradient, false);
+  // Geometric mean of the two bounds, as rampPowerFor does, so the span sits
+  // centrally in the window on the ratio scale the bounds are defined on. A
+  // fixed multiple of the outrun floor was tried and overshot: on the warm-up's
+  // 0.338 pitch the window is only 44.5 to 58.5 wide, and 1.35x cleared the top
+  // of it.
+  const want = Math.sqrt(outrun * escape);
+  if (!(want > outrun && want < escape)) {
+    throw new Error(
+      `no legal ice span at gradient ${gradient.toFixed(3)}: outrun floor ${outrun.toFixed(1)} ` +
+        `is not comfortably under the escape ceiling ${escape.toFixed(1)}`,
+    );
+  }
+  return Math.round(want);
+}
+
 const BOUGH_W = 40;
 const DEADFALL_W = 24;
 const RAMP_W = 56;
 
 /**
- * The ordinary ramp, and the shelf height it is tuned against.
+ * The ordinary shelf height. Its ramp's power is no longer a constant.
  *
- * These two numbers are one decision. At baseSpeed 2.6 a ramp of power 1.9 has
- * an apex of 38 - short of a 50-unit shelf, so the cautious pilot is hopped and
- * set back down on his own line. At tuckSpeedMax 4.2 the apex is 99. That gap IS
- * the upper track's entry fee, and CV-13 asserts both halves of it against
- * tuning.json rather than trusting this comment.
+ * These used to be one decision: at baseSpeed 2.6 a power-1.9 ramp apexed at 38,
+ * short of a 50-unit shelf, and at tuckSpeedMax 4.2 it apexed at 99. That gap
+ * WAS the upper track's entry fee. Feature 006 made carried speed depend on the
+ * pitch, so one power can no longer hold that fee everywhere — rampPowerFor()
+ * solves for it per ramp instead, and CV-13 still asserts both halves against
+ * tuning.json rather than trusting any comment here.
  */
-const RAMP_POWER = 1.9;
 const SHELF_H = 50;
 
 /**
- * The Cornice's ramp and shelf, which charge a steeper fee than the ordinary
- * pair above. Power 1.5 onto 55: base-speed apex 23.8 (far under it) but
- * full-tuck apex only 62.0, so entry needs about 3.96 of the 4.2 available
- * rather than the 2.73 the ordinary ramp asks. Same rule, harder sum.
+ * The Cornice's shelf, which charges a steeper fee than the ordinary one above
+ * simply by standing higher — 55 against 50. Its ramp power is derived like
+ * every other, so the fee scales with the pitch rather than being re-authored.
  */
-const CORNICE_POWER = 1.5;
 const CORNICE_H = 55;
 
 /**
@@ -136,8 +242,37 @@ const CORNICE_H = 55;
 const BOOTER_W_WARMUP = 110;
 const BOOTER_W_MID = 144;
 const BOOTER_W_BIG = 208;
+/**
+ * The speed the booters were originally measured against.
+ *
+ * They were tuned by riding them, not by algebra: their powers were chosen so a
+ * triple lands with margin and a quad is available, against the tuckSpeedMax of
+ * 4.2 that used to be carried EVERYWHERE. Feature 006 made carried speed local,
+ * and both big booters sit on the Flats at gradient 0.20, where a tuck is now
+ * worth 3.41 rather than 4.2 — so their launches lost 19% and their hang time
+ * went with it: the measured flight fell to 109 ticks against the 110 a triple
+ * needs, and the quad stopped existing.
+ *
+ * boosterPowerFor() restores the impulse those measurements were taken at, by
+ * scaling power by exactly the speed the pitch no longer supplies. The
+ * measurements stay valid because the thing they measured — the impulse — is
+ * unchanged.
+ */
+const BOOTER_TUNED_AGAINST = 4.2;
 const BOOTER_MID = 0.7;
 const BOOTER_BIG = 0.75;
+
+/**
+ * A booter's power, restated for the pitch it stands on.
+ *
+ * Unlike a ramp, a booter is not aiming at a shelf — it sells hang time, and
+ * hang time comes from impulse. Preserving `power * carried` therefore
+ * preserves every flight the course was measured against.
+ */
+function booterPowerFor(tunedPower: number, gradient: number): number {
+  const carried = terminalAt(gradient, true);
+  return Math.round(((tunedPower * BOOTER_TUNED_AGAINST) / carried) * 1000) / 1000;
+}
 
 /**
  * Booters throw FORWARD, not up. This is the whole shape of them.
@@ -197,7 +332,30 @@ const BOOTER_MID_FLOAT = 0.12;
 const BOOTER_WARMUP_FLOAT = 0.25;
 const BOOTER_BIG_FLOAT = 0.085;
 
+const OFFICIAL_GRADE: GradeKey[] = [
+  { x: 0, g: 0.2 }, // Drop In: mellow enough to read
+  { x: 1200, g: 0.26 },
+  { x: 3200, g: 0.42 }, // Shelf School builds
+  { x: 5000, g: 0.6 }, // The Narrows: steep AND technical
+  { x: 5400, g: 0.5 }, // The Cornice eases, so shelf work is readable
+  { x: 7400, g: 0.44 },
+  { x: 7800, g: 0.2 }, // The Flats: speed bleeds
+  { x: 8900, g: 0.2 }, // held flat across booter 1's whole flight, so it
+  { x: 9200, g: 0.2 }, // takes off and lands on the same angle
+  // The Last Pitch stays SHALLOW under the big booter. A steep runway does
+  // not show a floating skier more ground, it pulls the ground away from
+  // him faster and puts it out of frame sooner.
+  { x: 10900, g: 0.2 }, // shallow the whole way under the big float
+  { x: 11200, g: 0.5 }, // and the steepest ground goes where it pays: the
+  { x: 12200, g: 0.66 }, // run to the line, on the final shelf
+];
+
 function official(): Built {
+  // Terrain is built FIRST now, because the features below are derived against
+  // the pitch they stand on rather than against a global carried speed.
+  const pts = terrain(OFFICIAL_GRADE, 12000);
+  const grade = (x: number): number => gradeAtPoints(pts, x);
+
   const obstacles: Built['obstacles'] = [];
   const pickups: Built['pickups'] = [];
   const ledges: Built['ledges'] = [];
@@ -230,9 +388,9 @@ function official(): Built {
   // ---- II. SHELF SCHOOL (1,200 - 3,200). Ask: will you pay for the high line? ----
   // The two-track idea, taught once and cleanly: ramp, shelf, its two hazards,
   // and a log on the piste for whoever stayed low.
-  kickers.push({ x: 1400, width: RAMP_W, power: RAMP_POWER });
+  kickers.push({ x: 1400, width: RAMP_W, power: rampPowerFor(SHELF_H, grade(1400)) });
   ledges.push({ x0: 1496, x1: 2396, height: SHELF_H });
-  ice.push({ x0: 1876, x1: 1924 });
+  ice.push({ x0: 1876, x1: 1876 + iceSpanFor(grade(1876)) });
   rocks.push({ x: 2076, width: 16, height: 12 });
   deadfall(1800);
   shelfPickups(1496, 2396, SHELF_H, 5);
@@ -267,10 +425,10 @@ function official(): Built {
   // The upper track returns and finally bites. Harder entry, a longer shelf, and
   // two ice bands instead of one, so the shelf asks something after the moment
   // you arrive on it - which the old one never did.
-  kickers.push({ x: 5200, width: RAMP_W, power: CORNICE_POWER });
+  kickers.push({ x: 5200, width: RAMP_W, power: rampPowerFor(CORNICE_H, grade(5200)) });
   ledges.push({ x0: 5296, x1: 6596, height: CORNICE_H });
-  ice.push({ x0: 5546, x1: 5594 });
-  ice.push({ x0: 5746, x1: 5794 });
+  ice.push({ x0: 5546, x1: 5546 + iceSpanFor(grade(5546)) });
+  ice.push({ x0: 5746, x1: 5746 + iceSpanFor(grade(5746)) });
   rocks.push({ x: 5996, width: 16, height: 12 });
   // Kept clear of BOTH ice drop zones: CV-19 will not have an involuntary fall
   // land on an obstacle, and a shelf 55 up throws the drop a long way downhill.
@@ -287,7 +445,7 @@ function official(): Built {
   kickers.push({
     x: 7852,
     width: BOOTER_W_MID,
-    power: BOOTER_MID,
+    power: booterPowerFor(BOOTER_MID, grade(7852)),
     launchAngle: BOOTER_MID_ANGLE,
     gravityScale: BOOTER_MID_FLOAT,
   });
@@ -313,13 +471,13 @@ function official(): Built {
   kickers.push({
     x: 9188,
     width: BOOTER_W_BIG,
-    power: BOOTER_BIG,
+    power: booterPowerFor(BOOTER_BIG, grade(9188)),
     launchAngle: BOOTER_BIG_ANGLE,
     gravityScale: BOOTER_BIG_FLOAT,
   });
-  kickers.push({ x: 11000, width: RAMP_W, power: RAMP_POWER });
+  kickers.push({ x: 11000, width: RAMP_W, power: rampPowerFor(SHELF_H, grade(11000)) });
   ledges.push({ x0: 11100, x1: 12000, height: SHELF_H });
-  ice.push({ x0: 11350, x1: 11398 });
+  ice.push({ x0: 11350, x1: 11350 + iceSpanFor(grade(11350)) });
   rocks.push({ x: 11600, width: 16, height: 12 });
   deadfall(11600);
   bough(11850, 13);
@@ -339,28 +497,9 @@ function official(): Built {
 
   return {
     id: 'official',
-    rulesVersion: '1.6.0',
+    rulesVersion: '2.0.0',
     length: 12000,
-    terrain: terrain(
-      [
-        { x: 0, g: 0.2 }, // Drop In: mellow enough to read
-        { x: 1200, g: 0.26 },
-        { x: 3200, g: 0.42 }, // Shelf School builds
-        { x: 5000, g: 0.6 }, // The Narrows: steep AND technical
-        { x: 5400, g: 0.5 }, // The Cornice eases, so shelf work is readable
-        { x: 7400, g: 0.44 },
-        { x: 7800, g: 0.2 }, // The Flats: speed bleeds
-        { x: 8900, g: 0.2 }, // held flat across booter 1's whole flight, so it
-        { x: 9200, g: 0.2 }, // takes off and lands on the same angle
-        // The Last Pitch stays SHALLOW under the big booter. A steep runway does
-        // not show a floating skier more ground, it pulls the ground away from
-        // him faster and puts it out of frame sooner.
-        { x: 10900, g: 0.2 }, // shallow the whole way under the big float
-        { x: 11200, g: 0.5 }, // and the steepest ground goes where it pays: the
-        { x: 12200, g: 0.66 }, // run to the line, on the final shelf
-      ],
-      12000,
-    ),
+    terrain: pts,
     obstacles,
     pickups,
     ledges,
@@ -376,7 +515,20 @@ function official(): Built {
  * a bough, a shelf with its hazards, a booter - and nothing repeated, because
  * its job is to introduce the verbs rather than to test them.
  */
+const WARMUP_GRADE: GradeKey[] = [
+  { x: 0, g: 0.22 },
+  { x: 1400, g: 0.36 },
+  { x: 2200, g: 0.3 }, // held flat across the booter's flight
+  { x: 3200, g: 0.3 },
+  { x: 3400, g: 0.34 },
+];
+
 function warmup(): Built {
+  // Terrain first, for the same reason as official(): ramp power and ice span
+  // are derived against the pitch they stand on.
+  const pts = terrain(WARMUP_GRADE, 3200);
+  const grade = (x: number): number => gradeAtPoints(pts, x);
+
   const obstacles: Built['obstacles'] = [
     { x: 700, kind: 'low', width: BOUGH_W, clearance: 14 },
     { x: 2000, kind: 'solid', width: DEADFALL_W, clearance: 0 },
@@ -391,35 +543,26 @@ function warmup(): Built {
   }
   return {
     id: 'warmup',
-    rulesVersion: '1.6.0',
+    rulesVersion: '2.0.0',
     length: 3200,
-    terrain: terrain(
-      [
-        { x: 0, g: 0.22 },
-        { x: 1400, g: 0.36 },
-        { x: 2200, g: 0.3 }, // held flat across the booter's flight
-        { x: 3200, g: 0.3 },
-        { x: 3400, g: 0.34 },
-      ],
-      3200,
-    ),
+    terrain: pts,
     obstacles,
     pickups,
     ledges: [{ x0: 1496, x1: 2196, height: SHELF_H }],
     kickers: [
-      { x: 1400, width: RAMP_W, power: RAMP_POWER },
+      { x: 1400, width: RAMP_W, power: rampPowerFor(SHELF_H, grade(1400)) },
       {
         // Clear of the shelf that ends at 2196: a kicker under a ledge never
         // fires, because the skier rides off the shelf already airborne.
         x: 2386,
         width: BOOTER_W_WARMUP,
-        power: BOOTER_MID,
+        power: booterPowerFor(BOOTER_MID, grade(2386)),
         launchAngle: BOOTER_MID_ANGLE,
         gravityScale: BOOTER_WARMUP_FLOAT,
       },
     ],
     rocks: [{ x: 1926, width: 16, height: 12 }],
-    ice: [{ x0: 1726, x1: 1774 }],
+    ice: [{ x0: 1726, x1: 1726 + iceSpanFor(grade(1726)) }],
   };
 }
 

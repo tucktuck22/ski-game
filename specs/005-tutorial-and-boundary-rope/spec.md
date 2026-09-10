@@ -307,8 +307,16 @@ the start line to the end of the coached section.
   and the three-run allowance are unchanged.
 - **FR-196**: This feature MUST NOT change the official course layout, the physics,
   the tuning values governing feel, or the scoring table, and MUST NOT change the
-  `rulesVersion` submitted with a committed score. A draft already holding committed
-  scores MUST continue to accept official runs across this change without a reset.
+  `rulesVersion` submitted with a committed score. ~~A draft already holding committed
+  scores MUST continue to accept official runs across this change without a reset.~~
+  **AMENDED 2026-09-10 by feature 006 (FR-228).** The first sentence still binds this
+  feature: nothing in 005 changes physics, tuning, scoring, or the official course, and
+  005 remains safe to ship mid-draft on its own. The struck sentence no longer describes
+  the product — feature 006 changes the physics deliberately, bumps `rulesVersion`, and
+  the organizer has accepted that the draft is reset and committed scores destroyed.
+  _Reason: 005 was scoped to preserve mid-draft safety and still does; it is 006 that
+  spends it, with the decision recorded at
+  [`006/spec.md`](../006-slope-driven-speed/spec.md#the-draft-reset-decision)._
 - **FR-197**: The coached section MUST NOT appear in an official run or in free play.
   It is a property of practice.
 

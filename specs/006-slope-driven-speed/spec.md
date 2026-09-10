@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-10
 
-**Status**: Draft — one open decision, see [The draft reset](#the-draft-reset-decision)
+**Status**: Approved 2026-09-10 — reset decision taken, ready for `/speckit-tasks`
 
 **Input**: User description: "Let's modify the physics so that speed changes
 realistically as slope increases, like it would in real life. A gentle slope should
@@ -224,6 +224,11 @@ the time to do so is within the tolerance FR-221 fixes.
   data" already permits this feature; its clause "The skier MUST travel at a fixed base
   speed on the slope" does not, and MUST be amended to describe a speed the mountain
   sets.
+- **FR-229**: The draft reset MUST be a named operator procedure, executed verbatim in
+  CI with its output asserted, per Principle VII. It MUST NOT be prose instructing a
+  human to run something the project has never run.
+- **FR-230**: The organizer MUST notify players that committed scores are being
+  destroyed and official runs returned, before the deploy that destroys them.
 - **FR-228**: Feature 005's FR-196 MUST be amended. It currently forbids exactly this
   change and promises a live draft will survive; both halves stop being true.
 
@@ -272,7 +277,26 @@ the time to do so is within the tolerance FR-221 fixes.
 
 ## The draft reset decision
 
-**This is the one thing that needs a human answer before implementation starts.**
+**Answered 2026-09-10 by the organizer: the draft holds committed scores, and
+destroying them is acceptable.** This feature proceeds, and the reset is a deliberate,
+announced step rather than a failure to be discovered.
+
+Two obligations follow from the answer, and neither is optional:
+
+- **FR-229**: The reset MUST be performed as a named operator procedure, executed
+  verbatim in CI with its output inspected, per Principle VII. A README paragraph
+  telling the organizer to "run the reset" is not a deliverable; a tested script is.
+- **FR-230**: Players MUST be told their committed scores are being destroyed and
+  their official run returned, BEFORE the deploy rather than after. Eight people took
+  a run they were told was irreversible. Discovering it was reset without warning is a
+  worse outcome than the physics being wrong.
+
+The reasoning that led here is kept below, because the next physics change will face
+the same question and should not have to rediscover it.
+
+---
+
+**The decision as it was put:**
 
 FR-023 freezes physics at the first official commit and the database enforces it. The
 moment this ships:

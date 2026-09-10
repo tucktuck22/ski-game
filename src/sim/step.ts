@@ -11,7 +11,15 @@
  */
 import type { Course, RunInput, RunState, Scoring, Tuning } from './types.js';
 import { cosDet } from './trig.js';
-import { terrainYAt, surfaceYAt, onLedgeSpan, iceIndexAt, ledgeIndexAt } from './terrain.js';
+import { terminalSpeed } from './slopeResponse.js';
+import {
+  terrainYAt,
+  surfaceYAt,
+  onLedgeSpan,
+  iceIndexAt,
+  ledgeIndexAt,
+  slopeAt,
+} from './terrain.js';
 import {
   resolveCrouch,
   applyGroundedMotion,
@@ -39,6 +47,12 @@ export const derive = (t: Tuning): DerivedTuning => ({
 export function initialState(course: Course, tuning: Tuning, seed: number): RunState {
   const x = 0;
   const y = terrainYAt(course.terrain, x);
+  // Start already settled at what the opening pitch is worth, rather than at
+  // the floor. The run begins part-way down a mountain with the skier already
+  // sliding, not standing still at a gate — and starting at speedMin would open
+  // every run with a crawl while drag caught up. Standing, not tucked: holding
+  // the crouch is the player's decision to make, not a head start.
+  const startSpeed = terminalSpeed(slopeAt(course.terrain, x), tuning, false);
   // Seeded RNG is created even though placement is static in v1 (FR-086): it
   // exists so seeded variation can be added without changing the state shape.
   const rng: RngState = makeRng(seed);
@@ -47,7 +61,7 @@ export function initialState(course: Course, tuning: Tuning, seed: number): RunS
     tick: 0,
     x,
     y,
-    vx: tuning.baseSpeed,
+    vx: startSpeed,
     vy: 0,
     ox: 1,
     oy: 0,

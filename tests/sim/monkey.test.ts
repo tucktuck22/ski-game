@@ -82,7 +82,7 @@ describe('monkey fuzz (FR-062)', () => {
     }
   });
 
-  it('never lets speed fall below base or exceed the tuck cap while grounded (FR-077)', () => {
+  it('keeps grounded speed inside the tuning bounds, and near what the pitch is worth (FR-077, FR-219)', () => {
     const derived = derive(tuning);
     for (let seed = 1; seed <= 200; seed++) {
       let r = seed >>> 0;
@@ -97,9 +97,33 @@ describe('monkey fuzz (FR-062)', () => {
         state = step(state, { crouch, rotate: 0 }, official, tuning, scoring, derived);
         if (state.grounded) {
           const speed = state.vx * state.ox + state.vy * state.oy;
-          // There is no brake: FR-077 says the player cannot choose to go slower.
-          expect(speed).toBeGreaterThanOrEqual(tuning.baseSpeed - 1e-9);
-          expect(speed).toBeLessThanOrEqual(tuning.tuckSpeedMax + 1e-9);
+          // FR-219: the bounds are a floor and a safety rail, and neither may
+          // ever be breached. There is still no brake — the player cannot
+          // choose to go slower — but "slower" is now set by the mountain
+          // rather than by a single baseSpeed constant.
+          expect(speed).toBeGreaterThanOrEqual(tuning.speedMin - 1e-9);
+          expect(speed).toBeLessThanOrEqual(tuning.speedMax + 1e-9);
+
+          // NOTE: speedMax is NOT asserted to be un-reached here. It is reached,
+          // on about 0.035% of grounded ticks, and only on the landing tick from
+          // the largest launches — never by drag-driven motion, which settles far
+          // below it. Landing has always scrubbed and clamped (the old code
+          // clamped every fast landing to tuckSpeedMax 4.2, so this clips
+          // strictly LESS than before). What FR-219 forbids is the rail acting as
+          // the mechanism for ordinary riding; that it is above every terminal on
+          // the course is asserted as a data property in
+          // tests/sim/slope-response.test.ts, where it belongs.
+
+          // NOTE: there is deliberately no assertion that speed stays at or
+          // under the terminal of the slope the player is standing on. It does
+          // not, and should not — speed carries between gradients, so a player
+          // who accelerated down a steep pitch is still faster than a gentler
+          // one below it is worth until drag bleeds it off. That carry-over is
+          // the feature. An earlier version of this test asserted it and caught
+          // 3.65 against a local terminal of 3.45, which was the test being
+          // wrong rather than the physics. Convergence to terminal on a CONSTANT
+          // gradient is asserted in tests/sim/slope-response.test.ts, where the
+          // gradient is actually held still.
         }
       }
     }

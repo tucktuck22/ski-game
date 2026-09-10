@@ -10,7 +10,8 @@
  * saying the game is broken, after the draft had already started.
  */
 import type { Course, Kicker, Obstacle, Scoring, TerrainPoint, Tuning } from '../sim/types.js';
-import { overheadClearanceAt, ledgeIndexAt } from '../sim/terrain.js';
+import { overheadClearanceAt, ledgeIndexAt, slopeAt } from '../sim/terrain.js';
+import { terminalSpeed, stallGradient } from '../sim/slopeResponse.js';
 import { maxAchievableBonus } from '../sim/scoring.js';
 
 export interface Violation {
@@ -25,6 +26,17 @@ function unit(dx: number, dy: number): { x: number; y: number } {
 
 /** Steepest segment the contact solver resolves cleanly: 60 degrees, as a gradient. */
 const MAX_GRADIENT = 1.732;
+
+/**
+ * How far clear of the stall threshold a segment must sit (CV-23).
+ *
+ * 3x rather than a hair over 1x: at exactly the threshold the net force is zero
+ * and the player is already stranded, and just above it he crawls. Three times
+ * friction is gradient 0.06 at today's 0.02, which still reads as very gentle -
+ * the gentlest terrain anyone has proposed is feature 005's coached section at
+ * 0.08, which clears this with room.
+ */
+const STALL_MARGIN = 3;
 
 /**
  * Ceiling on rotations a single air could plausibly produce.
@@ -77,6 +89,29 @@ const SHELF_RUN_IN = 200;
 /** Clear shelf required between two upper-track hazards, so each reads alone. */
 const SHELF_HAZARD_GAP = 120;
 
+/**
+ * The speed a player can actually carry into a feature at `x`, standing and
+ * tucked.
+ *
+ * Feature 006 made these gradient-dependent. Every rule below used to read
+ * `tuning.baseSpeed` and `tuning.tuckSpeedMax`, which were the same everywhere;
+ * a ramp on a steep pitch and the same ramp on a flat were certified against
+ * identical numbers. They are now the terminal speeds of the slope the feature
+ * sits on, which makes CV-13 and CV-15 stronger rather than merely different:
+ * they certify against the speed actually available there.
+ *
+ * `Math.sqrt` inside terminalSpeed is not reached — it uses sqrtDet — but note
+ * that this file is NOT simulation code and is free to use Math regardless. It
+ * runs in CI over data, never in a run.
+ */
+function speedsAt(course: Course, x: number, tuning: Tuning): { standing: number; tucked: number } {
+  const slope = slopeAt(course.terrain, x);
+  return {
+    standing: terminalSpeed(slope, tuning, false),
+    tucked: terminalSpeed(slope, tuning, true),
+  };
+}
+
 export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring): Violation[] {
   const v: Violation[] = [];
   const t = course.terrain;
@@ -112,6 +147,37 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
       v.push({
         rule: 'CV-2',
         message: `segment at x=${a.x} has gradient ${gradient.toFixed(2)}, over ${MAX_GRADIENT}`,
+      });
+  }
+
+  // CV-23: no segment may be too shallow to overcome friction.
+  //
+  // Feature 006 made speed the product of gravity against friction and drag, so
+  // below a threshold gradient the skier decelerates to a standstill — and this
+  // game has no brake and no pedal, so that is a PERMANENT strand rather than a
+  // slow section. CV-2 has always capped gradient from above; nothing capped it
+  // from below, because nothing needed to.
+  //
+  // tuning.speedMin would stop the player actually reaching zero, but a floor
+  // hides the defect rather than preventing it: he would creep along at the
+  // floor through a stretch the author believed was rideable, and that ships.
+  // The validator makes it unauthorable instead. Same argument CV-4 makes about
+  // release windows.
+  const stall = stallGradient(tuning);
+  const minGradient = stall * STALL_MARGIN;
+  for (let i = 1; i < t.length; i++) {
+    const a = t[i - 1] as TerrainPoint;
+    const b = t[i] as TerrainPoint;
+    const dx = b.x - a.x;
+    if (dx <= 0) continue;
+    const gradient = (b.y - a.y) / dx;
+    if (gradient < minGradient)
+      v.push({
+        rule: 'CV-23',
+        message:
+          `segment at x=${a.x} has gradient ${gradient.toFixed(3)}, under the ${minGradient.toFixed(3)} ` +
+          `needed to overcome slopeFriction ${stall} with margin. A player here decelerates to the ` +
+          'speed floor and cannot recover — there is no brake and no pedal in this game.',
       });
   }
 
@@ -291,7 +357,10 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
       continue;
     }
     const reachable = entries.some((k) => {
-      const impulse = Math.min(k.power * tuning.tuckSpeedMax, tuning.kickerImpulseMax);
+      const impulse = Math.min(
+        k.power * speedsAt(course, k.x, tuning).tucked,
+        tuning.kickerImpulseMax,
+      );
       return apexOf(launchParts(k, impulse).up, tuning.gravity * (k.gravityScale ?? 1)) > l.height;
     });
     if (!reachable)
@@ -300,12 +369,15 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
         message: `ledge at x=${l.x0} is ${l.height} up, but no ramp before it clears that height even at full tuck`,
       });
     for (const k of entries) {
-      const impulse = Math.min(k.power * tuning.baseSpeed, tuning.kickerImpulseMax);
+      const impulse = Math.min(
+        k.power * speedsAt(course, k.x, tuning).standing,
+        tuning.kickerImpulseMax,
+      );
       if (apexOf(launchParts(k, impulse).up, tuning.gravity * (k.gravityScale ?? 1)) >= l.height)
         v.push({
           rule: 'CV-13',
           message:
-            `ramp at x=${k.x} throws a BASE-SPEED skier onto the ledge at x=${l.x0}. ` +
+            `ramp at x=${k.x} throws an UNTUCKED skier onto the ledge at x=${l.x0}. ` +
             'The upper track must be earned by carrying speed, not imposed on the ' +
             'cautious pilot FR-035 protects.',
         });
@@ -410,9 +482,13 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
   // nobody. The span has to sit in the window between what the countdown lets
   // him cover and what one weak launch lets him clear.
   const escapeAir = (2 * tuning.launchImpulseMin) / tuning.gravity;
-  const escapeReach = escapeAir * tuning.baseSpeed;
-  const outrunReach = tuning.iceCrumbleTicks * tuning.tuckSpeedMax;
   for (const sec of course.ice) {
+    // Speeds are read at the ice itself now, not off a global constant: how far
+    // a hop carries you and how far you can outrun the countdown both depend on
+    // the pitch the shelf is running down.
+    const here = speedsAt(course, sec.x0, tuning);
+    const escapeReach = escapeAir * here.standing;
+    const outrunReach = tuning.iceCrumbleTicks * here.tucked;
     const span = sec.x1 - sec.x0;
     if (span > escapeReach)
       v.push({
@@ -443,7 +519,7 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
     const height = shelf >= 0 ? (course.ledges[shelf] as { height: number }).height : 0;
     // How far he travels while falling the height of the shelf.
     const fallTicks = Math.sqrt((2 * height) / tuning.gravity);
-    const landsBy = sec.x1 + fallTicks * tuning.tuckSpeedMax;
+    const landsBy = sec.x1 + fallTicks * speedsAt(course, sec.x1, tuning).tucked;
     for (const o of course.obstacles) {
       if (o.x + o.width < sec.x0 || o.x > landsBy) continue;
       v.push({
@@ -513,7 +589,8 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
   const LANDING_MARGIN = 1.3;
   for (const k of course.kickers) {
     const lip = k.x + k.width;
-    const impulse = Math.min(k.power * tuning.tuckSpeedMax, tuning.kickerImpulseMax);
+    const carried = speedsAt(course, k.x, tuning).tucked;
+    const impulse = Math.min(k.power * carried, tuning.kickerImpulseMax);
     // Air comes from the vertical half of the launch; ground covered comes from
     // the skier's own speed PLUS the horizontal half. A booter tilted forward
     // travels two to three times as far as the same impulse thrown straight up,
@@ -521,7 +598,7 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
     // player sails clean over.
     const { up, along } = launchParts(k, impulse);
     const airTicks = (2 * up) / (tuning.gravity * (k.gravityScale ?? 1));
-    const reach = lip + airTicks * (tuning.tuckSpeedMax + along) * LANDING_MARGIN;
+    const reach = lip + airTicks * (carried + along) * LANDING_MARGIN;
     for (const o of course.obstacles) {
       if (o.x + o.width <= lip || o.x >= reach) continue;
       v.push({
@@ -550,7 +627,8 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
       if (o.x >= lip) continue;
       // How far a minimum-charge clearing jump carries at full tuck: the widest
       // reach that could still put him over this lip.
-      const jumpReach = ((2 * tuning.launchImpulseMin) / tuning.gravity) * tuning.tuckSpeedMax;
+      const jumpReach =
+        ((2 * tuning.launchImpulseMin) / tuning.gravity) * speedsAt(course, o.x, tuning).tucked;
       if (o.x + o.width + jumpReach < lip) continue;
       v.push({
         rule: 'CV-22',

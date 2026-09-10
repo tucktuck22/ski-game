@@ -13,6 +13,7 @@
  */
 import type { Course, Kicker, Tuning } from '../sim/types.js';
 import { terrainYAt } from '../sim/terrain.js';
+import { terminalSpeedAtGradient } from '../sim/slopeResponse.js';
 
 /**
  * How far up the frame the skier rides per unit of air beneath him, and the
@@ -100,10 +101,15 @@ export function rampRise(k: Kicker, tuning: Tuning, course: Course): number {
     const climb = m + Math.tan(flightAngle(k, m));
     return Math.round(k.width * climb * (1 - AIR_LIFT));
   }
-  const impulse = Math.min(k.power * tuning.tuckSpeedMax, tuning.kickerImpulseMax);
+  // Feature 006: carried speed is the terminal speed of whatever pitch the ramp
+  // sits on, not a global constant. The ramp is DRAWN the size of the jump it
+  // gives, so the same ramp on a steeper pitch is now drawn bigger — which is
+  // correct, and is the whole point.
+  const carried = terminalSpeedAtGradient(gradeAtLip(course, k.x + k.width), tuning, true);
+  const impulse = Math.min(k.power * carried, tuning.kickerImpulseMax);
   const rad = ((k.launchAngle ?? 90) * Math.PI) / 180;
   const airTicks = (2 * impulse * Math.sin(rad)) / (tuning.gravity * (k.gravityScale ?? 1));
-  const reach = airTicks * (tuning.tuckSpeedMax + impulse * Math.cos(rad));
+  const reach = airTicks * (carried + impulse * Math.cos(rad));
   return Math.round(19 * (reach / 210) ** 0.55);
 }
 

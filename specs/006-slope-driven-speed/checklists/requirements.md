@@ -27,12 +27,18 @@
 - [x] All functional requirements have clear acceptance criteria
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
-- [ ] **Blocked on a human decision** — the draft reset
+- [x] Feature meets measurable outcomes defined in Success Criteria
 
 ## Notes
 
-**Validation 2026-09-10.** The spec passes on quality. It is **not ready to
-implement**, and the reason is not a writing defect.
+**Validation run 1 — 2026-09-10.** Passed on quality, blocked on a human decision:
+shipping bumps `rulesVersion` and a draft holding committed scores must be reset.
+
+**Validation run 2 — 2026-09-10. All items pass.** The organizer answered: the draft
+holds committed scores and destroying them is acceptable. Two obligations were added
+rather than the decision simply being recorded — FR-229 makes the reset a tested
+operator procedure per Principle VII, and FR-230 requires players be told before the
+deploy, not after. Eight people took a run they were told was irreversible.
 
 The model, its constants, its stability and its consequences are all measured rather
 than asserted — see [research.md](../research.md) R1 to R7. What is unresolved is a
@@ -40,9 +46,9 @@ product decision the code cannot make: shipping this bumps `rulesVersion`, and a
 holding committed scores must then be reset, destroying scores already posted by
 players whose official run is irreversible.
 
-That decision is recorded as [The draft reset
-decision](../spec.md#the-draft-reset-decision) and gates deployment, not
-implementation.
+The decision and its reasoning are kept in [The draft reset
+decision](../spec.md#the-draft-reset-decision) so the next physics change does not
+have to rediscover them.
 
 Two deliberate exceptions to "no implementation details":
 

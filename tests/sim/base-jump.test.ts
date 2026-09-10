@@ -4,6 +4,8 @@ import { MAX_TICKS } from '../../src/sim/run.js';
 import { terrainYAt } from '../../src/sim/terrain.js';
 import type { RunInput } from '../../src/sim/types.js';
 import { official, tuning, scoring } from './fixtures.js';
+import { terminalSpeed } from '../../src/sim/slopeResponse.js';
+import { slopeAt } from '../../src/sim/terrain.js';
 
 /**
  * What a crouch release is FOR, and what it must not be.
@@ -35,7 +37,10 @@ describe('the base jump (FR-078)', () => {
 
   it('is weaker than every ramp on the course', () => {
     const rampApex = (k: (typeof official.kickers)[number]): number => {
-      const impulse = Math.min(k.power * tuning.tuckSpeedMax, tuning.kickerImpulseMax);
+      // Feature 006: carried speed is the terminal of the pitch the ramp sits
+      // on, not a global constant.
+      const carried = terminalSpeed(slopeAt(official.terrain, k.x), tuning, true);
+      const impulse = Math.min(k.power * carried, tuning.kickerImpulseMax);
       const up = impulse * Math.sin(((k.launchAngle ?? 90) * Math.PI) / 180);
       return (up * up) / (2 * tuning.gravity * (k.gravityScale ?? 1));
     };
