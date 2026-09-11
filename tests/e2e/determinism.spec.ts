@@ -40,7 +40,13 @@ interface Result {
  * worth 2.11 rather than a flat 2.60; the ticks barely moved, which is the
  * cross-check that the traces still die in the same places.
  *
- * Regenerated again the same day after the first playtest re-paced the course
+ * Regenerated again on 2026-09-11 when gravity and both drag coefficients were
+ * halved together. Ground speeds are identical by construction, so what moved is
+ * the air: every trace survives longer (85 -> 149 ticks on the first) because a
+ * longer flight carries it past obstacles that used to end it, and the first
+ * seed now lands a rotation, which at 12,000 a turn is most of its 24,475.
+ *
+ * Regenerated the day before after the first playtest re-paced the course
  * (gradient range 0.20-0.64 -> 0.25-0.60, friction 0.02 -> 0.012, booter power
  * no longer normalised against a fixed carried speed). Scores rose against the
  * first cut because the course's gentlest ground is now worth 4.00 tucked
@@ -56,9 +62,9 @@ interface Result {
  * from src/sim, and determinism.html recomputes them in three browsers.
  */
 const GOLDEN: Result[] = [
-  { seed: '5eed', score: 254, ticks: 85, hash: '0a716591' },
-  { seed: '1986', score: 126, ticks: 46, hash: '23e89116' },
-  { seed: 'beef', score: 168, ticks: 54, hash: '00b06c87' },
+  { seed: '5eed', score: 24475, ticks: 149, hash: '6bc1a71c' },
+  { seed: '1986', score: 145, ticks: 55, hash: '76c13b2a' },
+  { seed: 'beef', score: 188, ticks: 65, hash: '03a25e2f' },
 ];
 
 test('the simulation reproduces the golden run exactly on this engine', async ({

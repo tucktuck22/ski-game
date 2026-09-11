@@ -114,7 +114,9 @@ describe('validator rules fire on deliberately broken courses', () => {
 
   it('CV-12: a ledge higher than any launch could ever reach', () => {
     const c = clone(warmup);
-    (c.ledges[0] as Ledge).height = 400;
+    // 1200, not 400. Halving gravity doubled the height every launch reaches,
+    // so 400 is now comfortably attainable and the rule correctly says nothing.
+    (c.ledges[0] as Ledge).height = 1200;
     expect(rulesFired(c)).toContain('CV-12');
   });
 

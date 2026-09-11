@@ -4,6 +4,7 @@ import { MAX_TICKS } from '../../src/sim/run.js';
 import { terrainYAt } from '../../src/sim/terrain.js';
 import type { Course, Kicker, RunInput } from '../../src/sim/types.js';
 import { cameraAirLift, rampRise, AIR_LIFT, AIR_LIFT_MAX } from '../../src/render/rampGeometry.js';
+import { RELEASE_WITHIN, CHARGE_FROM } from './pilots.js';
 import { official, tuning, scoring } from './fixtures.js';
 
 /**
@@ -64,7 +65,7 @@ function fly(course: Course, k: Kicker, tuckIn: boolean, spins = 0): Flight {
       if (dd > -30 && dd < gap) gap = dd;
     }
     const duck = !onShelf && boughs.some((o) => s.x + 30 >= o.x && s.x < o.x + o.width);
-    const releasing = gap <= 34 && gap > -30;
+    const releasing = gap <= RELEASE_WITHIN && gap > -30;
     let rotate: -1 | 0 | 1 = 0;
     if (!s.grounded && launched && thrown < spins && s.spinTicksLeft === 0) {
       rotate = 1;
@@ -72,7 +73,10 @@ function fly(course: Course, k: Kicker, tuckIn: boolean, spins = 0): Flight {
     }
     const input: RunInput = {
       crouch:
-        !releasing && (duck || (gap < 90 && gap > 34) || (tuckIn && s.grounded && s.ledge < 0)),
+        !releasing &&
+        (duck ||
+          (gap < CHARGE_FROM && gap > RELEASE_WITHIN) ||
+          (tuckIn && s.grounded && s.ledge < 0)),
       rotate,
     };
     const before = s;
@@ -192,26 +196,45 @@ describe('the booters (FR-078, Principle III feel criteria)', () => {
     // just under a second - and the ceiling is the FRAME, not the physics: a
     // fifth rotation needs an apex of 282 in a buffer 180 tall.
     const [small, big] = booters as [Kicker, Kicker];
-    expect(fly(official, small, true).air).toBeGreaterThan(45);
-    expect(fly(official, big, true).air).toBeGreaterThan(60);
+    // Raised again on 2026-09-11 when gravity halved: hang at a fixed apex goes
+    // as 1/sqrt(gravity), so the same jump heights now hold 74 and 91 ticks
+    // where they held 53 and 66. The jumps did not get bigger; they got slower.
+    expect(fly(official, small, true).air).toBeGreaterThan(65);
+    expect(fly(official, big, true).air).toBeGreaterThan(85);
   });
 
-  it('pays three rotations off the small booter and four off the big one', () => {
+  it('pays five rotations off the small booter and six off the big one', () => {
     // 8 and 12 before the float came off. Four is the measured maximum at true
     // gravity and the frame sets it, not the impulse: the old kickerImpulseMax
     // of 10.0 saturated first and capped the big one at three with headroom
     // going spare, so the cap moved to 12.0 and the frame took over.
     const [small, big] = booters as [Kicker, Kicker];
-    expect(fly(official, small, true, 3).why).toBeNull();
-    expect(fly(official, small, true, 5).why).toBe('spun_out');
-    expect(fly(official, big, true, 4).why).toBeNull();
-    expect(fly(official, big, true, 6).why).toBe('spun_out');
+    expect(fly(official, small, true, 5).why).toBeNull();
+    expect(fly(official, big, true, 6).why).toBeNull();
+
+    // NEITHER booter has a greed trap any more, and it is worth saying that this
+    // fell out rather than being aimed at: since gravity halved they hold 75 and
+    // 90 ticks, and spinDurationTicks is 15, so both are exact multiples. Five
+    // and six spins fill them precisely and there is no tick left on which a
+    // further one could be pressed, so a greedy player banks what he landed
+    // instead of losing it.
+    //
+    // The trap did not disappear, it MOVED: the crouch-release jump now buys 43
+    // ticks, which is two spins with 13 spare — enough to start a third and not
+    // to land it. That is an inversion of the design note this suite used to
+    // carry, which put the trap on the booters deliberately and kept the base
+    // jump safe. Recorded for the next play pass to judge rather than tuned away
+    // on a hunch.
+    for (const greedy of [7, 8, 10]) {
+      expect(fly(official, small, true, greedy).why, `small, ${greedy} requested`).toBeNull();
+      expect(fly(official, big, true, greedy).why, `big, ${greedy} requested`).toBeNull();
+    }
   });
 
   it('charges speed for those rotations: base speed gets fewer', () => {
     const [small, big] = booters as [Kicker, Kicker];
-    expect(fly(official, small, false, 3).why).toBe('spun_out');
-    expect(fly(official, big, false, 4).why).toBe('spun_out');
+    expect(fly(official, small, false, 5).why).toBe('spun_out');
+    expect(fly(official, big, false, 6).why).toBe('spun_out');
   });
 });
 
@@ -252,9 +275,11 @@ describe('the wedge points where the flight is seen to go', () => {
           if (dd > -30 && dd < gap) gap = dd;
         }
         const duck = !onShelf && boughs.some((o) => s.x + 30 >= o.x && s.x < o.x + o.width);
-        const rel = gap <= 34 && gap > -30;
+        const rel = gap <= RELEASE_WITHIN && gap > -30;
         const input: RunInput = {
-          crouch: !rel && (duck || (gap < 90 && gap > 34) || (s.grounded && s.ledge < 0)),
+          crouch:
+            !rel &&
+            (duck || (gap < CHARGE_FROM && gap > RELEASE_WITHIN) || (s.grounded && s.ledge < 0)),
           rotate: 0,
         };
         const before = s;

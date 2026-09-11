@@ -4,6 +4,7 @@ import { derive, initialState, step } from '../../src/sim/step.js';
 import { finalScore } from '../../src/sim/scoring.js';
 import type { RunInput } from '../../src/sim/types.js';
 import { official, warmup, scoring, tuning } from './fixtures.js';
+import { RELEASE_WITHIN, CHARGE_FROM } from './pilots.js';
 
 /**
  * Builds a deterministic input trace from a seed. Not random at run time —
@@ -35,8 +36,6 @@ function runCautious(course: typeof official, seed: number): ReturnType<typeof r
   const lows = course.obstacles.filter((o) => o.kind === 'low');
   const solids = course.obstacles.filter((o) => o.kind === 'solid');
   const DUCK_LOOKAHEAD = 30;
-  const CHARGE_FROM = 90;
-  const RELEASE_WITHIN = 34;
 
   while (state.outcome === 'running' && state.tick < 18_000) {
     const duckNow = lows.some((o) => state.x + DUCK_LOOKAHEAD >= o.x && state.x < o.x + o.width);

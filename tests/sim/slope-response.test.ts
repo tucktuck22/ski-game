@@ -115,9 +115,11 @@ describe('slope response (FR-214)', () => {
       const target = terminalSpeed(slope, tuning, false);
       let v = 0;
       const tail: number[] = [];
-      for (let i = 0; i < 400; i++) {
+      // 1200, not 400: the time constant doubled when gravity and drag were
+      // halved together on 2026-09-11, so convergence takes twice as long.
+      for (let i = 0; i < 1200; i++) {
         v += groundedAccel(slope, tuning, v, false);
-        if (i >= 395) tail.push(v);
+        if (i >= 1195) tail.push(v);
       }
       expect(v).toBeCloseTo(target, 6);
       // No wobble: the last five ticks must be identical to float precision.
@@ -131,8 +133,8 @@ describe('slope response (FR-214)', () => {
     // Through the actual simulation rather than the model in isolation, so a
     // clamp or a landing rule that quietly caps speed would show up here.
     for (const g of [0.12, 0.3, 0.5]) {
-      expect(settle(g, COAST, 600)).toBeCloseTo(terminalSpeedAtGradient(g, tuning, false), 3);
-      expect(settle(g, TUCK, 600)).toBeCloseTo(terminalSpeedAtGradient(g, tuning, true), 3);
+      expect(settle(g, COAST, 1600)).toBeCloseTo(terminalSpeedAtGradient(g, tuning, false), 3);
+      expect(settle(g, TUCK, 1600)).toBeCloseTo(terminalSpeedAtGradient(g, tuning, true), 3);
     }
   });
 });
@@ -144,7 +146,7 @@ describe('the tuck (FR-217, FR-221)', () => {
     const course = ramp(0.3);
     const derived = derive(tuning);
     let state = initialState(course, tuning, 1);
-    for (let i = 0; i < 400; i++) state = step(state, COAST, course, tuning, scoring, derived);
+    for (let i = 0; i < 1200; i++) state = step(state, COAST, course, tuning, scoring, derived);
     const standing = state.vx * state.ox + state.vy * state.oy;
 
     const samples: number[] = [];
@@ -168,7 +170,7 @@ describe('the tuck (FR-217, FR-221)', () => {
     const course = ramp(0.3);
     const derived = derive(tuning);
     let state = initialState(course, tuning, 1);
-    for (let i = 0; i < 400; i++) state = step(state, COAST, course, tuning, scoring, derived);
+    for (let i = 0; i < 1200; i++) state = step(state, COAST, course, tuning, scoring, derived);
     for (let i = 0; i < tuning.tuckTransientTicks; i++)
       state = step(state, TUCK, course, tuning, scoring, derived);
     const speed = state.vx * state.ox + state.vy * state.oy;
@@ -187,7 +189,7 @@ describe('the tuck (FR-217, FR-221)', () => {
     const first = v + groundedAccel(slope, tuning, v, false);
     // Gradual: one tick must not give back most of the gain.
     expect(v - first).toBeLessThan(0.2);
-    for (let i = 0; i < 600; i++) v += groundedAccel(slope, tuning, v, false);
+    for (let i = 0; i < 1600; i++) v += groundedAccel(slope, tuning, v, false);
     expect(v).toBeCloseTo(standing, 4);
   });
 

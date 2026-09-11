@@ -172,12 +172,18 @@ function rampPowerFor(height: number, gradient: number, gravityScale = 1): numbe
 function iceSpanFor(gradient: number): number {
   const outrun = TUNING.iceCrumbleTicks * terminalAt(gradient, true);
   const escape = ((2 * TUNING.launchImpulseMin) / TUNING.gravity) * terminalAt(gradient, false);
-  // Geometric mean of the two bounds, as rampPowerFor does, so the span sits
-  // centrally in the window on the ratio scale the bounds are defined on. A
-  // fixed multiple of the outrun floor was tried and overshot: on the warm-up's
-  // 0.338 pitch the window is only 44.5 to 58.5 wide, and 1.35x cleared the top
-  // of it.
-  const want = Math.sqrt(outrun * escape);
+  // Sized off the OUTRUN floor, not the middle of the window.
+  //
+  // It used to be the geometric mean of the two bounds. That was fine while they
+  // sat close together, and stopped being fine when gravity halved on
+  // 2026-09-11: escape is (2*launchImpulseMin/gravity) * standing, so halving
+  // gravity DOUBLED the ceiling, the mean drifted up with it, and the spans grew
+  // until two of them on the Cornice were 115 apart against CV-20's 120.
+  //
+  // The floor is the meaningful bound anyway — the span exists so the countdown
+  // cannot be outrun — and the ceiling is a safety check that it stays
+  // escapable. 1.25x the floor is comfortably inside both.
+  const want = outrun * 1.25;
   if (!(want > outrun && want < escape)) {
     throw new Error(
       `no legal ice span at gradient ${gradient.toFixed(3)}: outrun floor ${outrun.toFixed(1)} ` +
@@ -258,13 +264,23 @@ const BOOTER_W_BIG = 208;
  * rather than skiing. The second playtest asked for real gravity and accepted
  * what it costs, which is the trick ceiling: 12 rotations -> 4.
  *
- * Four is the measured maximum, and the frame is what sets it. At full gravity
- * a fifth rotation needs an apex of 282 units in a buffer 180 tall — the ground
- * leaves the shot for most of the flight and the jump reads as a fall. Power
- * 2.4 on the big one lands at apex 183, which keeps 17 units of margin.
+ * Powers came down on 2026-09-11 when gravity was halved (0.32 -> 0.16). Apex is
+ * up^2/2g, so halving gravity doubles the height a given launch reaches, and
+ * hang time is 2*up/g, so trading power back for gravity buys flight time at the
+ * same height. That is the whole reason the gravity moved.
+ *
+ * 1/sqrt(2) was the algebra's answer and it came out 13% too strong, because the
+ * apex that matters is measured above the GROUND and the ground keeps falling
+ * away underneath a longer flight. Height above the launch point was preserved
+ * exactly; clearance over the snow still grew 180 -> 207. So these are solved
+ * against the simulation instead: 1.55 lands the big one at apex 173 with 91
+ * ticks of air, and 1.35 the small one at 116 with 74.
+ *
+ * The frame still sets the ceiling. The camera can follow a climb to 184 units
+ * (AIR_LIFT_MAX 92 over AIR_LIFT 0.5) and the big one apexes just under that.
  */
-const BOOTER_MID = 2.0;
-const BOOTER_BIG = 2.4;
+const BOOTER_MID = 1.35;
+const BOOTER_BIG = 1.55;
 
 /**
  * Booters throw FORWARD, not up. This is the whole shape of them.
@@ -411,7 +427,11 @@ function official(): Built {
   ledges.push({ x0: 1496, x1: 2396, height: SHELF_H });
   ice.push({ x0: 1876, x1: 1876 + iceSpanFor(grade(1876)) });
   rocks.push({ x: 2076, width: 16, height: 12 });
-  deadfall(1800);
+  // Was 1800, and it has a narrow window now. The ramp at 1,400 throws to 1,812
+  // since gravity halved, so CV-21 wants the log past that; the ice on the shelf
+  // starts at 1,876 and CV-19 will not drop a player through it onto a log, so it
+  // wants the log to end before that. 1,830 is the middle of the 40 units left.
+  deadfall(1830);
   shelfPickups(1496, 2396, SHELF_H, 5);
   bough(2600, 13);
 

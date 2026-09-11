@@ -569,6 +569,72 @@ frame above 144 units, which is inherent to a 180-unit apex in a 180-tall buffer
 Keeping the snow in shot up there would need 108 of lift, which puts the skier at
 screen row zero.
 
+### Gravity halved: hang time without height (2026-09-11)
+
+Option A of the evaluation, taken after measuring that the game ran at roughly
+**12.8x Earth gravity** — the skier is 16 units and a real one is 1.75m, which
+pins a unit at 0.109m and makes 0.32 units/tick² about 126 m/s². The 180-unit
+apex is a 19.6 metre jump that fell in 1.1 seconds where Earth would take 4.0.
+Reducing gravity was the realistic direction, not a cheat.
+
+`gravity` 0.32 → **0.16**, with **both drag coefficients halved alongside it**.
+That pairing is the point: terminal speed is `sqrt(net/k)` and `net` scales with
+gravity, so halving both leaves every ground speed exactly where it was, while
+the speed time constant `1/(2·v·k)` **doubles**.
+
+|                        | Before                                 | After                                      |
+| ---------------------- | -------------------------------------- | ------------------------------------------ |
+| Ground speeds          | 2.60 / 4.00 floor, 3.84 / 5.91 ceiling | **identical**                              |
+| Momentum time constant | 27 ticks                               | **54 ticks**                               |
+| Small booter           | 53t / 0.88s / 3 rotations              | **74t / 1.23s / 5**                        |
+| Big booter             | 66t / 1.10s / 4 rotations              | **90t / 1.50s / 6**                        |
+| Big booter apex        | 180                                    | 173 — unchanged in feel, inside the camera |
+| Tuck transient         | 62 ticks                               | **122 ticks (2.0s)**                       |
+
+**Every launch impulse took the same treatment**, which is what makes the change
+coherent rather than a patch: booter powers and `launchImpulseMin`/`Max` all came
+down so each jump reaches the height it always did and hangs longer getting
+there.
+
+Leaving the crouch-release jump alone was tried first and broke the course. Its
+_reach_ is air time times forward speed, so halving gravity alone roughly tripled
+it: the robot pilot jumped the log at x=3,600 and was still airborne 220 units
+later at the bough on x=3,820, at exactly the height its slab occupies — too high
+to duck, too low to clear.
+
+### Four things this surfaced
+
+**1. The algebra was 13% wrong, and the simulation said so.** Dividing booter
+power by √2 should have held the apex exactly. It came out 207 instead of 180,
+because the apex that matters is measured above the _ground_ and the ground keeps
+falling away under a longer flight. Height above the launch point was preserved
+perfectly; clearance over the snow still grew. Powers are solved against the
+simulation instead.
+
+**2. Jumps now rise more slowly, so they clear obstacles later.** Same apex,
+lower initial climb rate. The cautious pilot released 34 units before a log and
+arrived 14.6 up against the 16 he needed. The course is fair — a person clears it
+by letting go sooner — but the test pilots had that release point hardcoded.
+
+**3. The robot pilot's windows were a gravity in disguise.** `CHARGE_FROM = 90`
+and `RELEASE_WITHIN = 34` were constants in four separate files. They are now
+derived in `tests/sim/pilots.ts` from the smaller root of
+`impulse·t − gravity·t²/2 = standHeight`, and the other three files import them.
+That module's own docstring already warned these copies "had already drifted
+apart once".
+
+**4. The greed trap inverted, and is left as found.** Both booters now hold exact
+multiples of `spinDurationTicks` — 75 and 90 against 15 — so five and six spins
+fill them precisely and a further one cannot be _started_. Meanwhile the
+crouch-release jump buys 43 ticks: two spins with 13 spare, enough to begin a
+third and not to land it. The trap used to live on the booters by design and now
+lives on the base jump. Recorded for the next play pass rather than tuned away on
+a hunch.
+
+**The cost to watch:** the tuck now takes **2.0 seconds** to deliver 90% of its
+gain, against 1.0 before. Doubling the momentum and doubling the tuck's response
+time are the same number moving.
+
 ## Interaction with feature 005
 
 The two features touch and the order matters.
