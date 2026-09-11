@@ -13,6 +13,7 @@ import type { Course, Kicker, Obstacle, Scoring, TerrainPoint, Tuning } from '..
 import { overheadClearanceAt, ledgeIndexAt, slopeAt } from '../sim/terrain.js';
 import { terminalSpeed, stallGradient } from '../sim/slopeResponse.js';
 import { maxAchievableBonus } from '../sim/scoring.js';
+import { PLAYER_LOOKAHEAD } from '../render/stage.js';
 
 export interface Violation {
   rule: string;
@@ -614,6 +615,60 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
           `ramp at x=${k.x} throws a full-tuck skier as far as x=${reach.toFixed(0)}, and the ` +
           `${o.kind} obstacle at x=${o.x} stands under that flight. He is committed to the ` +
           'launch before he can see what he is committed to.',
+      });
+    }
+  }
+
+  // CV-24: the end of a shelf is a launch, and it needs the same clear air.
+  //
+  // CV-21 protects the flight off a ramp. Nothing protected the flight off the
+  // END of a shelf, because until gravity halved there was barely a flight to
+  // protect: a 55-unit drop threw the player 123 units and landed him on open
+  // piste. It now throws him three hundred, and the first person to play it
+  // reported the defect in one sentence - "there is a tree branch right in the
+  // trajectory of jumping off the ledge... it feels cheap and unfair."
+  //
+  // He is right, and the unfairness is specifically a VISIBILITY one. Riding
+  // off a shelf is not optional, and jumping off it is the best trick on the
+  // mountain - a long air, three rotations, and the score to match - so the
+  // course should be inviting it. But he commits to that launch at the lip,
+  // and a bough 400 units downhill is not on screen when he commits. It comes
+  // into view while he is airborne, spinning, and has no input left that would
+  // change where he lands. That is the same trap CV-4, CV-15 and CV-21 exist
+  // to refuse, arriving from a new direction.
+  //
+  // So the clear zone is the flight PLUS one lookahead: the next obstacle may
+  // not appear until he is back on his skis and able to duck it. The lookahead
+  // is the renderer's, not a number invented here - the fixed 320x180 buffer is
+  // what makes reaction time a property of the code rather than of the device
+  // (see stage.ts), and this rule is where the course is held to it.
+  //
+  // Air is solved rather than fudged, and the slope drops out of it. A shelf is
+  // a constant offset above the piste (see the Ledge doc comment), so measured
+  // against the ground beneath him the skier starts `height` up with zero
+  // relative vertical speed, and a release at the lip adds the jump. Landing is
+  // therefore `g*t^2/2 - impulse*t - height = 0`, whose positive root is below.
+  // It matched the simulation to a tick on all three official shelves at the
+  // time of writing. Reach uses the full slope speed rather than its horizontal
+  // component, and keeps CV-21's margin, so the bound stays conservative.
+  const LEDGE_LANDING_MARGIN = 1.3;
+  for (const l of ledges) {
+    const carried = speedsAt(course, l.x1, tuning).tucked;
+    const impulse = tuning.launchImpulseMax;
+    const airTicks =
+      (impulse + Math.sqrt(impulse * impulse + 2 * tuning.gravity * l.height)) / tuning.gravity;
+    const reach = l.x1 + airTicks * carried * LEDGE_LANDING_MARGIN;
+    const clearUntil = reach + PLAYER_LOOKAHEAD;
+    for (const o of course.obstacles) {
+      if (o.x + o.width <= l.x1 || o.x >= clearUntil) continue;
+      v.push({
+        rule: 'CV-24',
+        message:
+          `the shelf ending at x=${l.x1} throws a skier who jumps its lip as far as ` +
+          `x=${reach.toFixed(0)}, and the ${o.kind} obstacle at x=${o.x} stands inside that ` +
+          `flight or the ${PLAYER_LOOKAHEAD.toFixed(0)} units of lookahead he needs after landing. ` +
+          `Nothing may be authored before x=${clearUntil.toFixed(0)}: he commits at the lip, ` +
+          'and an obstacle that only comes into view mid-flight is one he cannot answer.',
       });
     }
   }

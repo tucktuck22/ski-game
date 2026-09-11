@@ -266,7 +266,7 @@
       "clearance": 0
     },
     {
-      "x": 2600,
+      "x": 3020,
       "kind": "low",
       "width": 40,
       "clearance": 13
@@ -326,7 +326,7 @@
       "clearance": 13
     },
     {
-      "x": 7000,
+      "x": 7300,
       "kind": "low",
       "width": 40,
       "clearance": 12

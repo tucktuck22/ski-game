@@ -433,7 +433,20 @@ function official(): Built {
   // wants the log to end before that. 1,830 is the middle of the 40 units left.
   deadfall(1830);
   shelfPickups(1496, 2396, SHELF_H, 5);
-  bough(2600, 13);
+  // Was 2,600, which put it 204 units past the shelf's lip - under the arc of
+  // anyone who jumped off the end of it, and out of sight when he committed.
+  // CV-24 refuses that now, and wants nothing before 2,937; CV-5 keeps 140
+  // clear of the Narrows' opening bough at 3,300, which caps it at 3,120. The
+  // middle of that window is 3,020, so Shelf School no longer gets a closing
+  // obstacle - this reads as the Narrows' pickup note instead. That is a real
+  // cost and it is the right one: the section boundary is a comment, and the
+  // shelf exit is the best air in the first half of the course.
+  //
+  // 280 to the next bough is tighter than the Narrows' own 520 beat, and safe
+  // for the reason that beat exists: 520 is what a bough-then-LOG needs, because
+  // the player has to stand up and charge between them. Two boughs in a row ask
+  // for one held crouch, which is the cheapest thing in the game.
+  bough(3020, 13);
 
   // ---- III. THE NARROWS (3,200 - 5,000). Ask: how clean is your piste craft? ----
   // No shelf at all, and dense - but NOT as dense as the validator would allow,
@@ -480,7 +493,15 @@ function official(): Built {
   // is the only breath in the run - but not empty, because the booter that ends
   // it pays in proportion to the speed carried into it. A launch is power times
   // carried speed, so coasting here is not a rest, it is a smaller trick.
-  bough(7000, 12);
+  // The Cornice throws a jumped lip to 6,958, and a bough at 7,000 stood in it
+  // - the one a playtester called cheap and unfair, and the reason CV-24 exists.
+  // Riding off the end of a shelf and spinning is the best air on the mountain
+  // and the course should be asking for it, so the landing gets its full
+  // run-out: CV-24's floor is 7,171, CV-5's ceiling against the bough below is
+  // 7,420, and 7,300 sits between them. He lands around 6,900 on open snow and
+  // the bough rises into frame some 185 units later, on his skis, with time to
+  // duck it.
+  bough(7300, 12);
   bough(7600, 12);
   kickers.push({
     x: 7852,
