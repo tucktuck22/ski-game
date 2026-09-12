@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
-import { readFileSync } from 'node:fs';
 
 /**
  * A PostgREST stand-in, good enough to drive the whole player journey.
@@ -67,22 +66,6 @@ export function fixture(over: Partial<Fixture> = {}): Fixture {
     ...over,
   };
 }
-
-/**
- * The rules version the SHIPPED official course carries, read from the course
- * rather than typed here.
- *
- * It was hard-coded as '1.6.0' and went stale the moment feature 006 bumped it
- * to '2.0.0' for the physics change, which left `official-run-is-spent.spec.ts`
- * red on the branch. A test constant that has to be edited every time the
- * product legitimately changes is a test that will be wrong more often than the
- * product is, so it reads the value instead.
- */
-export const SHIPPED_RULES_VERSION: string = (
-  JSON.parse(
-    readFileSync(new URL('../../data/courses/official.json', import.meta.url), 'utf8'),
-  ) as { rulesVersion: string }
-).rulesVersion;
 
 export async function mockPostgrest(
   page: Page,
