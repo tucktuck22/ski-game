@@ -12,7 +12,7 @@ export interface TerrainPoint {
 }
 
 /**
- * `low` is an overhanging bough: a ceiling with real thickness, so it can be
+ * `low` is a boundary rope: a ceiling with real thickness, so it can be
  * ducked under OR cleared over. `solid` is deadfall lying across the piste:
  * a block on the ground, cleared only by going over.
  *
@@ -215,7 +215,7 @@ export interface Tuning {
   crouchHeight: number;
   crouchTransitionTicks: number;
   safeReleaseWindowMin: number;
-  /** Vertical extent of a `low` obstacle's bough, hanging below its clearance. */
+  /** Vertical extent of a `low` obstacle's slab, hanging below its clearance. */
   branchThickness: number;
   /** Ceiling on a kicker launch, so a tucked approach cannot fling you off-course. */
   kickerImpulseMax: number;

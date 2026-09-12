@@ -193,7 +193,7 @@ function iceSpanFor(gradient: number): number {
   return Math.round(want);
 }
 
-const BOUGH_W = 40;
+const ROPE_W = 40;
 const DEADFALL_W = 24;
 const RAMP_W = 56;
 
@@ -399,7 +399,7 @@ function official(): Built {
   const ice: Built['ice'] = [];
 
   const bough = (x: number, clearance: number): void => {
-    obstacles.push({ x, kind: 'low', width: BOUGH_W, clearance });
+    obstacles.push({ x, kind: 'low', width: ROPE_W, clearance });
   };
   const deadfall = (x: number): void => {
     obstacles.push({ x, kind: 'solid', width: DEADFALL_W, clearance: 0 });
@@ -590,7 +590,7 @@ function warmup(): Built {
   const grade = (x: number): number => gradeAtPoints(pts, x);
 
   const obstacles: Built['obstacles'] = [
-    { x: 700, kind: 'low', width: BOUGH_W, clearance: 14 },
+    { x: 700, kind: 'low', width: ROPE_W, clearance: 14 },
     { x: 2000, kind: 'solid', width: DEADFALL_W, clearance: 0 },
   ];
   const pickups: Built['pickups'] = [];

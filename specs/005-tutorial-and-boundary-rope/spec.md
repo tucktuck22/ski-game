@@ -341,8 +341,15 @@ the start line to the end of the coached section.
 - **FR-201**: The rope MUST be visually distinguishable from the backdrop's pine
   ranks from far enough away that the player can commit to a duck before reaching
   it. Distinguishable at a glance, not on inspection.
-- **FR-202**: The rope MUST be drawn within the style bible's existing eight-colour
-  palette. This feature MUST NOT introduce a ninth colour.
+- **FR-202**: The rope MUST be drawn within the style bible's existing palette. This
+  feature MUST NOT introduce a new colour. _(Corrected 2026-09-12: this read "the
+  existing eight-colour palette" and "MUST NOT introduce a ninth colour". The palette
+  has carried **nine** tokens since feature 004 added `skin` under
+  [ADR-0010](../../docs/adr/0010-a-ninth-colour.md) — which is the same duplicate ADR
+  number FR-211 is about. The count was wrong; the requirement was not, and it binds
+  unchanged: the rope uses `magenta`, `purple`, `cyan`, `blue` and `orange`, all of
+  which already existed. `tests/unit/rope-geometry.test.ts` asserts against the
+  palette itself rather than against a number, so this cannot drift again.)_
 - **FR-203**: The rope MUST carry the hazard treatment rule TR-3 requires — the
   killing surface marked as an edge, never as a fill over the whole silhouette.
 - **FR-204**: This change MUST be visual only. The collision geometry, clearance,
