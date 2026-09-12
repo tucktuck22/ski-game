@@ -103,8 +103,15 @@ violation.** These are executable requirements, not review guidance.
 | CV-13    | **Every ledge is reachable at `tuckSpeedMax` and unreachable at `baseSpeed`**                                                                  | **FR-035, SC-015** |
 | CV-14    | Every ledge clears the top of every bough it crosses, with margin                                                                              | FR-035             |
 | CV-15    | No kicker sits inside a `low` obstacle's safe release window or overlaps a `solid` one                                                         | FR-088             |
+| CV-16    | Every rock and every stretch of ice sits on a shelf, never on open piste                                                                       | FR-035             |
+| CV-17    | Every rock is jumpable and not duckable — taller than a crouch, shorter than a launch clears                                                   | FR-080             |
+| CV-18    | **Every stretch of ice is escapable and not outrunnable**                                                                                      | **FR-035, SC-015** |
+| CV-19    | The piste beneath a stretch of ice carries no obstacle — falling through is involuntary                                                        | FR-089             |
+| CV-20    | Upper-track hazards are spaced, and none stands in a ramp's landing zone                                                                       | FR-088             |
 | CV-21    | Nothing stands under a kicker's flight, from its lip to where a full-tuck launch comes down                                                    | FR-088             |
 | CV-22    | No `solid` obstacle sits close enough before a kicker's lip that the jump over it carries the player across the lip, losing the launch         | FR-078             |
+| CV-23    | No terrain segment is shallow enough for friction to strand the player — there is no brake and no pedal                                        | FR-077, FR-214     |
+| CV-24    | Nothing stands between a shelf's end and one lookahead past where a jumped lip comes down                                                      | FR-088, FR-089     |
 
 **CV-18 has two halves for the same reason CV-13 does.** Ice too long to escape
 makes the countdown decoration; ice short enough to ride across makes the ice

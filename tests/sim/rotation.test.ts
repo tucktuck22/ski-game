@@ -57,7 +57,11 @@ describe('the committed spin (FR-124)', () => {
   it('ends the run when the skier touches down mid-turn', () => {
     // The bargain. A spin started too late to finish is not a partial trick and
     // not a scruffy landing — it is the run.
-    const { state } = attempt(1, 12);
+    //
+    // Delay 18, not 12. Halving gravity on 2026-09-11 took a zero-charge
+    // launch from 21 ticks of air to 29, so a spin begun on tick 12 now has
+    // room to finish where it used to land mid-turn.
+    const { state } = attempt(1, 18);
     expect(state.outcome).toBe('wiped_out');
     expect(state.wipeoutReason).toBe('spun_out');
   });
@@ -131,12 +135,17 @@ describe('the committed spin (FR-124)', () => {
   });
 
   it('lets a big launch bank two, and has no air left for a third', () => {
-    // The skill ceiling of a CROUCH release, which is deliberately modest: the
-    // base jump was halved (launchImpulseMax 7.2 -> 5.0) so it could no longer
-    // put a skier on a shelf without a ramp. Thirty ticks of air is exactly two
-    // spins. A third cannot be started at all now rather than being started and
-    // punished - the greed trap lives on the ramps and booters, where the air is
-    // long enough to tempt someone into it.
+    // The skill ceiling of a CROUCH release. It buys 43 ticks since gravity
+    // halved on 2026-09-11, up from 30, and that changed the shape of this
+    // test rather than just its numbers.
+    //
+    // At 30 ticks a third spin could not be STARTED: the second finished on the
+    // last tick of air, so there was no moment to press. At 43 the second
+    // finishes on tick 30 with 13 left, which is enough to start a third and not
+    // enough to land it. So the greed trap is back on the base jump, where it
+    // had deliberately been removed. Recorded rather than tuned away: the only
+    // way to restore "no third" would be a launch impulse below
+    // launchImpulseMin, which is not a thing.
     const derived = derive(tuning);
     const fly = (maxSpins: number): RunState => {
       let s = initialState(official, tuning, 1);
@@ -159,12 +168,11 @@ describe('the committed spin (FR-124)', () => {
     expect(disciplined.outcome).toBe('running');
     expect(disciplined.score).toBe(2 * scoring.trickPerRotation);
 
-    // A third never gets off the ground: the second spin completes on the last
-    // tick of the air, so there is no moment at which a third could be pressed.
-    // He banks the two he landed rather than losing them.
+    // A third CAN now be started, and it costs him the two he had banked.
     const greedy = fly(3);
-    expect(greedy.outcome).toBe('running');
-    expect(greedy.score).toBe(2 * scoring.trickPerRotation);
+    expect(greedy.outcome).toBe('wiped_out');
+    expect(greedy.wipeoutReason).toBe('spun_out');
+    expect(greedy.score).toBe(0);
   });
 
   it('cannot be started from the ground', () => {
@@ -194,10 +202,10 @@ describe('the committed spin (FR-124)', () => {
  */
 describe('a trick is paid for in timing (AC-3, restated)', () => {
   it('a full-charge launch is forgiving about when the spin starts', () => {
-    // Fifteen ticks of latitude, down from thirty: halving the base jump halved
-    // the air it buys, so the window narrowed with it. It is still an order
-    // wider than the zero-charge launch's, which is what AC-3 is about.
-    for (const delay of [1, 5, 10, 15]) {
+    // Twenty-eight ticks of latitude now, up from fifteen, because halving
+    // gravity lengthened every flight. What AC-3 is actually about is the RATIO
+    // to the zero-charge launch's window, and that holds: 28 against 15.
+    for (const delay of [1, 5, 10, 15, 20, 25]) {
       const { state } = attempt(tuning.chargeTicksToMax, delay);
       expect(state.outcome, `delay ${delay}`).toBe('running');
       expect(state.score, `delay ${delay}`).toBe(scoring.trickPerRotation);
@@ -209,7 +217,10 @@ describe('a trick is paid for in timing (AC-3, restated)', () => {
     expect(early.state.outcome).toBe('running');
     expect(early.state.score).toBe(scoring.trickPerRotation);
 
-    const late = attempt(1, 8);
+    // 18, not 8: a zero-charge launch buys 29 ticks now rather than 21, so a
+    // spin begun on tick 8 finishes comfortably. The window is 15 ticks wide
+    // against the full-charge launch's 28.
+    const late = attempt(1, 18);
     expect(late.state.outcome).toBe('wiped_out');
     expect(late.state.wipeoutReason).toBe('spun_out');
   });

@@ -26,9 +26,34 @@ export interface Ride {
   largePickups: number;
 }
 
-/** Charge from this far out, and let go once inside the release window. */
-const CHARGE_FROM = 90;
-const RELEASE_WITHIN = 34;
+/**
+ * Charge from this far out, and let go once inside the release window.
+ *
+ * DERIVED, not chosen. These were 90 and 34 and they silently encoded a
+ * gravity: a launch climbs at `impulse` per tick, and halving gravity on
+ * 2026-09-11 halved the impulse with it (to hold the apex), so every jump now
+ * reaches the same height more SLOWLY. Releasing 34 units out put the pilot
+ * 14.6 up at a log that needs 16 and he rode straight into it — on a course the
+ * validator passes, which a person clears simply by letting go earlier.
+ *
+ * So the release point is solved from the physics instead. Time to climb
+ * standHeight is the smaller root of `impulse*t - gravity*t^2/2 = standHeight`,
+ * and the pilot must already be that high when the log arrives.
+ */
+const CLIMB_TICKS = (() => {
+  const a = tuning.gravity / 2;
+  const b = tuning.launchImpulseMin;
+  const disc = b * b - 4 * a * tuning.standHeight;
+  // A launch that cannot clear a standing skier at all would be a tuning bug,
+  // not a pilot one; fall back to something finite so the failure reads clearly.
+  return disc <= 0 ? 40 : (b - Math.sqrt(disc)) / (2 * a);
+})();
+
+/** A generous ride speed, so the window is wide enough at tuck pace too. */
+const PILOT_SPEED = 5.5;
+
+export const RELEASE_WITHIN = Math.ceil(CLIMB_TICKS * PILOT_SPEED + 24);
+export const CHARGE_FROM = RELEASE_WITHIN + 85;
 
 export function ride(course: Course, pilot: Pilot, seed: number): Ride {
   const derived = derive(tuning);

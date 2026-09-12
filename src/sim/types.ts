@@ -118,17 +118,19 @@ export interface Kicker {
   /**
    * Gravity multiplier while airborne from this launch. Omitted means 1.
    *
-   * This exists because hang time and height are the same number. For any arc
-   * under constant gravity the peak stands h = g*t^2/8 above the launch line,
-   * so four times the hang time costs SIXTEEN times the height - 2,025 units
-   * for 225 ticks, against a buffer 180 tall. There is no camera trick that
-   * fits eleven screens of air into one; zooming out far enough leaves the
-   * skier a pixel and a half, which rule LW-3 does not allow.
+   * NO SHIPPED COURSE USES THIS ANY MORE, as of 2026-09-10. It existed because
+   * hang time and height are the same number — for any arc under constant
+   * gravity the peak stands h = g*t^2/8 above the launch line, so four times
+   * the hang costs SIXTEEN times the height — and the booters wanted three and
+   * a half seconds of air inside a buffer 180 tall. Scaling gravity for a
+   * single launch was the only lever that fit.
    *
-   * Scaling gravity is the only remaining lever, and it is scoped to a single
-   * launch rather than applied to the whole game so that ducking a bough, a
-   * shelf hop and a fall through ice all keep the weight they were tuned with.
-   * A booter floats; nothing else does.
+   * The second playtest of feature 006 asked for real gravity and accepted its
+   * price: the trick ceiling came 12 rotations -> 4, both booters run at
+   * gravityScale 1, and the float is gone. The mechanism is left in place
+   * because it is a legitimate per-kicker knob with a harmless default, but it
+   * is now unexercised by data — removing it, or reaching for it again, is a
+   * deliberate decision either way rather than something to drift into.
    */
   gravityScale?: number;
 }
@@ -157,11 +159,45 @@ export interface Course {
 
 /** Every value governing feel. Loaded from data/tuning.json — see contracts/tuning-data.md. */
 export interface Tuning {
-  baseSpeed: number;
-  tuckSpeedMax: number;
-  tuckAccel: number;
-  tuckDecel: number;
-  slopeAccelFactor: number;
+  /**
+   * Snow friction, as a fraction of the slope-normal force.
+   *
+   * Feature 006 replaced a fixed base speed with the actual physics: speed is
+   * gravity along the gradient, opposed by this and by drag below. A gradient
+   * shallower than this coefficient cannot overcome it and the skier stops,
+   * which is why CV-19 refuses to let such a segment be authored at all.
+   */
+  slopeFriction: number;
+  /**
+   * Drag coefficients, upright and tucked. Quadratic in speed, which is what
+   * makes terminal velocity emergent rather than clamped.
+   *
+   * SOLVED, NOT CHOSEN: these are whatever makes gradient 0.30 - the sustained
+   * pitch of both courses - produce the 2.60 standing and 4.20 tucked that
+   * shipped before feature 006. Editing either by hand moves that anchor and
+   * silently re-feels both courses. The tuck is the low one: a tuck does not
+   * push you, it makes you smaller.
+   */
+  dragStanding: number;
+  dragTucked: number;
+  /** Floor, so a shallow pitch never strands anybody (FR-219). */
+  speedMin: number;
+  /**
+   * Safety rail, NOT the mechanism (FR-219). Sits above the tucked terminal at
+   * CV-2's steepest legal gradient, so it never binds on a legal course.
+   */
+  speedMax: number;
+  /**
+   * How long a tuck takes to deliver 90% of its speed gain, at the anchor
+   * gradient. Feel value with a tolerance, per Principle III (FR-221).
+   *
+   * NOT read by the simulation — the transient is a consequence of drag and the
+   * speed gap, so there is nothing here to set. It is named so the playtest can
+   * judge it and tests can assert against it: it measures 60 ticks against the
+   * 30 the retired tuckAccel gave, and whether that is right is a question for
+   * a person on the mountain, not for arithmetic.
+   */
+  tuckTransientTicks: number;
   gravity: number;
   launchImpulseMin: number;
   launchImpulseMax: number;

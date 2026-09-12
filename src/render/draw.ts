@@ -13,7 +13,7 @@
 import type { Course, RunState, Tuning } from '../sim/types.js';
 import { terrainYAt, surfaceYAt, iceIndexAt, slopeAt } from '../sim/terrain.js';
 import { PALETTE, type PaletteToken } from './palette.js';
-import { INTERNAL_HEIGHT, INTERNAL_WIDTH } from './stage.js';
+import { CAMERA_X_OFFSET, INTERNAL_HEIGHT, INTERNAL_WIDTH } from './stage.js';
 import { cameraAirLift, rampLift, rampRise } from './rampGeometry.js';
 import type { MotionSettings } from './reducedMotion.js';
 import type { Shake } from './landing.js';
@@ -31,9 +31,6 @@ const rgba = (t: PaletteToken, a: number): string => {
   const [r, g, b] = PALETTE[t];
   return `rgba(${r},${g},${b},${a})`;
 };
-
-/** The skier sits a third of the way across, so most of the buffer is lookahead. */
-const CAMERA_X_OFFSET = INTERNAL_WIDTH / 3;
 
 export interface Camera {
   x: number;

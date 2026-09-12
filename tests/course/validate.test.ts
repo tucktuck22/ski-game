@@ -114,7 +114,9 @@ describe('validator rules fire on deliberately broken courses', () => {
 
   it('CV-12: a ledge higher than any launch could ever reach', () => {
     const c = clone(warmup);
-    (c.ledges[0] as Ledge).height = 400;
+    // 1200, not 400. Halving gravity doubled the height every launch reaches,
+    // so 400 is now comfortably attainable and the rule correctly says nothing.
+    (c.ledges[0] as Ledge).height = 1200;
     expect(rulesFired(c)).toContain('CV-12');
   });
 
@@ -200,5 +202,23 @@ describe('validator rules fire on deliberately broken courses', () => {
     const c = clone(warmup);
     c.rocks.push({ x: (c.ledges[0] as Ledge).x0 + 20, width: 10, height: 8 });
     expect(rulesFired(c)).toContain('CV-20');
+  });
+
+  it('CV-24: a bough under the flight off the end of a shelf', () => {
+    const c = clone(warmup);
+    const l = c.ledges[0] as Ledge;
+    // 150 past the lip: comfortably inside the arc of anyone who jumps it, and
+    // off screen at the moment he commits to that jump.
+    c.obstacles.push({ x: l.x1 + 150, kind: 'low', width: 40, clearance: 13 });
+    expect(rulesFired(c)).toContain('CV-24');
+  });
+
+  it('CV-24: a bough that only comes into view while the skier is still airborne', () => {
+    const c = clone(warmup);
+    const l = c.ledges[0] as Ledge;
+    // Past the landing, so nothing is ever struck - and still a violation. The
+    // rule is about what he can SEE when he commits, not about what he hits.
+    c.obstacles.push({ x: l.x1 + 430, kind: 'low', width: 40, clearance: 13 });
+    expect(rulesFired(c)).toContain('CV-24');
   });
 });

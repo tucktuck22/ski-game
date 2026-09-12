@@ -147,6 +147,35 @@ For a draft that **already has scores** and needs its version moved anyway,
 — moving the version under scores already posted would put two rule sets on one
 leaderboard, and the leaderboard is the bed order.
 
+### Deploying a physics change into a live draft
+
+`rulesVersion` moved 1.6.0 → **2.0.0** with
+[feature 006](specs/006-slope-driven-speed/spec.md), which replaced a fixed base
+speed with real slope physics. A major bump means exactly one thing: **every
+committed score is invalidated and the draft must be reset.** Players who have
+already taken their one irreversible run take it again.
+
+**Do these three things in this order. The order is the point.**
+
+1. **Tell the players first.** Before anything is deployed. They were told the
+   run was irreversible and they believed it; finding out afterwards that it was
+   quietly taken back is a worse outcome than any bug this change could carry.
+2. **Deploy the new build.**
+3. **Reset the draft** — the organizer link's RESET control, or
+   `organizer_reset_draft` directly.
+
+Nothing else is needed, and in particular **there is no version-repair script to
+run**. The reset deletes the committed scores, which leaves the draft with
+nothing frozen, and 0004's first-commit freeze then adopts the new version from
+the next run posted. Those two pieces were written for different reasons and are
+not obviously a pair, so the sequence is executed end to end against a real
+Postgres in CI rather than trusted — see the FR-229 block in
+`supabase/tests/invariants.sql`. If that seam ever breaks, the symptom is an
+organizer who resets exactly as instructed and still cannot post a single run.
+
+Everything above the reset is reversible. Step 1 is not, which is why it is
+step 1.
+
 **The keep-alive workflow is not optional.** A free Supabase project pauses
 after 7 days without database activity and needs a manual restore, which would
 leave the link dead exactly when everyone finally gets round to playing. A daily

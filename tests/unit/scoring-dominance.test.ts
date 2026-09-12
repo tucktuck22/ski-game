@@ -20,21 +20,35 @@ const warmup = parseCourse(read('data/courses/warmup.json'));
  * against the real files rather than trusted to whoever edits tuning next. It
  * is also the clause the spec flags as first to revisit if the game plays timid.
  */
+/**
+ * The rotation bound. 18, matching TRICK_CEILING in src/course/validate.ts.
+ *
+ * This file used to pass 4, which was an understatement even before real
+ * gravity: the course has five kickers and a run can land 13 rotations off
+ * them. So the unit test was proving a weaker claim than the validator it
+ * exists to back up, and would have gone on passing while CV-8 failed. A bound
+ * below what the course permits does not prove FR-034, it assumes it.
+ */
+const TRICK_CEILING = 18;
+
 describe('scoring dominance (FR-034)', () => {
   it('completionBase exceeds every bonus obtainable on the official course', () => {
-    const max = maxAchievableBonus(official, scoring, 4);
+    const max = maxAchievableBonus(official, scoring, TRICK_CEILING);
     expect(scoring.completionBase).toBeGreaterThan(max);
   });
 
   it('completionBase exceeds every bonus obtainable on the warm-up course', () => {
-    expect(scoring.completionBase).toBeGreaterThan(maxAchievableBonus(warmup, scoring, 4));
+    expect(scoring.completionBase).toBeGreaterThan(
+      maxAchievableBonus(warmup, scoring, TRICK_CEILING),
+    );
   });
 
   it('a bonus-free finish still beats a maximally lucky wipeout', () => {
     // The floor of the finishers' band against the ceiling of the wipeout band.
     const bonusFreeFinish = scoring.completionBase;
     const luckiestWipeout =
-      maxAchievableBonus(official, scoring, 4) + official.length * scoring.progressPerUnit;
+      maxAchievableBonus(official, scoring, TRICK_CEILING) +
+      official.length * scoring.progressPerUnit;
     // Progress score is included in both, so compare only what separates them.
     expect(bonusFreeFinish).toBeGreaterThan(
       luckiestWipeout - official.length * scoring.progressPerUnit,

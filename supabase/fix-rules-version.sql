@@ -46,7 +46,7 @@ declare
   -- The version the shipped build sends. Kept in step with
   -- data/courses/official.json by tests/contract/storage.test.ts, which is
   -- what stops this file becoming the stale thing it exists to repair.
-  target   text := '1.6.0';
+  target   text := '2.0.0';
   d        record;
   n_scores integer;
 begin

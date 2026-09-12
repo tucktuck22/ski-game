@@ -13,6 +13,7 @@
  */
 import type { Course, Kicker, Tuning } from '../sim/types.js';
 import { terrainYAt } from '../sim/terrain.js';
+import { terminalSpeedAtGradient } from '../sim/slopeResponse.js';
 
 /**
  * How far up the frame the skier rides per unit of air beneath him, and the
@@ -29,7 +30,38 @@ import { terrainYAt } from '../sim/terrain.js';
  * rampRise below has to know about it.
  */
 export const AIR_LIFT = 0.5;
-export const AIR_LIFT_MAX = 74;
+/**
+ * How far the camera will follow a climb, 74 -> 90 on 2026-09-10.
+ *
+ * 74 meant the lift stopped at 148 units up. That was ample while every launch
+ * apexed under it, and it stopped being ample the moment the booters went to
+ * real gravity: the big one now peaks at 180.
+ *
+ * Past the cap the camera freezes while the skier keeps climbing, so he sits
+ * PINNED at the same screen row for 24 ticks either side of the apex and then
+ * falls 63 pixels in the next 18 as the lift re-engages. Reported from play as
+ * the flip causing a drop, which it does not — a flip never touches vy, and the
+ * trajectory is identical tick for tick with and without one. The two only
+ * coincide: a flip thrown near the apex finishes its 15 ticks just as the camera
+ * lets go.
+ *
+ * 92 is the ceiling, and it is now touching both walls at once. The big booter
+ * apexes at 180.7 and so needs 90.3 of lift; the skier's feet sit at 108 - lift
+ * and he stands 16 tall, so a lift past 92 puts his head out of the top of the
+ * buffer. 90 was tried first and the new camera test caught it short by a third
+ * of a unit — which is the whole reason that test exists.
+ *
+ * That leaves 1.7 units of slack. It is thin on purpose rather than by neglect:
+ * four rotations at real gravity spends the frame, and that was the trade taken
+ * knowingly. A taller launch than this one cannot be drawn, and the test above
+ * fails rather than letting it ship as a freeze.
+ *
+ * What this does NOT fix, because nothing can: the ground still leaves the
+ * bottom of the frame above 144 units, which is inherent to a 180-unit apex in
+ * a buffer 180 tall. Keeping the snow in shot up there would need a lift of 108,
+ * and that puts the skier at screen row zero.
+ */
+export const AIR_LIFT_MAX = 92;
 
 /** The camera's vertical offset for a skier `h` units above the piste. */
 export const cameraAirLift = (h: number): number =>
@@ -100,10 +132,15 @@ export function rampRise(k: Kicker, tuning: Tuning, course: Course): number {
     const climb = m + Math.tan(flightAngle(k, m));
     return Math.round(k.width * climb * (1 - AIR_LIFT));
   }
-  const impulse = Math.min(k.power * tuning.tuckSpeedMax, tuning.kickerImpulseMax);
+  // Feature 006: carried speed is the terminal speed of whatever pitch the ramp
+  // sits on, not a global constant. The ramp is DRAWN the size of the jump it
+  // gives, so the same ramp on a steeper pitch is now drawn bigger — which is
+  // correct, and is the whole point.
+  const carried = terminalSpeedAtGradient(gradeAtLip(course, k.x + k.width), tuning, true);
+  const impulse = Math.min(k.power * carried, tuning.kickerImpulseMax);
   const rad = ((k.launchAngle ?? 90) * Math.PI) / 180;
   const airTicks = (2 * impulse * Math.sin(rad)) / (tuning.gravity * (k.gravityScale ?? 1));
-  const reach = airTicks * (tuning.tuckSpeedMax + impulse * Math.cos(rad));
+  const reach = airTicks * (carried + impulse * Math.cos(rad));
   return Math.round(19 * (reach / 210) ** 0.55);
 }
 

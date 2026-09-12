@@ -12,6 +12,7 @@
  */
 import type { Course, RunState, RunInput, Tuning } from './types.js';
 import { approach, clamp } from './math.js';
+import { groundedAccel } from './slopeResponse.js';
 import { sinDet, cosDet, TAU } from './trig.js';
 import {
   slopeAt,
@@ -144,20 +145,39 @@ export function applyKickers(state: RunState, course: Course, tuning: Tuning): b
 /** A ramp with no launchAngle throws straight up, as every ramp once did. */
 const VERTICAL_LAUNCH_DEG = 90;
 
-/** Grounded motion: speed toward the tuck or base target, plus slope acceleration. */
+/**
+ * Grounded motion: the mountain sets the speed (FR-214).
+ *
+ * Gravity along the slope, minus snow friction, minus air drag rising with the
+ * square of speed. Speed settles at terminal velocity for whatever pitch the
+ * player is on, so a steep run-in is genuinely worth more than a gentle one and
+ * a kicker at the foot of it throws further.
+ *
+ * This replaced an accelerate-toward-a-target-then-clamp that made gradient
+ * almost irrelevant: measured across the whole legal range, speed moved from
+ * 2.601 to 2.616. See src/sim/slopeResponse.ts for the model and why it needs
+ * no trigonometry.
+ *
+ * Integrated EXPLICITLY. A semi-implicit step was measured and rejected: it
+ * exists to buy stability that is not needed here — the explicit form lands
+ * exactly on terminal at every legal gradient including CV-2's 60-degree
+ * maximum, with zero oscillation — and it costs accuracy, settling 1.5-3% below
+ * terminal everywhere, which would make every speed in the game quietly wrong
+ * in a way nobody could see.
+ */
 export function applyGroundedMotion(state: RunState, course: Course, tuning: Tuning): void {
   const slope = slopeAt(course.terrain, state.x);
   const speed = currentSpeed(state);
 
-  const target = state.crouchHeld ? tuning.tuckSpeedMax : tuning.baseSpeed;
-  const rate = state.crouchHeld ? tuning.tuckAccel : tuning.tuckDecel;
-  let next = approach(speed, target, rate);
-
-  // uy is the sine of the slope angle: steeper is faster, within the tuck cap.
-  next += tuning.slopeAccelFactor * slope.uy;
-
-  // FR-077: there is no brake. Speed never drops below base on a descending slope.
-  next = clamp(next, tuning.baseSpeed, tuning.tuckSpeedMax);
+  // FR-219: bounds from tuning, per FR-077's "within bounds set in tuning data".
+  // speedMin is a floor so nobody is ever stranded; speedMax is a safety rail
+  // sitting above the steepest legal terminal, NOT the mechanism. CV-19 is what
+  // actually keeps a course from stalling anybody.
+  const next = clamp(
+    speed + groundedAccel(slope, tuning, speed, state.crouchHeld),
+    tuning.speedMin,
+    tuning.speedMax,
+  );
 
   state.vx = next * slope.ux;
   state.vy = next * slope.uy;
@@ -297,10 +317,16 @@ export function resolveLanding(
 
   // Project the airborne velocity back onto the slope and re-apply FR-077's
   // bounds. Without this the landing tick carries gravity-accumulated vy into
-  // grounded state, so a long drop briefly exceeded tuckSpeedMax - which the
+  // grounded state, so a long drop briefly exceeded the ceiling - which the
   // monkey fuzz caught. Landing scrubs to the slope; it does not add speed.
+  //
+  // The bounds are now speedMin/speedMax rather than baseSpeed/tuckSpeedMax,
+  // and that is a substantive change rather than a rename: a landing at the
+  // bottom of a steep pitch used to be confiscated back to 4.2, and now keeps
+  // the speed that pitch earned. It is what makes a steep run-in pay off
+  // THROUGH a launch instead of only up to it.
   const along = state.vx * slope.ux + state.vy * slope.uy;
-  const settled = clamp(along, tuning.baseSpeed, tuning.tuckSpeedMax);
+  const settled = clamp(along, tuning.speedMin, tuning.speedMax);
   state.vx = settled * slope.ux;
   state.vy = settled * slope.uy;
   return 'landed';

@@ -11,6 +11,19 @@
 export const INTERNAL_WIDTH = 320;
 export const INTERNAL_HEIGHT = 180;
 
+/** Where the skier sits in the frame. The rest of the width is the road ahead. */
+export const CAMERA_X_OFFSET = INTERNAL_WIDTH / 3;
+
+/**
+ * How much course the player can see in front of him, in world units at 1:1.
+ *
+ * It lives here rather than in the renderer because it is not only a drawing
+ * number: it is the reaction time the course is allowed to assume. CV-24 reads
+ * it to keep a bough from coming into view while the player is still airborne
+ * off the end of a shelf and can no longer do anything about it.
+ */
+export const PLAYER_LOOKAHEAD = INTERNAL_WIDTH - CAMERA_X_OFFSET;
+
 export interface Stage {
   /** Draw here. Always 320x180, whatever the display is. */
   ctx: CanvasRenderingContext2D;

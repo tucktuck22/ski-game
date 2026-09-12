@@ -59,11 +59,12 @@ export interface SpriteManifest {
 }
 
 const REQUIRED_TUNING_KEYS: ReadonlyArray<keyof Tuning> = [
-  'baseSpeed',
-  'tuckSpeedMax',
-  'tuckAccel',
-  'tuckDecel',
-  'slopeAccelFactor',
+  'slopeFriction',
+  'dragStanding',
+  'dragTucked',
+  'speedMin',
+  'speedMax',
+  'tuckTransientTicks',
   'gravity',
   'launchImpulseMin',
   'launchImpulseMax',
@@ -96,7 +97,30 @@ export function parseTuning(raw: unknown): Tuning {
     if (typeof o[k] !== 'number' || !Number.isFinite(o[k]))
       throw new Error(`tuning.json: "${k}" must be a finite number`);
   }
-  return o as unknown as Tuning;
+  // Feature 006 relationships. Each of these is a value that parses fine on its
+  // own and produces a game that is quietly wrong, which is the kind of defect a
+  // type check cannot see.
+  const t = o as unknown as Tuning;
+  if (!(t.slopeFriction > 0))
+    throw new Error(
+      'tuning.json: "slopeFriction" must be positive — a frictionless piste never settles',
+    );
+  if (!(t.dragStanding > 0) || !(t.dragTucked > 0))
+    throw new Error(
+      'tuning.json: drag coefficients must be positive — without drag, speed rises without bound',
+    );
+  if (!(t.dragTucked < t.dragStanding))
+    throw new Error(
+      'tuning.json: "dragTucked" must be less than "dragStanding" — a tuck reduces drag. ' +
+        'Inverted, tucking would slow the player down and FR-087 would gate the trick economy behind going slower.',
+    );
+  if (!(t.speedMin < t.speedMax))
+    throw new Error('tuning.json: "speedMin" must be below "speedMax"');
+  if (!(t.speedMin > 0))
+    throw new Error(
+      'tuning.json: "speedMin" must be positive — at zero a shallow pitch strands the player',
+    );
+  return t;
 }
 
 export function parseScoring(raw: unknown): Scoring {

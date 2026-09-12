@@ -40,7 +40,7 @@ values (
   -- first run posted into it (supabase/migrations/0004_rules_freeze.sql). It
   -- used to have to match exactly, and when it drifted — which it did, six
   -- times in six days — every official run in the draft was refused for good.
-  '1.6.0',
+  '2.0.0',
   encode(gen_random_bytes(16), 'hex')
 );
 

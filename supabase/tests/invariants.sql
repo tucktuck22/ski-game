@@ -255,5 +255,64 @@ begin
   raise notice 'PASS FR-007: organizer reset the draft';
 end $$;
 
+-- FR-223 / FR-229 (feature 006): the reset is the procedure that carries a
+-- PHYSICS CHANGE into a live draft, and it must actually do that.
+--
+-- This is the one operator step feature 006 depends on, so it is executed here
+-- rather than described in a README. The sequence a real organizer performs:
+-- a draft is frozen at the old rules version with scores on the board, the new
+-- build starts submitting a new version and is refused, the organizer resets,
+-- and the next run must then be ACCEPTED and must re-freeze at the new version.
+--
+-- The last step is the one worth proving. organizer_reset_draft does not touch
+-- draft.rules_version at all — it deletes the scores — and it is 0004's
+-- first-commit freeze that then re-adopts from the next run posted. Those two
+-- pieces were written for different reasons and nobody had ever run them in
+-- sequence. If that seam breaks, the symptom is an organizer who resets the
+-- draft exactly as instructed and still cannot post a single run.
+do $$
+declare
+  d   uuid := '44444444-4444-4444-4444-444444444444';
+  ent uuid := '55555555-5555-5555-5555-555555555555';
+  sec text := 'resetsecret';
+  v   text;
+  n   int;
+begin
+  insert into draft (id, deadline, course_seed, rules_version, organizer_secret)
+  values (d, now() + interval '7 days', 19860214, '1.6.0', sec);
+  insert into roster_entry (id, draft_id, name, origin)
+  values (ent, d, 'Tucker', 'organizer');
+
+  -- A score posted under the OLD rules freezes the draft there.
+  insert into committed_score (draft_id, entry_id, score, outcome, rules_version)
+  values (d, ent, 41000, 'finished', '1.6.0');
+  select rules_version into v from draft where id = d;
+  if v <> '1.6.0' then raise exception 'setup wrong: draft froze at % not 1.6.0', v; end if;
+
+  -- The new build is refused. This is what the organizer would report as
+  -- "official runs stopped working".
+  begin
+    insert into committed_score (draft_id, entry_id, score, outcome, rules_version)
+    values (d, ent, 42000, 'finished', '2.0.0');
+    raise exception 'FR-023 VIOLATED: a 2.0.0 run was accepted into a draft frozen at 1.6.0';
+  exception when check_violation then
+    raise notice 'PASS FR-023: the physics change is refused until the draft is reset';
+  end;
+
+  -- The reset.
+  perform organizer_reset_draft(d, sec);
+  select count(*) into n from committed_score where draft_id = d;
+  if n <> 0 then raise exception 'FR-229 BROKEN: reset left scores behind'; end if;
+
+  -- And now the new rules must be accepted, and must become the frozen version.
+  insert into committed_score (draft_id, entry_id, score, outcome, rules_version)
+  values (d, ent, 43000, 'finished', '2.0.0');
+  select rules_version into v from draft where id = d;
+  if v <> '2.0.0' then
+    raise exception 'FR-229 BROKEN: after reset the draft froze at % rather than adopting 2.0.0', v;
+  end if;
+  raise notice 'PASS FR-229: reset carries a physics change into a live draft';
+end $$;
+
 reset role;
 \echo 'ALL STORAGE INVARIANTS HELD'
