@@ -225,3 +225,34 @@ describe('the simulation cannot observe a coaching cue (FR-204)', () => {
     }
   });
 });
+
+/**
+ * SC-069: the coached section adds course data, not per-frame work.
+ *
+ * The plan's claim is "no worse", not "faster", and it is worth asserting
+ * because the obvious wrong implementation — write the badge every tick and let
+ * the DOM sort it out — costs sixty DOM writes a second and would still look
+ * correct on screen. A frame budget is not something a screenshot can check.
+ */
+describe('SC-069: the cue costs a comparison a tick and a DOM write per lesson', () => {
+  it('fires the change callback only on transitions, twice per lesson at most', () => {
+    // Exactly the edge `GameView.tick()` derives, run over a whole descent.
+    let fired = 0;
+    let before = cueAt(0);
+    for (let x = 0; x < 3200; x += 0.5) {
+      const after = cueAt(x);
+      if (before !== after) fired++;
+      before = after;
+    }
+    // Four lessons, each shown once and cleared once. Anything more means the
+    // intervals have gaps in them or identity is not holding.
+    expect(fired).toBe(CUES.length * 2);
+  });
+
+  it('selection is a bounded scan of a table that cannot grow with the course', () => {
+    // FR-188 fixes the count at four, so the per-tick cost is constant and
+    // independent of course length - which is what lets this be called twice a
+    // tick without a budget conversation.
+    expect(CUES.length).toBe(4);
+  });
+});

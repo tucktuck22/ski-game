@@ -205,7 +205,7 @@ The play pass happens at **the first point the coached section runs** — which 
 end of Phase 4 — because the feature's whole premise is a pacing claim, and pacing is
 the one thing the course validator and both robot pilots hold no opinion about.
 
-- [ ] T033 Run `npm run build:artifact` to produce the single-file playable build
+- [x] T033 Run `npm run build:artifact` to produce the single-file playable build
 - [ ] T034 Publish it and **name the link and the commit it was built from** in the handover, per Principle VIII
 - [ ] T035 Record the maintainer's findings against `specs/005-tutorial-and-boundary-rope/spec.md` **in his own words**, before changing any of these values again. The questions to put to him, in this order: (1) **Is 2.19 s enough to read the flip cue and act?** — that is what a _tucked_ player gets at gradient 0.05, against the 2.5 s R2 set out to buy, and it is the one number no measurement closes; (2) does the rope read as a hazard from across the frame, or only once it is close; (3) does **STAY CROUCHED!** land, given the previous cue just taught the opposite; (4) does riding this three times per practice session become tedious, given FR-186a puts every player through it on all three runs
 - [ ] T036 **Only if the player says the flip cue reads short**: apply research R7's recorded fallback of **30 units of lead**, which brings 0.05 to 2.5 s. This is a data change, not a mechanism, and it is deliberately **not** taken in advance of play — build the simple thing, ride it, then decide. Do not apply it speculatively
@@ -247,10 +247,10 @@ same change set. All are independent of each other.
 
 ## Phase 8: Polish and the full gate
 
-- [ ] T045 Run `npm run lint` and fix anything this feature introduced. **Do not fold an unrelated repo-wide reformat into this diff** — feature 004's T005 is the precedent, and it is its own change
-- [ ] T046 Run the full gate in the order CI runs it: `npm run lint && npm run build && npm run test && npm run test:build`. Green here plus a recorded play pass is this feature's Definition of Done
-- [ ] T047 Confirm SC-069: the coached section adds course data, not per-frame work, and the cue callback fires only on a transition rather than once per tick. Assert "no worse" against the existing frame-time budget, which is the claim the plan actually makes — not an improvement
-- [ ] T048 Walk `specs/005-tutorial-and-boundary-rope/quickstart.md` start to finish as written and confirm every step behaves as documented. Principle VII: an instruction a human runs is a deliverable, and a quickstart that has never been executed is prose
+- [x] T045 Run `npm run lint` and fix anything this feature introduced. **Do not fold an unrelated repo-wide reformat into this diff** — feature 004's T005 is the precedent, and it is its own change
+- [x] T046 Run the full gate in the order CI runs it: `npm run lint && npm run build && npm run test && npm run test:build`. Green here plus a recorded play pass is this feature's Definition of Done. **Result: lint, build, `test:build` (30), `test:shared` (4) and `test:e2e` (31) all green; `npm test` is 560 passed / 2 failed.** The two are `tests/unit/sprite-palette.test.ts`, and they are **not this feature's** — they fail identically on this branch's base commit (`1966eb8`) because `assets/sprites/*.png` are Git LFS pointers and `git-lfs` is not installed in this environment, so the decoder is handed the pointer text and reports "not a PNG file". Nothing in feature 005 touches a sprite. Expected to pass wherever LFS content is fetched
+- [x] T047 Confirm SC-069: the coached section adds course data, not per-frame work, and the cue callback fires only on a transition rather than once per tick. Assert "no worse" against the existing frame-time budget, which is the claim the plan actually makes — not an improvement
+- [x] T048 Walk `specs/005-tutorial-and-boundary-rope/quickstart.md` start to finish as written and confirm every step behaves as documented. Principle VII: an instruction a human runs is a deliverable, and a quickstart that has never been executed is prose
 
 ---
 
