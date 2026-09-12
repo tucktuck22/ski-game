@@ -30,9 +30,21 @@ export function loadBindings(): KeyBindings {
   }
 }
 
-export function saveBindings(b: KeyBindings): void {
-  safeLocal.set(STORAGE_KEY, JSON.stringify(b));
-}
+/*
+ * `saveBindings` was here and is gone (feature 005, FR-206).
+ *
+ * It was written for feature 001's FR-030 — "keyboard controls MUST be fully
+ * remappable" — and nothing ever called it, so no player could ever rebind
+ * anything. FR-030 is struck; the function goes with it rather than staying as
+ * machinery that implies a feature which does not exist. That is the precedent
+ * FR-065 set when the abandonment counter was removed, and the lesson this
+ * repository already paid for once: `abandoned_official_runs` was kept "just in
+ * case" and then read by a leaderboard column that showed a permanent zero for
+ * the life of the deployment.
+ *
+ * `loadBindings` stays because it is called, and because it is what keeps the
+ * defaults in one place.
+ */
 
 export function keyboardSource(bindings: KeyBindings = loadBindings()): InputSource {
   const held = new Set<string>();

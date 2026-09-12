@@ -98,15 +98,28 @@ counter increments, and the new count is visible to a second viewer.
 
 **Proves**: FR-025, FR-031, SC-001, SC-009.
 
-```bash
+~~```bash
 npm run test:perf
-```
 
-Headless Chromium at 4× CPU throttle, Fast 3G for load.
+````~~
 
-**Expected**: simulation step ≤ 2.0 ms; frame time ≤ 16.7 ms p95 with ≥ 50 fps
-sustained; input-to-response ≤ 2 frames; payload ≤ 2 MB gzipped; interactive ≤ 5 s.
-These are a proxy for a real phone, not a substitute — see Manual validation.
+**THERE IS NO COMMAND FOR THIS. Corrected 2026-09-12 under feature 005's FR-213.**
+`package.json` declared `test:perf` pointing at `tests/e2e/performance.spec.ts`,
+which has never existed, so the one instruction in this guide that looked like the
+performance gate failed the moment anyone ran it. The script is removed rather than
+left looking like a gate; Principle VII makes a command in a quickstart a deliverable,
+and one that cannot run is worse than an admitted gap.
+
+**The gap is real and it is recorded**, as open deviation 3 in the constitution's
+Sync Impact Report: the performance budgets below have been REQUIRED since v1.1.0 and
+are enforced by no job. Removing the script does not close that deviation — it stops
+it being misrepresented as covered.
+
+**Still expected, and still unverified by any gate**: simulation step ≤ 2.0 ms; frame
+time ≤ 16.7 ms p95 with ≥ 50 fps sustained; input-to-response ≤ 2 frames; payload
+≤ 2 MB gzipped; interactive ≤ 5 s. Headless Chromium at 4× CPU throttle and Fast 3G
+was the intended proxy for a real phone, and never a substitute — see Manual
+validation.
 
 ## Scenario 7 — Nothing crashes
 
@@ -114,7 +127,7 @@ These are a proxy for a real phone, not a substitute — see Manual validation.
 
 ```bash
 npm run test:monkey
-```
+````
 
 Fuzzes randomised input sequences across thousands of seeds against `step()`.
 

@@ -345,7 +345,7 @@ the start line to the end of the coached section.
   feature MUST NOT introduce a new colour. _(Corrected 2026-09-12: this read "the
   existing eight-colour palette" and "MUST NOT introduce a ninth colour". The palette
   has carried **nine** tokens since feature 004 added `skin` under
-  [ADR-0010](../../docs/adr/0010-a-ninth-colour.md) — which is the same duplicate ADR
+  [ADR-0011](../../docs/adr/0011-a-ninth-colour.md) — which is the same duplicate ADR
   number FR-211 is about. The count was wrong; the requirement was not, and it binds
   unchanged: the rope uses `magenta`, `purple`, `cyan`, `blue` and `orange`, all of
   which already existed. `tests/unit/rope-geometry.test.ts` asserts against the
@@ -386,7 +386,7 @@ as a requirement so the work is traceable per Principle I.
 - **FR-210**: ADR-0002 MUST be corrected to remove its claim that abandonments are
   counted and visible on the leaderboard. That counter was removed in `7b2cc8b` and
   the record still describes it as the deterrent the decision rests on.
-- **FR-211**: The duplicate ADR number MUST be resolved — `0010-a-ninth-colour.md`
+- **FR-211**: The duplicate ADR number MUST be resolved — `0011-a-ninth-colour.md`
   and `0010-organizer-actions-as-secret-gated-functions.md` both claim 0010, and only
   the second appears in the ADR index. One MUST be renumbered and the index MUST list
   both.

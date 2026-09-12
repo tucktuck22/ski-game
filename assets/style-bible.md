@@ -20,7 +20,7 @@ asset that cannot cite a rule is rejected, not merged with a promise to fix late
 Nine colours. Nothing outside this set appears in any asset.
 
 > This said **eight** until 2026-09-04. The ninth, `skin`, was added for the player
-> sprite in feature 004; see [ADR-0010](../docs/adr/0010-a-ninth-colour.md) for why the
+> sprite in feature 004; see [ADR-0011](../docs/adr/0011-a-ninth-colour.md) for why the
 > rule changed and why a single named token was chosen over a shading ramp.
 
 | Token     | Hex       | Role                                                   |

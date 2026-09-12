@@ -223,8 +223,8 @@ who has been coached is recorded anywhere.
 device and then on a second device, are identical from the start line to the end of
 the coached section.
 
-- [ ] T037 [P] [US3] Add a test asserting this feature introduced **no persistence whatsoever** (FR-186a): no new database column, no migration under `supabase/`, and no new `localStorage` or IndexedDB key. The existing `tests/unit/safe-storage.test.ts` and `tests/unit/no-verified-claims.test.ts` show the idiom. US3 is protected by the _absence_ of a mechanism, which is exactly why it is worth asserting rather than assuming
-- [ ] T038 [US3] Confirm by inspection that `cueAt` and the coached section read nothing per-player: the section is course data loaded once, the cue is a pure function of `x`, and there is no branch anywhere on runs used, device, or session
+- [x] T037 [P] [US3] Add a test asserting this feature introduced **no persistence whatsoever** (FR-186a): no new database column, no migration under `supabase/`, and no new `localStorage` or IndexedDB key. The existing `tests/unit/safe-storage.test.ts` and `tests/unit/no-verified-claims.test.ts` show the idiom. US3 is protected by the _absence_ of a mechanism, which is exactly why it is worth asserting rather than assuming
+- [x] T038 [US3] Confirm by inspection that `cueAt` and the coached section read nothing per-player: the section is course data loaded once, the cue is a pure function of `x`, and there is no branch anywhere on runs used, device, or session
 
 **Checkpoint**: A record that could be wrong does not exist, so it cannot drop a player into the wrong terrain.
 
@@ -236,12 +236,12 @@ No runtime behaviour, and **not optional** — each is a Principle I or VI oblig
 and SC-070 requires every document this feature contradicts to be corrected in the
 same change set. All are independent of each other.
 
-- [ ] T039 [P] Strike FR-030 in `specs/001-shredpocalypse-bed-draft/spec.md:268` with the reason and the date, following the precedent set by FR-065, and remove the never-called `saveBindings` from `src/input/keyboard.ts:33` rather than leaving machinery implying a feature that does not exist (FR-206)
-- [ ] T040 [P] Correct `docs/adr/0002-abandoned-official-runs-are-discarded.md` to remove its claim that abandonments are counted and visible on the leaderboard — that counter was removed in `7b2cc8b` and the record still describes it as the deterrent the decision rests on (FR-210)
-- [ ] T041 [P] Resolve the duplicate ADR number: `docs/adr/0010-a-ninth-colour.md` and `docs/adr/0010-organizer-actions-as-secret-gated-functions.md` both claim 0010 and only the second appears in the index. Renumber one and make `docs/adr/README.md` list **both** (FR-211)
-- [ ] T042 [P] Correct `README.md` (FR-212): it opens by stating the project is "Planned, not yet built" with "no game code" — the game has shipped and been played — and it still describes five governing principles where the constitution has carried eight since v1.3.0, which is the outstanding `TODO(README_PRINCIPLE_TABLE)`
-- [ ] T043 [P] Remove or make real the `test:perf` script in `package.json`: it points at `tests/e2e/performance.spec.ts`, which does not exist, so the one command that looks like the performance gate the constitution has required since v1.1.0 fails the moment anyone runs it (FR-213). **Removing it does not close the constitution's open deviation 3** — it stops that deviation being misrepresented as covered, which is a different thing, and the note in `spec.md` saying so must survive
-- [ ] T044 Verify the documentation half per quickstart §8: `npm run test:perf` either runs something real or reports "script not found", and `grep -rn "bough" assets/style-bible.md src/` returns nothing
+- [x] T039 [P] Strike FR-030 in `specs/001-shredpocalypse-bed-draft/spec.md:268` with the reason and the date, following the precedent set by FR-065, and remove the never-called `saveBindings` from `src/input/keyboard.ts:33` rather than leaving machinery implying a feature that does not exist (FR-206)
+- [x] T040 [P] Correct `docs/adr/0002-abandoned-official-runs-are-discarded.md` to remove its claim that abandonments are counted and visible on the leaderboard — that counter was removed in `7b2cc8b` and the record still describes it as the deterrent the decision rests on (FR-210)
+- [x] T041 [P] Resolve the duplicate ADR number: `docs/adr/0011-a-ninth-colour.md` and `docs/adr/0010-organizer-actions-as-secret-gated-functions.md` both claim 0010 and only the second appears in the index. Renumber one and make `docs/adr/README.md` list **both** (FR-211)
+- [x] T042 [P] Correct `README.md` (FR-212): it opens by stating the project is "Planned, not yet built" with "no game code" — the game has shipped and been played — and it still describes five governing principles where the constitution has carried eight since v1.3.0, which is the outstanding `TODO(README_PRINCIPLE_TABLE)`
+- [x] T043 [P] Remove or make real the `test:perf` script in `package.json`: it points at `tests/e2e/performance.spec.ts`, which does not exist, so the one command that looks like the performance gate the constitution has required since v1.1.0 fails the moment anyone runs it (FR-213). **Removing it does not close the constitution's open deviation 3** — it stops that deviation being misrepresented as covered, which is a different thing, and the note in `spec.md` saying so must survive
+- [x] T044 Verify the documentation half per quickstart §8: `npm run test:perf` either runs something real or reports "script not found", and `grep -rn "bough" assets/style-bible.md src/` returns nothing
 
 ---
 

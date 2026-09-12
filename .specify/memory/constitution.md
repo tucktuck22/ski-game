@@ -68,9 +68,13 @@ Modified sections:
     item 6 gains the naming requirement for feel changes.
 
 Follow-up TODOs:
-  TODO(README_PRINCIPLE_TABLE): README.md still presents five principles and calls
-    them "all five". The document has carried eight since this amendment. Out of scope
-    for /speckit-constitution, which writes only this file.
+  RESOLVED 2026-09-12 (feature 005, FR-212) - TODO(README_PRINCIPLE_TABLE): README.md
+    presented five principles and called them "all five", where this document has
+    carried eight since the v1.3.0 amendment. It also still described the project as
+    "Planned, not yet built" with "no game code". Both are corrected; the table now
+    lists all eight and names the four that are non-negotiable. Closed by the feature
+    that owns the README correction, since /speckit-constitution writes only this file
+    and could never have closed it itself.
 
 OPEN DEVIATIONS (Principle VI requires these be stated, not implied)
   The following are REQUIRED by this document and NOT YET ENFORCED. Each is a
