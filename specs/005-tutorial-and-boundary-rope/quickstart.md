@@ -40,9 +40,11 @@ The rules most likely to catch a mistake here, and what they are protecting:
 | CV-11 | Deadfall placed inside the rope's release window                     |
 | CV-15 | A ramp overlapping deadfall, or with no clear air                    |
 
-**If CV-10 fires**, the join gradient stepped instead of interpolating. R4 measured
-0.08 → 0.230 at 0.146 rad against a 0.42 tolerance, so a failure here means the
-gradient programme, not the tolerance.
+**If CV-10 fires**, the join gradient stepped instead of interpolating. R4, re-measured
+2026-09-12, puts 0.05 → 0.26 at 0.204 rad against a 0.42 tolerance, so a failure here
+means the gradient programme, not the tolerance. _(This read "0.08 → 0.230 at 0.146
+rad": the coached gradient eased under R7 option C, and the warm-up's opening gradient
+was raised to 0.26 by feature 006.)_
 
 ---
 
@@ -116,15 +118,15 @@ Open the printed URL, take the local session's roster, claim any name, and press
 
 **Expect, in order**:
 
-| Beat | What you should see                                                                             |
-| ---- | ----------------------------------------------------------------------------------------------- |
-| 1    | A slope visibly gentler than anything the game has shown before                                 |
-| 2    | **HOLD TO CROUCH!** on screen for ~2.5 s, with the rope cresting the frame edge partway through |
-| 3    | A magenta rope with hanging pennants — unmistakable against the pines                           |
-| 4    | **RELEASE TO JUMP!**, then deadfall                                                             |
-| 5    | **STAY CROUCHED!**, then a small ramp that throws you further for staying tucked                |
-| 6    | **SWIPE OR ← → TO FLIP!**, then a booter — and a trick badge if you spin                        |
-| 7    | The slope steepens into the warm-up course. No further coaching badges                          |
+| Beat | What you should see                                                                                                                     |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | A slope visibly gentler than anything the game has shown before                                                                         |
+| 2    | **HOLD TO CROUCH!** on screen as the rope crests the frame edge — ~3.4 s if he stays standing, less once he crouches and the drag drops |
+| 3    | A magenta rope with hanging pennants — unmistakable against the pines                                                                   |
+| 4    | **RELEASE TO JUMP!**, then deadfall                                                                                                     |
+| 5    | **STAY CROUCHED!**, then a small ramp that throws you further for staying tucked                                                        |
+| 6    | **SWIPE OR ← → TO FLIP!**, then a booter — and a trick badge if you spin                                                                |
+| 7    | The slope steepens into the warm-up course. No further coaching badges                                                                  |
 
 **The things to actually judge** (the validator has no opinion on any of them):
 

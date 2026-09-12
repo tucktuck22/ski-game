@@ -199,25 +199,36 @@ CV-10 guarantees is landable.
 ## R4 — The join to the warm-up course is free.
 
 **Decision**: Author the coached section in `tools/gen-courses.ts` as a gradient
-programme that ramps from the coached gradient up to the warm-up's opening 0.230.
+programme that ramps from the coached gradient up to the warm-up's opening gradient.
 
-**Measured**. CV-10 (src/course/validate.ts:118-141) caps the angle between adjacent
-terrain segments at `landingAngleTolerance` = 0.42 rad (24.1°). Candidate joins:
+**Re-measured 2026-09-12.** ~~The warm-up opens at 0.230.~~ It opens at **0.26**:
+feature 006 raised `WARMUP_GRADE`'s first key off the new CV-23 stall floor, with the
+comment "It used to open at 0.22, below the new floor." The 0.230 figure below the
+strike is from 2026-09-09 and every join angle in this section was computed against
+it. **The conclusion survives and the figures do not** — which is the same lesson R7
+records, arriving by a different route: this one was found by reading the generator,
+not the documents.
 
-| Join        | Angle             | CV-10    |
-| ----------- | ----------------- | -------- |
-| 0.08 → 0.23 | 0.146 rad (8.4°)  | **PASS** |
-| 0.05 → 0.23 | 0.176 rad (10.1°) | **PASS** |
-| 0.02 → 0.23 | 0.206 rad (11.8°) | **PASS** |
+CV-10 (`src/course/validate.ts`) caps the angle between adjacent terrain segments at
+`landingAngleTolerance` = 0.42 rad (24.1°). Candidate joins, against the warm-up's
+actual opening gradient:
 
-Every candidate passes even as a single hard step. And it need not be a step at all:
-`terrain()` in `tools/gen-courses.ts` builds from interpolated gradient keys
-specifically so CV-10 is satisfied for free — its own comment says a 200-unit sample
-of a ramp spread over a section "moves by a fraction of a degree".
+| Join        | Angle, as shipped     | Was (vs 0.230)    | CV-10    |
+| ----------- | --------------------- | ----------------- | -------- |
+| 0.08 → 0.26 | 0.175 rad (10.0°)     | 0.146 rad (8.4°)  | **PASS** |
+| 0.05 → 0.26 | **0.204 rad (11.7°)** | 0.176 rad (10.1°) | **PASS** |
+| 0.02 → 0.26 | 0.234 rad (13.4°)     | 0.206 rad (11.8°) | **PASS** |
 
-**Rationale**: The warm-up course opens at gradient 0.230 and runs 0.230 → 0.352 →
-0.300. A coached section at **0.08** is a third of the opening pitch, reads
-unmistakably as a nursery slope, and joins without a kink. The generator is also
+Every candidate still passes even as a single hard step, with the chosen 0.05 → 0.26
+sitting at less than half the tolerance. And it need not be a step at all: `terrain()`
+in `tools/gen-courses.ts` builds from interpolated gradient keys specifically so CV-10
+is satisfied for free — its own comment says a 200-unit sample of a ramp spread over a
+section "moves by a fraction of a degree". The interpolation is belt and braces.
+
+**Rationale**: The warm-up course opens at gradient 0.26 and runs 0.26 → 0.38 → 0.30
+→ 0.34. A coached section at **0.05** (R7 option C; it was 0.08 while speed was pinned
+and gradient bought nothing) is a fifth of the opening pitch, reads unmistakably as a
+nursery slope, and joins without a kink. The generator is also
 where the whole course must be authored anyway, because prepending shifts every
 existing warm-up feature by the coached section's length — 2 obstacles, 11 pickups,
 1 ledge, 2 kickers, 1 rock, 1 ice section — and doing that by hand in JSON is how
@@ -339,8 +350,9 @@ harder to break". Option C is what makes that choice affordable.
 **C is legal, and already measured.** CV-23's stall floor is `slopeFriction * 3` =
 **0.036** today, against the 0.06 it would have been at the old friction, so 0.05
 clears it — gentler terrain is authorable now than when R2 was written, which is a
-second thing 006 handed this feature. The join is unaffected: R4 already measured
-0.05 → 0.23 at 0.176 rad against CV-10's 0.42 tolerance.
+second thing 006 handed this feature. The join is unaffected: R4, re-measured
+2026-09-12 against the warm-up's actual opening gradient of 0.26, puts 0.05 → 0.26 at
+0.204 rad against CV-10's 0.42 tolerance.
 
 **What C does not settle.** 2.19 s is close to R2's 2.5 s target but under it, and
 reading time is a feel question that no measurement closes — Principle VIII. If the

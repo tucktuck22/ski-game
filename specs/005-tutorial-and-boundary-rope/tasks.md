@@ -34,14 +34,14 @@ was specified and planned. A re-baseline pass on 2026-09-12 corrected `spec.md`,
 
 The disagreement is on the single number this feature's teaching value rests on:
 
-| Document                      | Says                                                                    | Status         |
-| ----------------------------- | ----------------------------------------------------------------------- | -------------- |
-| `research.md` R7, option C    | Gradient **0.05**, **no lead machinery**, cue binds to object visibility | **AUTHORITY**  |
-| `quickstart.md` §4            | "bound to **its object's visibility** — FR-191 as approved"              | Agrees         |
-| `spec.md` FR-191 + its callout | Ships as approved; amendments withdrawn                                 | Agrees         |
-| `plan.md` summary + §1        | "R7 option C drops the lead to zero" … then "the **389-unit lead is the invariant**" | **CONTRADICTS ITSELF** |
-| `data-model.md` §2            | Lead **389** for every cue; invariant 2 asserts it                       | **STALE**      |
-| `contracts/coaching-cues.md`  | `CUE_LEAD = 389`; guarantee 4 asserts it                                 | **STALE**      |
+| Document                       | Says                                                                                 | Status                 |
+| ------------------------------ | ------------------------------------------------------------------------------------ | ---------------------- |
+| `research.md` R7, option C     | Gradient **0.05**, **no lead machinery**, cue binds to object visibility             | **AUTHORITY**          |
+| `quickstart.md` §4             | "bound to **its object's visibility** — FR-191 as approved"                          | Agrees                 |
+| `spec.md` FR-191 + its callout | Ships as approved; amendments withdrawn                                              | Agrees                 |
+| `plan.md` summary + §1         | "R7 option C drops the lead to zero" … then "the **389-unit lead is the invariant**" | **CONTRADICTS ITSELF** |
+| `data-model.md` §2             | Lead **389** for every cue; invariant 2 asserts it                                   | **STALE**              |
+| `contracts/coaching-cues.md`   | `CUE_LEAD = 389`; guarantee 4 asserts it                                             | **STALE**              |
 
 **Build to object visibility, not to 389.** A cue's `from` is
 `object.x − PLAYER_LOOKAHEAD` (213.333, from `src/render/stage.ts`). Building to 389
@@ -54,12 +54,12 @@ since R7 was taken, so its table stands. Verified against the shipped constants
 (`gravity` 0.16, `slopeFriction` 0.012, `dragStanding` 0.00546494, `dragTucked`
 0.00230894):
 
-| Quantity at coached gradient 0.05    | Value        |
-| ------------------------------------ | ------------ |
-| Terminal speed, standing             | **1.054**    |
-| Terminal speed, tucked               | **1.622**    |
-| Reading time over 213.33 u, standing | **3.38 s**   |
-| Reading time over 213.33 u, tucked   | **2.19 s**   |
+| Quantity at coached gradient 0.05       | Value                      |
+| --------------------------------------- | -------------------------- |
+| Terminal speed, standing                | **1.054**                  |
+| Terminal speed, tucked                  | **1.622**                  |
+| Reading time over 213.33 u, standing    | **3.38 s**                 |
+| Reading time over 213.33 u, tucked      | **2.19 s**                 |
 | CV-23 stall floor (`slopeFriction * 3`) | **0.036** — 0.05 clears it |
 
 **One more staleness the re-baseline missed**, found by reading the generator rather
@@ -91,11 +91,11 @@ Principle I: a plan that forces an amendment amends the spec **in the same chang
 set**, ahead of the code that depends on it. Every task here is a documentation edit
 with no runtime behaviour, and each is a prerequisite for a task that reads it.
 
-- [ ] T001 [P] Reconcile the retired 389-unit lead in `specs/005-tutorial-and-boundary-rope/contracts/coaching-cues.md`: replace `export const CUE_LEAD = 389` with a binding to object visibility (`from = object.x − PLAYER_LOOKAHEAD`, imported from `src/render/stage.ts`), rewrite selection guarantee 4 to assert that binding instead of a fixed lead, and add a dated note pointing at [research R7](./research.md#r7--what-feature-006-did-to-r1-and-r2) so the retired figure is labelled rather than deleted (per the re-baseline's own convention)
-- [ ] T002 [P] Correct `specs/005-tutorial-and-boundary-rope/data-model.md` §2: drop the `Lead (object.x − from)` column of 389s in favour of the visibility binding, rewrite invariant 2 to match, and correct the join figure in §1 from `0.230` to the warm-up's actual opening gradient of **0.26** (`tools/gen-courses.ts:578`), with the recomputed step of 0.204 rad against CV-10's 0.42
-- [ ] T003 [P] Strike the two stale sentences in `specs/005-tutorial-and-boundary-rope/plan.md`: the "**389-unit lead is the invariant**" clause in "Approach by area §1" (it contradicts the same paragraph's own re-baseline note), and the "Amendments this plan forces on the spec" table, whose FR-187 and FR-191 rows were withdrawn on 2026-09-12 and whose FR-192 row is the only one still live. Correct the join to `0.05 → 0.26` in the same pass
-- [ ] T004 [P] Correct research R4 in `specs/005-tutorial-and-boundary-rope/research.md` the same way — `0.08 → 0.230` becomes `0.05 → 0.26` at 0.204 rad — keeping the retired measurement labelled in place rather than deleting it
-- [ ] T005 Re-read the four amended documents end to end and confirm no reference to a 389-unit lead, a 0.08 coached gradient, or a 0.230 join survives anywhere in `specs/005-tutorial-and-boundary-rope/` except where explicitly labelled as a retired measurement
+- [x] T001 [P] Reconcile the retired 389-unit lead in `specs/005-tutorial-and-boundary-rope/contracts/coaching-cues.md`: replace `export const CUE_LEAD = 389` with a binding to object visibility (`from = object.x − PLAYER_LOOKAHEAD`, imported from `src/render/stage.ts`), rewrite selection guarantee 4 to assert that binding instead of a fixed lead, and add a dated note pointing at [research R7](./research.md#r7--what-feature-006-did-to-r1-and-r2) so the retired figure is labelled rather than deleted (per the re-baseline's own convention)
+- [x] T002 [P] Correct `specs/005-tutorial-and-boundary-rope/data-model.md` §2: drop the `Lead (object.x − from)` column of 389s in favour of the visibility binding, rewrite invariant 2 to match, and correct the join figure in §1 from `0.230` to the warm-up's actual opening gradient of **0.26** (`tools/gen-courses.ts:578`), with the recomputed step of 0.204 rad against CV-10's 0.42
+- [x] T003 [P] Strike the two stale sentences in `specs/005-tutorial-and-boundary-rope/plan.md`: the "**389-unit lead is the invariant**" clause in "Approach by area §1" (it contradicts the same paragraph's own re-baseline note), and the "Amendments this plan forces on the spec" table, whose FR-187 and FR-191 rows were withdrawn on 2026-09-12 and whose FR-192 row is the only one still live. Correct the join to `0.05 → 0.26` in the same pass
+- [x] T004 [P] Correct research R4 in `specs/005-tutorial-and-boundary-rope/research.md` the same way — `0.08 → 0.230` becomes `0.05 → 0.26` at 0.204 rad — keeping the retired measurement labelled in place rather than deleting it
+- [x] T005 Re-read the four amended documents end to end and confirm no reference to a 389-unit lead, a 0.08 coached gradient, or a 0.230 join survives anywhere in `specs/005-tutorial-and-boundary-rope/` except where explicitly labelled as a retired measurement
 
 **Checkpoint**: The design set agrees with itself and with `data/tuning.json`. No code
 has been written against a number that moved.
@@ -105,7 +105,7 @@ has been written against a number that moved.
 ## Phase 2: Foundational — the frozen-data gate, before anything can move it
 
 **Purpose**: FR-196 and FR-204 are the clauses that let this feature ship into a live
-draft. They are cheapest to enforce as a test that exists *before* the edits, so a
+draft. They are cheapest to enforce as a test that exists _before_ the edits, so a
 violation is caught by a red test rather than by a reviewer.
 
 **⚠️ BLOCKS every later phase.**
@@ -129,7 +129,7 @@ obstacles; the object is a rope, not a bough. Replay an identical course, seed a
 input sequence across the change and get an identical score.
 
 **Why this phase runs before US1**, against the spec's own priority order: the
-coached section's first object *is* a boundary rope, so US1's course data and its
+coached section's first object _is_ a boundary rope, so US1's course data and its
 e2e spec both depend on the rope existing. The spec's own text agrees — US2 is
 "shippable on its own", US1 is not shippable without it. This is a build-order
 choice, not a re-prioritisation, and both remain P1.
@@ -145,7 +145,7 @@ choice, not a re-prioritisation, and both remain P1.
 - [ ] T011 [US2] Replace `drawBough` with `drawBoundaryRope` in `src/render/draw.ts` (currently at line 687, called at line 927), keeping the signature `(ctx, x, width, bottom, thickness)` and the call site unchanged: a `magenta` twist over a `purple` core in the top ~4 units of the slab, triangular pennants hanging point-down through the remaining ~14 to the slab bottom, alternating `magenta`, `cyan`, `blue`, with an `orange` edge along the tips. Sag is drawn **inside the cord band only** — the tips stay flat at `bottom`, because a sag that carried them down would put the picture and the collision in disagreement, which is the one thing FR-200 forbids
 - [ ] T012 [US2] Rename the generator constant `BOUGH_W` to `ROPE_W` in `tools/gen-courses.ts:196` and at both use sites, so the data layer stops naming an object the game no longer draws
 - [ ] T013 [US2] Correct CV-14's prose in `src/course/validate.ts` to say "rope" rather than "bough" — the rule is about clearance and is unaffected; only its wording follows the style bible
-- [ ] T014 [P] [US2] Amend `assets/style-bible.md` TR-2 and TR-3 per FR-205: TR-2's `low` obstacle becomes a boundary rope, keeping **verbatim** the clause that is the contract — *the shape the player sees is the shape he has to get under*; TR-3's `orange` killing edge moves from a bough's underside to the pennant tips, with the rule itself unchanged. Check TR-9 and expect it to stand — it contrasts rocks with deadfall, and neither moves
+- [ ] T014 [P] [US2] Amend `assets/style-bible.md` TR-2 and TR-3 per FR-205: TR-2's `low` obstacle becomes a boundary rope, keeping **verbatim** the clause that is the contract — _the shape the player sees is the shape he has to get under_; TR-3's `orange` killing edge moves from a bough's underside to the pennant tips, with the rule itself unchanged. Check TR-9 and expect it to stand — it contrasts rocks with deadfall, and neither moves
 - [ ] T015 [US2] Run `npm run test:sim` and confirm **every golden is unchanged**, official and warm-up alike. At this point no course data has moved, so a moved hash means the re-skin reached the simulation and FR-204 is broken — stop and fix rather than re-baseline
 - [ ] T016 [US2] Run `grep -rn "bough" assets/style-bible.md src/` and confirm zero hits (quickstart §8)
 
@@ -189,7 +189,7 @@ into the warm-up terrain with no break, load, or second start.
 ### Verification for US1
 
 - [ ] T030 [US1] Run `npx vitest run tests/unit/coaching-cue.test.ts tests/unit/coaching-badge.test.ts` and confirm both pass
-- [ ] T031 [US1] Add `tests/e2e-build/coached-run.spec.ts` driving the **built artifact** at the production base path `/ski-game/` via `playwright.build.config.ts`: a cold load reaches the title screen; **DROP IN** → claim → **PRACTICE RUN** reaches the coached section; all four badges appear in order with the correct text; and the arrow glyphs render as **glyphs, not tofu** (FR-190b). A glyph failure means substituting a *drawn* mark — never falling back to the word "arrow", which is what these marks were chosen over
+- [ ] T031 [US1] Add `tests/e2e-build/coached-run.spec.ts` driving the **built artifact** at the production base path `/ski-game/` via `playwright.build.config.ts`: a cold load reaches the title screen; **DROP IN** → claim → **PRACTICE RUN** reaches the coached section; all four badges appear in order with the correct text; and the arrow glyphs render as **glyphs, not tofu** (FR-190b). A glyph failure means substituting a _drawn_ mark — never falling back to the word "arrow", which is what these marks were chosen over
 - [ ] T032 [US1] Run `npm run build && npm run test:build` and confirm the new spec passes
 
 **Checkpoint**: The coached section runs. **Phase 5 is now due — do not continue to
@@ -207,7 +207,7 @@ the one thing the course validator and both robot pilots hold no opinion about.
 
 - [ ] T033 Run `npm run build:artifact` to produce the single-file playable build
 - [ ] T034 Publish it and **name the link and the commit it was built from** in the handover, per Principle VIII
-- [ ] T035 Record the maintainer's findings against `specs/005-tutorial-and-boundary-rope/spec.md` **in his own words**, before changing any of these values again. The questions to put to him, in this order: (1) **Is 2.19 s enough to read the flip cue and act?** — that is what a *tucked* player gets at gradient 0.05, against the 2.5 s R2 set out to buy, and it is the one number no measurement closes; (2) does the rope read as a hazard from across the frame, or only once it is close; (3) does **STAY CROUCHED!** land, given the previous cue just taught the opposite; (4) does riding this three times per practice session become tedious, given FR-186a puts every player through it on all three runs
+- [ ] T035 Record the maintainer's findings against `specs/005-tutorial-and-boundary-rope/spec.md` **in his own words**, before changing any of these values again. The questions to put to him, in this order: (1) **Is 2.19 s enough to read the flip cue and act?** — that is what a _tucked_ player gets at gradient 0.05, against the 2.5 s R2 set out to buy, and it is the one number no measurement closes; (2) does the rope read as a hazard from across the frame, or only once it is close; (3) does **STAY CROUCHED!** land, given the previous cue just taught the opposite; (4) does riding this three times per practice session become tedious, given FR-186a puts every player through it on all three runs
 - [ ] T036 **Only if the player says the flip cue reads short**: apply research R7's recorded fallback of **30 units of lead**, which brings 0.05 to 2.5 s. This is a data change, not a mechanism, and it is deliberately **not** taken in advance of play — build the simple thing, ride it, then decide. Do not apply it speculatively
 
 **Checkpoint**: The player has judged the pacing. Any tuning that follows is evidence-led.
@@ -223,7 +223,7 @@ who has been coached is recorded anywhere.
 device and then on a second device, are identical from the start line to the end of
 the coached section.
 
-- [ ] T037 [P] [US3] Add a test asserting this feature introduced **no persistence whatsoever** (FR-186a): no new database column, no migration under `supabase/`, and no new `localStorage` or IndexedDB key. The existing `tests/unit/safe-storage.test.ts` and `tests/unit/no-verified-claims.test.ts` show the idiom. US3 is protected by the *absence* of a mechanism, which is exactly why it is worth asserting rather than assuming
+- [ ] T037 [P] [US3] Add a test asserting this feature introduced **no persistence whatsoever** (FR-186a): no new database column, no migration under `supabase/`, and no new `localStorage` or IndexedDB key. The existing `tests/unit/safe-storage.test.ts` and `tests/unit/no-verified-claims.test.ts` show the idiom. US3 is protected by the _absence_ of a mechanism, which is exactly why it is worth asserting rather than assuming
 - [ ] T038 [US3] Confirm by inspection that `cueAt` and the coached section read nothing per-player: the section is course data loaded once, the cue is a pure function of `x`, and there is no branch anywhere on runs used, device, or session
 
 **Checkpoint**: A record that could be wrong does not exist, so it cannot drop a player into the wrong terrain.
@@ -257,8 +257,8 @@ same change set. All are independent of each other.
 ## The one thing no task here can close
 
 **The open constitutional deviation on controls remapping.** The constitution's
-Technical Standards & Constraints states, without qualification, *"Controls MUST be
-fully remappable."* T039 strikes the spec requirement that implements it (FR-206).
+Technical Standards & Constraints states, without qualification, _"Controls MUST be
+fully remappable."_ T039 strikes the spec requirement that implements it (FR-206).
 Governance permits a documented deviation and one is recorded in
 [spec.md](./spec.md#constitutional-compliance-notes), owned by tucktuck22, with
 "before this feature merges" as its remediation date.
@@ -297,11 +297,11 @@ Phase 8 (Gate, T045-T048) ─┘  runs last
 
 ### Story dependencies
 
-| Story | Depends on                        | Why                                                        |
-| ----- | --------------------------------- | ---------------------------------------------------------- |
-| US2   | Phase 1, Phase 2                  | Needs the freeze gate; otherwise standalone and shippable  |
-| US1   | Phase 1, Phase 2, **US2**         | Its first coached object is a boundary rope                |
-| US3   | US1                               | Asserts a property of the coached section US1 builds       |
+| Story | Depends on                | Why                                                       |
+| ----- | ------------------------- | --------------------------------------------------------- |
+| US2   | Phase 1, Phase 2          | Needs the freeze gate; otherwise standalone and shippable |
+| US1   | Phase 1, Phase 2, **US2** | Its first coached object is a boundary rope               |
+| US3   | US1                       | Asserts a property of the coached section US1 builds      |
 
 ### Within-phase dependencies
 
@@ -313,12 +313,12 @@ Phase 8 (Gate, T045-T048) ─┘  runs last
 
 ### Parallel opportunities
 
-| Phase | Parallel set                 | Note                                        |
-| ----- | ---------------------------- | ------------------------------------------- |
-| 1     | T001, T002, T003, T004       | Four separate documents                     |
-| 3     | T008, T009, T010             | Test files; T014 is a fifth (style bible)   |
-| 4     | T022 ∥ T025                  | Cue tests and badge tests are separate files |
-| 6/7   | T037, T039, T040, T041, T042, T043 | All independent documents and files   |
+| Phase | Parallel set                       | Note                                         |
+| ----- | ---------------------------------- | -------------------------------------------- |
+| 1     | T001, T002, T003, T004             | Four separate documents                      |
+| 3     | T008, T009, T010                   | Test files; T014 is a fifth (style bible)    |
+| 4     | T022 ∥ T025                        | Cue tests and badge tests are separate files |
+| 6/7   | T037, T039, T040, T041, T042, T043 | All independent documents and files          |
 
 ---
 
@@ -334,7 +334,7 @@ to be wrong.
 **Then US1, then stop and hand it to the player.** Phase 5 is placed where it is
 deliberately. A coached section that reads well in a diff and badly at speed is the
 exact failure Principle VIII exists to catch, and 2.19 s of flip-cue reading time is a
-figure that is *close* to its target and therefore exactly the kind that only play can
+figure that is _close_ to its target and therefore exactly the kind that only play can
 settle. Everything after Phase 5 is documentation and gates, none of which teaches
 anybody anything about whether the feature works.
 

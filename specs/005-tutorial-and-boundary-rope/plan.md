@@ -133,15 +133,20 @@ _GATE: evaluated before Phase 0, re-evaluated after Phase 1._
 Principle I requires the governing spec to be amended in the same change set rather
 than worked around. Three requirements state mechanisms that measurement disproved:
 
-| Requirement | Measured problem                                               | Restate as                                                            |
-| ----------- | -------------------------------------------------------------- | --------------------------------------------------------------------- |
-| FR-187      | A gentler slope speeds horizontal progress up, not down (R1)   | Gentle gradient is for how it reads; reading time comes from FR-191   |
-| FR-191      | "While its object is visible" caps the key cue at 0.95 s (R2)  | Badge keys off skier x at a fixed lead; keep the one-at-a-time clause |
-| FR-192      | No legal clearance lets a passive player survive the rope (R3) | No dead ends + maximum forgiveness; the rope is allowed to bite       |
+| Requirement | Measured problem                                               | Status as of 2026-09-12                                                  |
+| ----------- | -------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| FR-187      | A gentler slope speeds horizontal progress up, not down (R1)   | **WITHDRAWN.** 006 made gradient the speed control. Ships as approved.   |
+| FR-191      | "While its object is visible" caps the key cue at 0.95 s (R2)  | **WITHDRAWN** under R7 option C. Ships as approved, bound to visibility. |
+| FR-192      | No legal clearance lets a passive player survive the rope (R3) | **STANDS.** No dead ends + maximum forgiveness; the rope may bite.       |
 
-None changes what the feature is. Each swaps a mechanism that does not work for one
-that does. **These amendments are a task, not an assumption** — the spec is edited
-before the code that depends on them is written.
+**Only FR-192's amendment survives.** The other two rows are kept as a record of what
+was found and why it no longer applies — see
+[research R7](./research.md#r7--what-feature-006-did-to-r1-and-r2). Do not re-apply
+them from the historical findings; a restated FR-187 would now be wrong in the
+opposite direction.
+
+None of this changes what the feature is. **The surviving amendment is a task, not an
+assumption** — the spec is edited before the code that depends on it is written.
 
 ### Determinism argument
 
@@ -236,34 +241,36 @@ Authored in `tools/gen-courses.ts` alongside the existing warm-up programme, bec
 prepending shifts every one of the warm-up's 18 existing features and the generator
 is where that arithmetic belongs (R4). Gradient programme: **0.05** held through the
 coached section (R7 option C, re-baselined 2026-09-12 — it was 0.08 while speed was
-pinned and gradient bought nothing), interpolated up to the warm-up's opening **0.230**
-across the join — which CV-10 would have passed even as a hard step (0.176 rad against
+pinned and gradient bought nothing), interpolated up to the warm-up's opening **0.26**
+across the join — which CV-10 would have passed even as a hard step (0.204 rad against
 a 0.42 tolerance), so the interpolation is belt and braces. CV-23's stall floor is
 0.036, so 0.05 is legal with room; it would not have been at 006's pre-shipping
 friction.
 
-Layout, derived from R2's lead table rather than chosen. **Re-baselined 2026-09-12**:
-R7 option C drops the lead to zero, so the spacing below is now set by legibility and
-by the CV rules alone, not by a reading-time budget. Re-derive it when this section is
-built:
+Layout. **Re-baselined 2026-09-12**: R7 option C withdraws the lead, so the object
+spacing is set by legibility and the CV rules alone, and each cue fires exactly when
+its object crests the frame edge — `object.x − PLAYER_LOOKAHEAD`, 213.333 units.
 
-| x         | What                  | Cue                       | Lead |
-| --------- | --------------------- | ------------------------- | ---- |
-| 0–300     | empty run-in          | —                         | —    |
-| 300       | cue fires             | **HOLD TO CROUCH!**       | 389  |
-| 689       | boundary rope, clr 15 |                           |      |
-| 900       | cue fires             | **RELEASE TO JUMP!**      | 389  |
-| 1289      | deadfall              |                           |      |
-| 1500      | cue fires             | **STAY CROUCHED!**        | 389  |
-| 1889      | small ramp            |                           |      |
-| 2100      | cue fires             | **SWIPE OR ← → TO FLIP!** | 389  |
-| 2489      | booter                |                           |      |
-| 2489–2900 | run-out and the join  | —                         | —    |
+| x         | What                  | Cue fires at       | Cue                       |
+| --------- | --------------------- | ------------------ | ------------------------- |
+| 0–300     | empty run-in          | —                  | —                         |
+| ~689      | boundary rope, clr 15 | rope.x − 213.3     | **HOLD TO CROUCH!**       |
+| ~1289     | deadfall              | deadfall.x − 213.3 | **RELEASE TO JUMP!**      |
+| ~1889     | small ramp            | ramp.x − 213.3     | **STAY CROUCHED!**        |
+| ~2489     | booter                | booter.x − 213.3   | **SWIPE OR ← → TO FLIP!** |
+| 2489–2900 | run-out and the join  | —                  | —                         |
 
-Exact positions are the generator's to settle against the validator; the **389-unit
-lead is the invariant**, and `tests/unit/coaching-cue.test.ts` asserts it rather than
-trusting the layout. CV-5's 140-unit minimum gap between low obstacles is satisfied
-many times over — there is only one low obstacle in the section.
+Exact positions are the generator's to settle against the validator. **The invariant
+is the binding, not a distance**: `tests/unit/coaching-cue.test.ts` asserts each cue's
+`from` against the generated course data, so an object that moves without its cue
+fails the build. CV-5's 140-unit minimum gap between low obstacles is satisfied many
+times over — there is only one low obstacle in the section.
+
+> The table above carried a **389-unit lead** column until 2026-09-12, and the sentence
+> under it called that lead "the invariant" two paragraphs after the same section had
+> already recorded it as withdrawn. R2 measured 389 when speed was pinned to
+> `baseSpeed`; R7 option C retired it. `contracts/coaching-cues.md` and
+> `data-model.md` carried the same stale figure and were reconciled in the same pass.
 
 The section is warm-up-only (FR-197) because it lives in `warmup.json` and
 `courseFor()` already routes official runs and post-commit free play to
