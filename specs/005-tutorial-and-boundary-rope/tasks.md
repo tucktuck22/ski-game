@@ -110,8 +110,8 @@ violation is caught by a red test rather than by a reviewer.
 
 **⚠️ BLOCKS every later phase.**
 
-- [ ] T006 Write `tests/unit/tuning-frozen.test.ts` asserting that `data/tuning.json` and `data/courses/official.json` are byte-identical to their committed versions (read the blob via `git show HEAD:<path>` or a checked-in digest — whichever the repo's existing test helpers make cleaner), with the failure message naming FR-196 and explaining that 005 may not move physics, tuning, scoring, or the official course
-- [ ] T007 Run `npx vitest run tests/unit/tuning-frozen.test.ts` and confirm it passes **now**, on unmodified data. A test that cannot go green before the feature starts cannot prove anything after it
+- [x] T006 Write `tests/unit/tuning-frozen.test.ts` asserting that `data/tuning.json` and `data/courses/official.json` are byte-identical to their committed versions (read the blob via `git show HEAD:<path>` or a checked-in digest — whichever the repo's existing test helpers make cleaner), with the failure message naming FR-196 and explaining that 005 may not move physics, tuning, scoring, or the official course
+- [x] T007 Run `npx vitest run tests/unit/tuning-frozen.test.ts` and confirm it passes **now**, on unmodified data. A test that cannot go green before the feature starts cannot prove anything after it
 
 **Checkpoint**: The freeze is mechanical. Any later task that touches tuning or the
 official course fails loudly.
