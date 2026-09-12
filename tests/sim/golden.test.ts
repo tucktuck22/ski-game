@@ -4,7 +4,7 @@ import { derive, initialState, step } from '../../src/sim/step.js';
 import { finalScore } from '../../src/sim/scoring.js';
 import type { RunInput } from '../../src/sim/types.js';
 import { official, warmup, scoring, tuning } from './fixtures.js';
-import { RELEASE_WITHIN, CHARGE_FROM } from './pilots.js';
+import { releaseWithin, chargeFrom } from './pilots.js';
 
 /**
  * Builds a deterministic input trace from a seed. Not random at run time —
@@ -46,7 +46,10 @@ function runCautious(course: typeof official, seed: number): ReturnType<typeof r
     // never has to happen inside a tunnel.
     const nextSolid = solids.find((o) => o.x + o.width > state.x);
     const gap = nextSolid ? nextSolid.x - state.x : Infinity;
-    const chargingJump = gap < CHARGE_FROM && gap > RELEASE_WITHIN;
+    // Speed-aware, for the reason set out on RELEASE_TICKS in pilots.ts: the
+    // jump window is a question about time, and the warm-up course now opens on
+    // terrain ridden at a fifth of the speed these were calibrated against.
+    const chargingJump = gap < chargeFrom(state.vx) && gap > releaseWithin(state.vx);
 
     const input: RunInput = { crouch: duckNow || chargingJump, rotate: 0 };
     state = step(state, input, course, tuning, scoring, derived);
