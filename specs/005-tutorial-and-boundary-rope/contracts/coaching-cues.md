@@ -140,9 +140,25 @@ singletons, so `!==` is a transition and never a false positive.
 | 1   | The callback fires only on a transition, never once per tick    | perf        |
 | 2   | Nothing is added to `RunState`; the state hash is unchanged     | II, FR-204  |
 | 3   | The cue is cleared on `destroy()`, so no badge outlives its run | II          |
-| 4   | Cue evaluation is skipped entirely on the official course       | FR-197      |
+| 4   | Cues appear in PRACTICE runs only — not official, not free play | FR-197      |
 
-Guarantee 4 needs no branch in this file: the cue table's intervals lie inside the
+~~Guarantee 4 needs no branch in this file: the cue table's intervals lie inside the
 coached section of the warm-up course (selection guarantee 6), and `courseFor()`
 routes official runs to `official.json`. A run on the official course simply never
-finds a cue. This is why the section is course data rather than a mode.
+finds a cue.~~
+
+**WRONG, and corrected 2026-09-12 during implementation.** `cueAt` is a function of
+**x alone** — it has no idea which course is loaded — and both courses start at x=0.
+An official run therefore rides straight through every cue interval and is coached
+through a scored descent. `tests/e2e-build/coached-run.spec.ts` caught a badge on the
+official course on its first run.
+
+Gating on the course would not have been enough either: `courseFor()` serves the
+**warm-up** course to free play until the official run is committed, and FR-197
+excludes free play by name as well as official runs.
+
+**Guarantee 4 is enforced by a branch on the RUN KIND**, in `src/main.ts`: the badge
+is mounted only when `kind === 'practice'`. That is what FR-197 actually says —
+"it is a property of practice" — rather than a consequence of the course routing.
+`tests/unit/coaching-cue.test.ts` asserts the falsehood above explicitly, so the
+elegant-sounding version cannot be restored by someone reading this paragraph.

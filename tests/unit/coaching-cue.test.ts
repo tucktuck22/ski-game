@@ -96,30 +96,41 @@ describe('cueAt is total, pure, and shows one cue at a time', () => {
     for (let x = COACH_SPAN; x < warmup.length; x += 50) expect(cueAt(x)).toBeNull();
   });
 
-  it('finds nothing anywhere on the official course (FR-197)', () => {
-    // The official course is longer than the coached section and shares no
-    // geometry with it, so a cue firing there would be a badge in a scored run.
+  it('FR-197: cueAt alone does NOT keep coaching out of a scored run', () => {
+    // Asserted as the FALSEHOOD it is, because the plan and the cue contract
+    // both claimed the opposite - "a run on the official course simply never
+    // finds a cue" - and code was written against that claim.
+    //
+    // cueAt is a function of x ALONE. It has no idea which course is loaded,
+    // and both courses start at x=0, so an official run rides straight through
+    // every cue interval. The build spec caught a badge being shown during a
+    // scored descent. The real gate is the RUN KIND, applied in main.ts, and it
+    // has to be: free play before the official run is committed is served the
+    // warm-up course by courseFor(), and FR-197 excludes free play by name too.
+    //
+    // This test exists so that nobody restores the elegant-sounding argument.
     const official = parseCourse(
       JSON.parse(
         readFileSync(new URL('../../data/courses/official.json', import.meta.url), 'utf8'),
       ),
     );
-    const fired = new Set<string>();
-    for (let x = 0; x < official.length; x += 10) {
+    const wouldFire = new Set<string>();
+    for (let x = 0; x < official.length; x += 5) {
       const cue = cueAt(x);
-      if (cue) fired.add(cue.id);
+      if (cue) wouldFire.add(cue.id);
     }
-    // Every coached x also exists on the official course, so this is not the
-    // claim that cueAt is silent there — it is the claim that the ROUTING keeps
-    // coaching out of scored runs, which is why the assertion lives with the
-    // course choice in game.ts rather than here. What IS asserted here: the
-    // official course carries no object at a coached position, so nothing on it
-    // could ever be mistaken for a lesson.
-    for (const cue of CUES) {
-      const objectAt = official.obstacles.some((o) => Math.abs(o.x - (cue.to - 0)) < 1);
-      expect(objectAt).toBe(false);
-    }
-    expect(fired.size).toBeLessThanOrEqual(CUES.length);
+    expect(
+      wouldFire.size,
+      'cueAt no longer fires on official-course positions; if that is deliberate, the ' +
+        'run-kind gate in main.ts may now be redundant - but check free play first',
+    ).toBe(CUES.length);
+  });
+
+  it('FR-197: the run-kind gate is the thing that actually holds', () => {
+    const main = readFileSync(new URL('../../src/main.ts', import.meta.url), 'utf8');
+    // The badge is mounted only for practice. Anything looser re-opens the
+    // defect above, including gating on the course rather than the kind.
+    expect(main).toContain("kind === 'practice' ? mountCoachingBadge");
   });
 });
 

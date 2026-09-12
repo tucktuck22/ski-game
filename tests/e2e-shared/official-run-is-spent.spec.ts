@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { fixture, mockPostgrest, takeOfficialRun, ENTRY_ID } from './postgrest.js';
+import {
+  fixture,
+  mockPostgrest,
+  takeOfficialRun,
+  ENTRY_ID,
+  SHIPPED_RULES_VERSION,
+} from './postgrest.js';
 
 /**
  * The reported bug, from both ends.
@@ -27,7 +33,10 @@ test.describe('an official run that has ended is spent, whatever the score does'
     await takeOfficialRun(page);
 
     expect(f.posts).toHaveLength(1);
-    expect(f.posts[0]).toMatchObject({ entry_id: ENTRY_ID, rules_version: '1.6.0' });
+    expect(f.posts[0]).toMatchObject({
+      entry_id: ENTRY_ID,
+      rules_version: SHIPPED_RULES_VERSION,
+    });
     expect(typeof f.posts[0]?.['score']).toBe('number');
 
     await expect(page.locator('#official')).toBeDisabled();

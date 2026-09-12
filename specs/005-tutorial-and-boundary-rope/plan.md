@@ -272,11 +272,20 @@ times over — there is only one low obstacle in the section.
 > `baseSpeed`; R7 option C retired it. `contracts/coaching-cues.md` and
 > `data-model.md` carried the same stale figure and were reconciled in the same pass.
 
-The section is warm-up-only (FR-197) because it lives in `warmup.json` and
-`courseFor()` already routes official runs and post-commit free play to
-`official.json`. No branching is needed to keep coaching out of scored runs; the
-existing course routing does it. This is the reason the coached section is course
-data rather than a mode.
+The coached _terrain_ is warm-up-only because it lives in `warmup.json`, which is
+the reason the section is course data rather than a mode — a practice run and a
+scored run load different geometry with no branch anywhere.
+
+~~No branching is needed to keep coaching out of scored runs; the existing course
+routing does it.~~ **WRONG, corrected 2026-09-12 during implementation.** That holds
+for the terrain and NOT for the badges. `cueAt` is a function of x alone, both
+courses start at x=0, and an official run rides straight through every cue interval:
+the build spec caught a coaching badge during a scored descent. Free play is worse
+still — `courseFor()` serves it the warm-up course until the official run commits,
+so it gets the coached terrain legitimately and must not get the badges.
+
+So FR-197 is enforced by one branch on the **run kind** in `src/main.ts`, which is
+what the requirement says in the first place: coaching "is a property of practice".
 
 ### 2. Coaching cues (FR-189 → FR-191, FR-194)
 

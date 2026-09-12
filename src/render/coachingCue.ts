@@ -70,11 +70,14 @@ export const CUES: readonly Cue[] = Object.freeze([
 /**
  * The cue legible at world x, or null.
  *
- * Total: any finite x is legal, including negative and past the finish. On the
- * official course it simply never finds one, because every interval lies inside
- * the warm-up's coached section and `courseFor()` routes scored runs elsewhere
- * — which is how FR-197 is satisfied without a branch anywhere (the coached
- * section is course data, not a mode).
+ * Total: any finite x is legal, including negative and past the finish.
+ *
+ * IT DOES NOT KNOW WHICH COURSE IS LOADED, AND THAT MATTERS. Both courses start
+ * at x=0, so an official run rides straight through every interval below and
+ * would be coached through a scored descent. FR-197 is enforced by a branch on
+ * the RUN KIND in `src/main.ts`, not here and not by the course routing — free
+ * play is served the warm-up course until the official run commits, so the
+ * course alone cannot answer the question either.
  */
 export function cueAt(x: number): Cue | null {
   for (const c of CUES) if (x >= c.from && x < c.to) return c;

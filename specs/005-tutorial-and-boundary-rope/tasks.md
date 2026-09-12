@@ -189,8 +189,8 @@ into the warm-up terrain with no break, load, or second start.
 ### Verification for US1
 
 - [x] T030 [US1] Run `npx vitest run tests/unit/coaching-cue.test.ts tests/unit/coaching-badge.test.ts` and confirm both pass
-- [ ] T031 [US1] Add `tests/e2e-build/coached-run.spec.ts` driving the **built artifact** at the production base path `/ski-game/` via `playwright.build.config.ts`: a cold load reaches the title screen; **DROP IN** → claim → **PRACTICE RUN** reaches the coached section; all four badges appear in order with the correct text; and the arrow glyphs render as **glyphs, not tofu** (FR-190b). A glyph failure means substituting a _drawn_ mark — never falling back to the word "arrow", which is what these marks were chosen over
-- [ ] T032 [US1] Run `npm run build && npm run test:build` and confirm the new spec passes
+- [x] T031 [US1] Add `tests/e2e-build/coached-run.spec.ts` driving the **built artifact** at the production base path `/ski-game/` via `playwright.build.config.ts`: a cold load reaches the title screen; **DROP IN** → claim → **PRACTICE RUN** reaches the coached section; all four badges appear in order with the correct text; and the arrow glyphs render as **glyphs, not tofu** (FR-190b). A glyph failure means substituting a _drawn_ mark — never falling back to the word "arrow", which is what these marks were chosen over
+- [x] T032 [US1] Run `npm run build && npm run test:build` and confirm the new spec passes
 
 **Checkpoint**: The coached section runs. **Phase 5 is now due — do not continue to
 Phase 6 first.**
