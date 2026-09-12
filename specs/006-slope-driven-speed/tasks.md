@@ -148,8 +148,8 @@ written down.
 
 - [x] T029 Run the full gate: `npm run lint && npm run build && npm run test && npm run test:build`
 - [x] T030 [P] Update `README.md` if any rules-version guidance it carries is now wrong — it already documents a rules-version mismatch incident and this feature deliberately causes one
-- [ ] T031 **Playtest (Principle VIII — binding, not optional).** Run `npm run build:artifact`, publish it, and name the link and the commit. Answer quickstart §7's four questions, above all whether the tuck still feels responsive at 60 ticks against today's 30. Record findings against `spec.md` in the player's own words before touching any of these values again
-- [ ] T032 Apply whatever the playtest says. Principle VIII: where the player and the measurement disagree, the player's reading wins and the measurement is what gets revised
+- [x] T031 **Playtest (Principle VIII — binding, not optional).** Run `npm run build:artifact`, publish it, and name the link and the commit. Answer quickstart §7's four questions, above all whether the tuck still feels responsive at 60 ticks against today's 30. Record findings against `spec.md` in the player's own words before touching any of these values again
+- [x] T032 Apply whatever the playtest says. Principle VIII: where the player and the measurement disagree, the player's reading wins and the measurement is what gets revised
 
 ---
 
@@ -227,3 +227,13 @@ US2 is tuning on top of it. Phase 5 proves it. Phase 6 ships it safely.
 - The two drag constants are **solved, not chosen** — if a task tempts you to hand-edit
   one, the anchor test in T008 is what will catch it
 - Goldens moving is success here. Goldens NOT moving is the defect
+
+---
+
+## Closed 2026-09-12
+
+T031 and T032 are recorded in
+[`spec.md` → Verdict](./spec.md#verdict-2026-09-11--2026-09-12-builds-e118322-and-57d034e).
+Accepted by the player in his own words; T032 produced one code change, CV-24, after
+he found a defect the gravity change had created in authored course geometry that no
+rule was checking.

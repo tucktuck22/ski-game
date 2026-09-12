@@ -18,33 +18,40 @@ no migration, and no browser-storage key.
 Not a new type. The coached section is the **opening 2,900 units of the existing
 warm-up course**, expressed entirely in structures `Course` already has.
 
-| Field           | Contribution                                                                |
-| --------------- | --------------------------------------------------------------------------- |
-| `terrain`       | Gradient 0.08 held to the join, then interpolated up to the warm-up's 0.230 |
-| `obstacles`     | One `low` at clearance 15; one `solid` (deadfall)                           |
-| `kickers`       | One small ramp; one booter                                                  |
-| `length`        | Warm-up's 3,200 grows by the coached section's span                         |
-| Everything else | Existing warm-up features, shifted right by the same span                   |
+| Field           | Contribution                                                                                                                     |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `terrain`       | Gradient 0.05 held to the join, then interpolated up to the warm-up's 0.230 (was 0.08 before the 2026-09-12 re-baseline; see R7) |
+| `obstacles`     | One `low` at clearance 15; one `solid` (deadfall)                                                                                |
+| `kickers`       | One small ramp; one booter                                                                                                       |
+| `length`        | Warm-up's 3,200 grows by the coached section's span                                                                              |
+| Everything else | Existing warm-up features, shifted right by the same span                                                                        |
 
 **Why no new type**: a coached section that the simulation could distinguish from
 ordinary terrain would be a second kind of course, and every validator rule would
-need to learn about it. Expressed as ordinary terrain, all eighteen CV rules apply
+need to learn about it. Expressed as ordinary terrain, every CV rule applies
 unchanged and the section is proven by the validator that already exists.
 
 **Validation** — the section must satisfy the whole of `validateCourse`, and these
 rules are the ones it is closest to:
 
-| Rule  | Constraint                                                  | How this section satisfies it                                    |
-| ----- | ----------------------------------------------------------- | ---------------------------------------------------------------- |
-| CV-1  | Terrain starts at x=0, x strictly increases, reaches finish | The coached section becomes the new x=0                          |
-| CV-2  | Gradient ≤ 1.732                                            | 0.08 is two orders inside it                                     |
-| CV-3  | `crouchHeight(9) < clearance < standHeight(16)`             | Rope at **15** — the most forgiving legal value (R3)             |
-| CV-4  | 140 clear units after every low obstacle                    | 600 units of clear run to the deadfall                           |
-| CV-5  | Low obstacles ≥ 140 apart                                   | Only one low obstacle in the section                             |
-| CV-7  | No `solid` overlapping a `low`                              | 600 units apart                                                  |
-| CV-10 | Adjacent segments within 0.42 rad                           | Join is 0.146 rad, and interpolated rather than stepped (R4)     |
-| CV-11 | A `solid` must be jumpable, not trapped in a release window | Deadfall sits 600 past the rope, far outside its 140-unit window |
-| CV-15 | Ramps need clear air and must not overlap deadfall          | 600 units clear either side of each kicker                       |
+| Rule  | Constraint                                                  | How this section satisfies it                                                                                                                                                        |
+| ----- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| CV-1  | Terrain starts at x=0, x strictly increases, reaches finish | The coached section becomes the new x=0                                                                                                                                              |
+| CV-2  | Gradient ≤ 1.732                                            | 0.05 is two orders inside it                                                                                                                                                         |
+| CV-3  | `crouchHeight(9) < clearance < standHeight(16)`             | Rope at **15** — the most forgiving legal value (R3)                                                                                                                                 |
+| CV-4  | 140 clear units after every low obstacle                    | 600 units of clear run to the deadfall                                                                                                                                               |
+| CV-5  | Low obstacles ≥ 140 apart                                   | Only one low obstacle in the section                                                                                                                                                 |
+| CV-7  | No `solid` overlapping a `low`                              | 600 units apart                                                                                                                                                                      |
+| CV-10 | Adjacent segments within 0.42 rad                           | Join is 0.176 rad, and interpolated rather than stepped (R4)                                                                                                                         |
+| CV-11 | A `solid` must be jumpable, not trapped in a release window | Deadfall sits 600 past the rope, far outside its 140-unit window                                                                                                                     |
+| CV-15 | Ramps need clear air and must not overlap deadfall          | 600 units clear either side of each kicker                                                                                                                                           |
+| CV-23 | Gradient ≥ `slopeFriction * 3` = **0.036**                  | **0.05 clears it — the binding rule on this section.** Added by 006 after this table was written; at 006's pre-shipping friction the floor was 0.06 and 0.05 would have been illegal |
+
+**CV-24** (nothing between a shelf's end and one lookahead past a jumped lip) does not
+bind: the coached section carries no ledge. It binds on the warm-up features _after_
+the join, which are shifted wholesale rather than re-authored, so the relation between
+the warm-up's shelf and what follows it is preserved by construction. The validator
+will say so either way.
 
 **State transitions**: none. Course data is static, loaded once, never mutated.
 

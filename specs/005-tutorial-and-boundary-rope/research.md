@@ -11,29 +11,36 @@ Three of these findings contradict requirements in the approved spec. Principle 
 requires the spec to be amended in the same change set rather than quietly worked
 around, so each names the amendment it forces.
 
-> **Feature 006 changes the ground under R1 and R2.**
-> [`specs/006-slope-driven-speed/`](../006-slope-driven-speed/spec.md) replaces the
+> **Feature 006 has shipped, and it changed the ground under R1 and R2.**
+> Re-baselined 2026-09-12 against the constants as shipped (`gravity` 0.16,
+> `slopeFriction` 0.012, standing drag 0.00546494, tucked drag 0.00230894).
+> [`specs/006-slope-driven-speed/`](../006-slope-driven-speed/spec.md) replaced the
 > speed model these two findings measured. Both were correct about a game where speed
-> was pinned to a `baseSpeed` floor; neither survives a game where the mountain sets
-> the speed. R1 **reverses** and R2's constraint **lifts**. Each is flagged in place
-> below, and the consequences are worked through in
-> [R7](#r7--what-feature-006-does-to-r1-and-r2). If 006 ships first, the FR-187 and
-> FR-191 amendments R1 and R2 force should be reconsidered rather than carried in out
-> of habit.
+> was pinned to a `baseSpeed` floor — a tuning key that **no longer exists**. R1
+> **reverses outright**; R2's constraint **eases but does not lift**. Each is flagged
+> in place below and resolved in [R7](#r7--what-feature-006-did-to-r1-and-r2), which
+> is now a decision rather than a deferral: the ordering question it used to wait on
+> was settled by 006 shipping first.
+>
+> R3 through R6 are untouched. None of them measures speed.
 
 ---
 
 ## R1 — A gentler slope does not slow the player down. It speeds him up.
 
-> **Superseded if feature 006 ships.** Under 006's model a gentler slope genuinely is
-> slower — the coached section at gradient 0.08 runs at 1.23 rather than 2.60. This
-> finding is true of the game as it stands today and false of the game 006 delivers.
+> **SUPERSEDED — 006 shipped.** Under the shipped model a gentler slope genuinely is
+> slower: the coached section at gradient 0.08 runs at **1.409** standing, against the
+> 2.60 it was pinned to here. This finding is a true record of the game as it stood on
+> 2026-09-09 and false of the game today. The table and rationale below are kept
+> because deleting a measurement makes the next reader re-take it; read them as
+> history. **The amendment R1 forces is withdrawn** — see R7.
 
 **Decision**: The coached section's gentle gradient is retained for what it _looks_
 like, not for what it does to speed. Reading time is bought by **spacing**, and by
 spacing alone.
 
-**Measured**. Horizontal distance covered in 60 ticks, from a standing start:
+**Measured 2026-09-09, under the retired model.** Horizontal distance covered in 60
+ticks, from a standing start:
 
 | Gradient | Angle | Coasting | Speed | Tucking | Speed |
 | -------- | ----- | -------- | ----- | ------- | ----- |
@@ -44,8 +51,9 @@ spacing alone.
 | 0.30     | 16.7° | 150.1    | 2.611 | 223.7   | 4.200 |
 | 0.45     | 24.2° | 143.2    | 2.616 | 214.2   | 4.200 |
 
-**Rationale**: `resolveGrounded` (src/sim/physics.ts:160) ends with
-`clamp(next, tuning.baseSpeed, tuning.tuckSpeedMax)`. Speed along the slope is pinned
+**Rationale** _(describes the retired model; `baseSpeed`, `tuckSpeedMax` and
+`slopeAccelFactor` were all deleted from `data/tuning.json` by 006)_:
+`resolveGrounded` ended with `clamp(next, tuning.baseSpeed, tuning.tuckSpeedMax)`. Speed along the slope is pinned
 to a floor of 2.6 whatever the terrain does; the slope term contributes
 `slopeAccelFactor * uy` = at most 0.04, which the clamp absorbs. What the gradient
 _does_ change is how that fixed speed is split between the axes: a steeper slope
@@ -65,13 +73,22 @@ real time, and is rejected outright — `baseSpeed` is a tuning value, FR-196 fo
 touching it, and a per-section speed override would put a second speed rule into a
 simulation whose determinism argument depends on there being one.
 
+> The determinism argument survives 006 intact and is the reason a per-section speed
+> override is still refused today. What changed is that the lever is no longer needed:
+> **gradient is now the speed control**, which is what this alternative was reaching
+> for and could not have.
+
 ---
 
 ## R2 — The frame caps on-screen reading time at 1.38 seconds, and 0.95 s where it matters most.
 
-> **Constraint lifts if feature 006 ships.** The 213.3-unit lookahead does not change,
-> but the player crosses it more slowly on gentle terrain: 2.90 s rather than 1.38 s.
-> The 389-unit lead below is a workaround for a budget 006 removes.
+> **EASED, NOT LIFTED — 006 shipped.** The 213.3-unit lookahead does not change; the
+> player crosses it more slowly on gentle terrain. Reading time at gradient 0.08 goes
+> **1.38 s → 2.52 s standing and 0.95 s → 1.64 s tucked** — roughly double in both
+> postures, and still short of the 2.5 s this finding set out to buy for the cue that
+> is read tucked. **The 389-unit lead shrinks to 112; it does not disappear.** An
+> earlier note in 006's spec claimed this constraint lifted outright. It compared the
+> standing figure against a tucked requirement and was wrong. See R7.
 
 **Decision**: Coaching badges key off the **skier's x position with a lead
 distance**, not off their object being visible. The badge is up before its object
@@ -82,11 +99,16 @@ crests the frame edge.
 src/render/draw.ts:36,49; the transform is `terrainYAt(course.terrain, cam.x + px)`).
 Ticks from an object entering the right edge to reaching the skier:
 
-| Gradient | Coasting    | Tucking     |
-| -------- | ----------- | ----------- |
-| 0.05     | 83 (1.38 s) | 57 (0.95 s) |
-| 0.08     | 83 (1.38 s) | 57 (0.95 s) |
-| 0.23     | 84 (1.40 s) | 57 (0.95 s) |
+| Gradient | Coasting, 2026-09-09 | Tucking, 2026-09-09 | **Coasting, as shipped** | **Tucking, as shipped** |
+| -------- | -------------------- | ------------------- | ------------------------ | ----------------------- |
+| 0.05     | 83 (1.38 s)          | 57 (0.95 s)         | **202 (3.37 s)**         | **132 (2.19 s)**        |
+| 0.08     | 83 (1.38 s)          | 57 (0.95 s)         | **151 (2.52 s)**         | **98 (1.64 s)**         |
+| 0.23     | 84 (1.40 s)          | 57 (0.95 s)         | **86 (1.43 s)**          | **56 (0.93 s)**         |
+
+The 2026-09-09 columns barely vary with gradient because speed was pinned; the shipped
+columns vary by a factor of three across the same range, which is feature 006 in one
+table. Note the last row: at the warm-up course's own 0.23 pitch the numbers are
+_unchanged_ — 006 did not make the game slower, it made the gentle parts slow.
 
 **Rationale**: A badge bound to its object's visibility gets 1.38 seconds at the
 absolute best. The flip cue is the longest string in the feature (**SWIPE OR ← →
@@ -102,12 +124,15 @@ desktop. Widening it to buy tutorial reading time would trade SC-006 for it.
 
 Lead distance is the only lever left, and it is free:
 
-| Reading time | Lead distance (coasting) |
-| ------------ | ------------------------ |
-| 1.5 s        | 234 units                |
-| 2.0 s        | 311 units                |
-| 2.5 s        | 389 units                |
-| 3.0 s        | 467 units                |
+| Reading time | Lead, 2026-09-09 (coasting) | **Lead as shipped, tucked at 0.08**      |
+| ------------ | --------------------------- | ---------------------------------------- |
+| 1.5 s        | 234 units                   | **none needed** (1.64 s is already more) |
+| 2.0 s        | 311 units                   | **47 units**                             |
+| 2.5 s        | 389 units                   | **112 units**                            |
+| 3.0 s        | 467 units                   | **177 units**                            |
+
+The shipped column is computed tucked, because that is the posture the cue this
+finding exists for is read in.
 
 **Amendment forced**: FR-191 says a badge _"MUST appear while its object is visible
 and before the player reaches it"_. Keeping that clause caps every cue at 1.38 s. It
@@ -121,6 +146,12 @@ time, cleared once its object is behind him.
 that wording deliberately and FR-190 fixes it verbatim; (b) holding the badge after
 the object passes — rejected, it would overlap the next cue and break the one-at-a-
 time rule; (c) slowing the player — see R1, not available.
+
+> **(c) is available now.** Gradient sets speed under 006, and CV-23's stall floor fell
+> from the 0.06 it would have been at the old friction to **0.036** at today's 0.012,
+> so terrain gentler than this finding could contemplate is legal. Easing the coached
+> section from 0.08 to 0.05 buys the tucked cue 2.19 s with no lead machinery at all.
+> R7 weighs that against the lead.
 
 ---
 
@@ -257,43 +288,90 @@ score. One container, two slots.
 
 ---
 
-## R7 — What feature 006 does to R1 and R2
+## R7 — What feature 006 did to R1 and R2
 
-**Measured** with 006's model and constants (friction 0.02, standing drag 0.01270),
-at the coached section's gradient of 0.08:
+**Re-measured 2026-09-12**, after 006 shipped, against `data/tuning.json` as it
+stands: `gravity` 0.16, `slopeFriction` 0.012, standing drag 0.00546494, tucked drag
+0.00230894. The figures this section carried before that date were measured against
+friction 0.02 and standing drag 0.01270 and are superseded — both the friction
+reduction and the gravity/drag halving landed afterwards.
 
-| Quantity                                | Today  | Under feature 006 |
-| --------------------------------------- | ------ | ----------------- |
-| Standing speed in the coached section   | 2.60   | **1.23**          |
-| Horizontal progress (units/sec)         | ~156   | **~74**           |
-| On-screen reading time over 213.3 units | 1.38 s | **2.90 s**        |
+| Quantity at gradient 0.08               | 2026-09-09 | **As shipped** |
+| --------------------------------------- | ---------- | -------------- |
+| Standing speed in the coached section   | 2.60       | **1.409**      |
+| Tucked speed in the coached section     | 4.20       | **2.167**      |
+| Horizontal progress, standing (units/s) | ~156       | **~84**        |
+| Reading time over 213.3 units, standing | 1.38 s     | **2.52 s**     |
+| Reading time over 213.3 units, tucked   | 0.95 s     | **1.64 s**     |
 
-**Consequence for R1**: it reverses. The gentle gradient stops being cosmetic and
-starts doing exactly what FR-187 originally claimed — a beginner slope that is
-actually slower. The amendment R1 forces ("the gentle gradient is for how it reads,
-not what it does") becomes wrong in the opposite direction.
+**Consequence for R1: it reverses, and FR-187's amendment is withdrawn.** The gentle
+gradient stops being cosmetic and starts doing exactly what FR-187 originally claimed
+— a beginner slope that is actually slower. FR-187 should ship **as written in the
+approved spec**. R1's replacement text ("the gentle gradient is for how it reads, not
+what it does") would now be wrong in the opposite direction, and must not be carried
+in out of habit.
 
-**Consequence for R2**: the constraint lifts. With 2.90 s available, FR-191 as
-**originally written** — the badge appears while its object is visible — is
-comfortable, and the 389-unit lead is unnecessary machinery.
+**Consequence for R2: it eases, and FR-191's amendment shrinks rather than vanishing.**
+Reading time roughly doubles in both postures. But the cue R2 exists for — the flip
+cue, the longest string in the feature — is read by a player who is **tucked**,
+because FR-190's previous lesson told him to stay crouched. That cue gets **1.64 s**,
+not the 2.52 s a standing reading suggests. R2 set out to buy it 2.5 s.
 
-**Decision**: do not resolve this here. It depends on shipping order, and the ordering
-depends on a decision the organizer has not yet made (feature 006 destroys the scores
-in a live draft). Both orderings are viable and both are set out in
-[006's spec](../006-slope-driven-speed/spec.md#interaction-with-feature-005). What
-this document must not do is let R1 and R2 be read as timeless when they are
-measurements of a model that is under active revision.
+### The decision R7 used to defer
+
+This section previously refused to resolve, because the answer depended on shipping
+order and the organizer had not chosen one. **He has: 006 shipped first, on
+2026-09-11.** So this is now a live design choice with three answers.
+
+| Option | Coached gradient  | Lead machinery | Flip cue, tucked | What it costs                                                      |
+| ------ | ----------------- | -------------- | ---------------- | ------------------------------------------------------------------ |
+| **A**  | 0.08 (as planned) | none           | 1.64 s           | The shortest budget of the three, for the hardest cue              |
+| **B**  | 0.08 (as planned) | **112 units**  | 2.50 s           | Keeps FR-191's amendment and its mechanism, 3.5x smaller than 389  |
+| **C**  | **0.05**          | none           | 2.19 s           | A longer section in wall-clock time; gradient nearer CV-23's floor |
+
+**Recommended: C.** It is the only one that lets **both** amendments be withdrawn and
+both requirements ship as the maintainer originally wrote them — a beginner slope that
+is genuinely slower (FR-187), and a badge bound to its object's visibility (FR-191).
+That second point matters beyond elegance: when asked how the badge should be
+triggered, the maintainer chose object-visibility explicitly, "it is simpler and
+harder to break". Option C is what makes that choice affordable.
+
+**C is legal, and already measured.** CV-23's stall floor is `slopeFriction * 3` =
+**0.036** today, against the 0.06 it would have been at the old friction, so 0.05
+clears it — gentler terrain is authorable now than when R2 was written, which is a
+second thing 006 handed this feature. The join is unaffected: R4 already measured
+0.05 → 0.23 at 0.176 rad against CV-10's 0.42 tolerance.
+
+**What C does not settle.** 2.19 s is close to R2's 2.5 s target but under it, and
+reading time is a feel question that no measurement closes — Principle VIII. If the
+flip cue reads short in play, **30 units of lead** brings 0.05 to 2.5 s. That is a
+data change, not a mechanism, and it is the right order to discover it in: build the
+simple thing, ride it, add the lead only if the player asks for it.
+
+**Re-run before building.** These are computed from `terminalSpeedAtGradient` in
+`src/sim/slopeResponse.ts` and `PLAYER_LOOKAHEAD` in `src/render/stage.ts`; the probe
+is in [quickstart.md](./quickstart.md). If `tuning.json` moves again before 005 is
+built, this table is stale again — which is the lesson of this whole section.
 
 ---
 
 ## Summary of forced spec amendments
 
-| Requirement | Problem                                                        | Restate as                                                            |
-| ----------- | -------------------------------------------------------------- | --------------------------------------------------------------------- |
-| FR-187      | Gentle slope does not slow the player; it speeds him up (R1)   | Gentle gradient is for how it reads; reading time comes from lead     |
-| FR-191      | "While its object is visible" caps the key cue at 0.95 s (R2)  | Badge keys off skier x at a fixed lead; keep the one-at-a-time clause |
-| FR-192      | No legal clearance lets a passive player survive the rope (R3) | No dead ends + max forgiveness; the rope is allowed to bite           |
+**Two of the three are withdrawn.** Re-baselined 2026-09-12: feature 006 shipped and
+removed the problems R1 and R2 found, so the amendments they forced would now be
+amendments away from a correct requirement. Only R3's survives.
 
-None of these changes what the feature _is_. Each replaces a mechanism that does not
-work with one that does, and all three were found by measuring rather than by
-building and playing — which is the cheap end of Principle VIII.
+| Requirement | Problem when found                                             | Status as of 2026-09-12                                                      |
+| ----------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| FR-187      | Gentle slope does not slow the player; it speeds him up (R1)   | **WITHDRAWN.** 006 made gradient the speed control. Ship FR-187 as approved. |
+| FR-191      | "While its object is visible" caps the key cue at 0.95 s (R2)  | **WITHDRAWN under R7's option C**, which buys 2.19 s from gradient instead.  |
+| FR-192      | No legal clearance lets a passive player survive the rope (R3) | **STANDS.** No dead ends + max forgiveness; the rope is allowed to bite.     |
+
+FR-192 is untouched because R3 measures collision geometry, not speed, and 006 changed
+no clearance.
+
+None of this changes what the feature _is_. Two mechanisms that did not work were
+found by measuring rather than by building and playing — the cheap end of Principle
+VIII — and then a physics change made both unnecessary before either was built, which
+is the cheaper end still. The record of the retired measurements is kept in place
+rather than deleted, so the next reader does not re-take them.

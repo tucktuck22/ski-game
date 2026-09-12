@@ -82,22 +82,31 @@ player experiences as "this pitch is worth about this much speed".
 
 ### Measured behaviour
 
-Constants chosen so that **gradient 0.30, the sustained pitch of both courses, gives
-exactly today's 2.60 standing and 4.20 tucked.** The middle of the game is therefore
-unchanged and only the ends move:
+Constants were first chosen so that **gradient 0.30, the sustained pitch of both
+courses, gave exactly the old 2.60 standing and 4.20 tucked** — the middle of the game
+unchanged, only the ends moving. **That anchor was deliberately given up during the
+playtest.** The player asked for less friction outright — _"Snow is slippery and you
+can still maintain speed at a significant level going from very very steep to flat"_ —
+and `slopeFriction` came down 0.02 → 0.012, which lifts the whole curve. The gradient
+_spread_ is what the feature was for, and it survived the move.
 
-| Gradient | Angle | Standing | Tucked   | Today       |
-| -------- | ----- | -------- | -------- | ----------- |
-| 0.08     | 4.6°  | 1.23     | 1.98     | 2.60 / 4.20 |
-| 0.12     | 6.8°  | 1.58     | 2.56     | 2.60 / 4.20 |
-| 0.20     | 11.3° | 2.11     | 3.41     | 2.60 / 4.20 |
-| 0.30     | 16.7° | **2.60** | **4.20** | 2.60 / 4.20 |
-| 0.40     | 21.8° | 2.98     | 4.82     | 2.60 / 4.20 |
-| 0.52     | 27.5° | 3.34     | 5.40     | 2.60 / 4.20 |
-| 0.64     | 32.8° | 3.64     | 5.87     | 2.60 / 4.20 |
+Re-measured 2026-09-12 against `data/tuning.json` as shipped. The planning figures are
+kept alongside so the drift is visible rather than quietly overwritten:
 
-Nearly a threefold spread from the gentlest slope to the steepest, against
-today's 0.6%.
+| Gradient | Angle | Standing (planned → **shipped**) | Tucked (planned → **shipped**) | Before 006  |
+| -------- | ----- | -------------------------------- | ------------------------------ | ----------- |
+| 0.08     | 4.6°  | 1.23 → **1.41**                  | 1.98 → **2.17**                | 2.60 / 4.20 |
+| 0.12     | 6.8°  | 1.58 → **1.77**                  | 2.56 → **2.73**                | 2.60 / 4.20 |
+| 0.20     | 11.3° | 2.11 → **2.32**                  | 3.41 → **3.57**                | 2.60 / 4.20 |
+| 0.30     | 16.7° | 2.60 → **2.84**                  | 4.20 → **4.37**                | 2.60 / 4.20 |
+| 0.40     | 21.8° | 2.98 → **3.25**                  | 4.82 → **5.00**                | 2.60 / 4.20 |
+| 0.52     | 27.5° | 3.34 → **3.63**                  | 5.40 → **5.59**                | 2.60 / 4.20 |
+| 0.64     | 32.6° | 3.64 → **3.94**                  | 5.87 → **6.05**                | 2.60 / 4.20 |
+
+A **2.8-fold** spread from the gentlest slope to the steepest, against the old 0.6%.
+Nothing above depends on `gravity`: halving it halved both drag coefficients with it,
+which leaves every terminal speed exactly where it was. Only the time taken to reach
+them changed.
 
 ## User Scenarios & Testing _(mandatory)_
 
@@ -635,30 +644,90 @@ a hunch.
 gain, against 1.0 before. Doubling the momentum and doubling the tuck's response
 time are the same number moving.
 
+### Verdict (2026-09-11 → 2026-09-12, builds e118322 and 57d034e)
+
+Artifact: <https://claude.ai/code/artifact/e9409583-a23e-4d49-8162-3abd58f6953a>,
+Versions 6 and 7.
+
+**Accepted.** In the player's words, on the halved-gravity build: _"Yep, that looks
+great. Feels a lot better."_ And after the follow-up fix: _"That felt wonderful."_
+
+Quickstart §7 asked four questions. Two were answered directly over the six rounds of
+play this section records, and two were answered by acceptance rather than by being
+put to the player — recorded that way rather than written up as though they had been
+asked, because the difference matters to whoever reads this next.
+
+| §7 question                              | Answer                                                                                                                                                                                                                                                                                 |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Does the tuck still feel responsive?  | **Not directly asked.** The flagged biggest risk in the feature, and it never came up — across two rounds of play at 122 ticks the player raised the booters, the flip, the camera and a bough, and never the tuck. Absence of complaint, not a verdict. **Still the thing to watch.** |
+| 2. The steep pitch before the big kicker | **Answered, twice.** First _"you go from very fast on the steep to extremely slow as you go into the transition... It should be a conversion of that speed into a massive jump."_ That is F1/F2 above. After the re-pace and the gravity work: accepted.                               |
+| 3. The gentle run-out at x=7,852         | **Answered inside the same complaint.** The bogging-down reading was the one the player had, and it was the momentum time constant rather than the run-out's strength. Fixed by lengthening τ, not by strengthening the booter.                                                        |
+| 4. Does the mountain read?               | **Answered early and positively** — _"I think the overall speed is feeling better"_ — before the momentum defect was separated out from it. SC-074 rests on this.                                                                                                                      |
+
+**T032 produced one code change, and it was not a tuning value.** The last round of
+play reported a defect the physics change had created somewhere nobody was looking:
+
+> _"We need to make sure that there are no tree branches immediately after coming off
+> a second ledge. Currently, there is a tree branch right in the trajectory of jumping
+> off the ledge, which we should be encouraging, as it's a great way for players to
+> spin and get extra points. It being right in the path of that feels cheap and
+> unfair."_
+
+Riding off the end of a shelf threw the player 123 units at the old gravity and throws
+him **306** now. Two boughs authored against the old flight stood in the new one. The
+unfairness is specifically a **visibility** one: he commits at the lip, and the bough
+does not enter the 213-unit frame until he is already airborne and spinning.
+
+Fixed in `57d034e` as **CV-24** — the clear zone after a shelf is the flight plus one
+lookahead, so nothing may be authored until he is back on his skis with clear snow
+ahead. Two boughs moved (2,600 → 3,020 and 7,000 → 7,300), and
+`tests/sim/ledge-exit.test.ts` flies every shelf on both courses to prove the closed
+form CV-24 uses still over-estimates the real flight.
+
+**The wider lesson, recorded because it will recur**: halving gravity changed the
+_reach_ of everything that leaves the ground, and the course had geometry authored
+against the old reach in places no rule was checking. CV-21 covered ramps. Nothing
+covered shelves. A physics change is not finished when the physics tests pass — every
+authored distance that was solved against the old constants is a candidate defect, and
+the player found this one before any test did.
+
 ## Interaction with feature 005
 
-The two features touch and the order matters.
+**Settled: this feature shipped first.** The ordering question this section used to
+leave open was decided on 2026-09-11 and the table of two orderings is gone with it.
+What follows is what 005 inherits.
 
 **This feature repairs two of 005's findings.** Research R1 measured that a gentler
-slope makes the player cross the x-axis ~9% _faster_, because speed was pinned. Under
-this feature that reverses and becomes true in the direction 005 always wanted: the
-coached section at gradient 0.08 runs at 1.23 rather than 2.60, which takes on-screen
-reading time from 1.38 s to **2.90 s**.
+slope makes the player cross the x-axis ~9% _faster_, because speed was pinned to a
+`baseSpeed` floor. Under this feature that reverses and becomes true in the direction
+005 always wanted.
 
-The knock-on is that 005's FR-191 workaround becomes unnecessary. Its 389-unit lead
-was forced by R2's finding that the frame could not give a cue more than 1.38 s. With
-2.90 s available, a badge bound to its object's visibility — FR-191 exactly as
-originally written — is comfortable. **If both features ship, 005's FR-191 amendment
-should be reconsidered rather than carried in out of habit.**
+Re-measured 2026-09-12 against the constants as shipped (`gravity` 0.16,
+`slopeFriction` 0.012, standing drag 0.00546494), at the coached section's gradient of
+0.08:
 
-**Two orderings, both viable:**
+| Quantity                                  | Before 006 | **As shipped** |
+| ----------------------------------------- | ---------- | -------------- |
+| Standing speed in the coached section     | 2.60       | **1.409**      |
+| Horizontal progress, standing (units/s)   | ~156       | **~84**        |
+| Reading time over 213.3 units, standing   | 1.38 s     | **2.52 s**     |
+| Reading time over 213.3 units, **tucked** | 0.95 s     | **1.64 s**     |
 
-| Order        | Consequence                                                                                                                                        |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 005 then 006 | 005 ships mid-draft safely. Its 389-unit lead is built, then becomes redundant and wants removing. Two playtests.                                  |
-| 006 then 005 | One physics playtest, then 005 built against the speeds it will actually ship with, and FR-191 kept as written. Requires the reset decision first. |
+**An earlier draft of this section was wrong, and 005 must not inherit the error.** It
+quoted 1.23 and 2.90 s and concluded that FR-191 as originally written was
+"comfortable". Two things were off. The constants moved underneath it — the friction
+reduction and the gravity/drag halving both landed after it was written. And it
+compared the wrong pair of numbers: the cue that R2 called a coin flip is the flip cue,
+which is read by a player who is **tucked**, because the previous badge told him to
+stay crouched. The honest figure for that cue is **1.64 s**, not 2.90 s.
 
-**Recommended: 006 then 005**, if the reset is acceptable. It builds each thing once
-against the numbers it will really run on. If the reset is not acceptable yet, 005
-ships alone and unchanged, and this feature waits — which is exactly why 005 was
-scoped the way it was.
+So 005's FR-191 amendment gets **smaller rather than withdrawn**. Reading time
+roughly doubles in both postures, which is the real win; the lead distance needed to
+put the flip cue at 2.5 s falls from **389 units to 112**. Whether to keep 112 units
+of lead, drop the lead and accept 1.64 s, or ease the coached gradient (CV-23's floor
+is now 0.036, not the 0.06 it was at the old friction, so gentler terrain is legal
+than when R2 was written) is a 005 decision, laid out in that feature's R7.
+
+**What 005 still gets for free**: no `rulesVersion` movement. FR-196 holds exactly as
+written — 005 touches the warm-up course, the renderer and the HUD, and none of those
+is compared by the database trigger. Shipping 005 mid-draft costs no second reset.

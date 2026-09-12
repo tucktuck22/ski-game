@@ -13,23 +13,35 @@ overhanging bough to a pennanted ski boundary rope.
 The technical shape is decided by three measurements, all of which contradicted an
 approved requirement. They are set out in [research.md](./research.md); in short:
 
-- **Slope does not slow the player** (R1). Speed is clamped to a floor of
+- ~~**Slope does not slow the player** (R1). Speed is clamped to a floor of
   `baseSpeed` whatever the terrain does, so a gentler gradient moves the player
-  across the x-axis ~9% **faster**. Reading time is bought by spacing, full stop.
-- **The frame caps on-screen reading at 1.38 s, and 0.95 s for the flip cue** (R2),
+  across the x-axis ~9% **faster**. Reading time is bought by spacing, full stop.~~
+  **WITHDRAWN 2026-09-12 — feature 006 shipped.** `baseSpeed` no longer exists and
+  gradient is now the speed control. A gentler slope genuinely is slower: 1.409
+  standing at 0.08, against the 2.60 it was pinned to. FR-187 ships as approved.
+- ~~**The frame caps on-screen reading at 1.38 s, and 0.95 s for the flip cue** (R2),
   because lookahead is a fixed 213.3 world units and the player is tucked when he
   meets the big kicker. So a badge cannot be bound to its object's visibility; it is
-  bound to the skier's x at a **389-unit lead** (2.5 s).
+  bound to the skier's x at a **389-unit lead** (2.5 s).~~ **EASED 2026-09-12.** The
+  lookahead is unchanged and the player still meets the kicker tucked, but he crosses
+  the frame at half the speed: the flip cue goes 0.95 s → **1.64 s** at 0.08, and
+  **2.19 s** at 0.05. R7 recommends easing the gradient to 0.05 and binding the badge
+  to its object's visibility after all — FR-191 as approved, no lead machinery.
 - **No legal clearance lets a passive player survive the rope** (R3). CV-3 requires
   `9 < clearance < 16` by construction. The rope is authored at **15**, the most
   forgiving legal value, and it is allowed to bite.
 
-**Feature 006 changes two of those three.** The physics change specified in
-[`specs/006-slope-driven-speed/`](../006-slope-driven-speed/spec.md) makes a gentle
-slope genuinely slow — the coached section runs at 1.23 rather than 2.60, which turns
-1.38 s of reading time into 2.90 s. R1 reverses and R2's constraint lifts; R3 is
-unaffected. Shipping order therefore matters, and it is not yet settled — see
-[Dependency on feature 006](#dependency-on-feature-006).
+**Feature 006 shipped on 2026-09-11 and changed two of those three.** It makes a
+gentle slope genuinely slow. Re-baselined 2026-09-12 against the shipped constants: at
+gradient 0.05 the coached section runs at **1.054** standing rather than the 2.60 it
+was pinned to, which turns 1.38 s of reading time into **3.37 s** standing and 0.95 s
+into **2.19 s** tucked — the tucked figure being the one that matters, since the flip
+cue is read crouched.
+
+**R1 reverses outright; R2 eases but does not lift; R3 is unaffected.** Both of the
+amendments those findings forced are withdrawn, and FR-187 and FR-191 ship as the
+maintainer approved them. Shipping order is settled — 006 went first — so this plan no
+longer waits on it.
 
 Everything else is arranged so the simulation is untouched. The rope is a drawing
 change inside the collision slab the game already computes; the coached section is
@@ -71,28 +83,35 @@ argument (SC-006). `branchThickness` = 18 is frozen, so the rope is designed to 
 (`warmup.json`), one style-bible amendment, six documentation corrections, and roughly
 seven new or amended test files.
 
-## Dependency on feature 006
+## Dependency on feature 006 — RESOLVED 2026-09-11
 
-Feature 006 replaces the speed model this plan's measurements were taken against. The
-two features do not conflict — 006 _improves_ the conditions 005 needs — but the order
-decides how much of 005 gets built and then unbuilt.
+Feature 006 replaced the speed model this plan's measurements were taken against, and
+**it shipped first**. The ordering table this section carried is gone with the
+decision; what follows is what that leaves.
 
-| Order         | What it costs                                                                                                                                                                                                                |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **005 → 006** | 005 ships mid-draft safely, as scoped. Its 389-unit cue lead is built, and then becomes redundant machinery once 006 lands. Two separate playtests of the coached section, the first against speeds that will not ship.      |
-| **006 → 005** | One physics playtest, then 005 built once against the speeds it will actually run on. FR-191 keeps close to its original wording and the lead-distance workaround is never written. Requires the draft-reset decision first. |
+**006 improves the conditions 005 needs.** It was built once, against the speeds 005
+will actually run on, and the draft-reset cost was paid by 006 rather than charged to
+this feature. FR-196 still holds exactly as approved: 005 touches the warm-up course,
+the renderer and the HUD, none of which is compared by the database trigger, so 005 is
+still safe to ship mid-draft and costs no second reset.
 
-**Recommended: 006 first**, if the reset is acceptable. It builds each thing once
-against real numbers.
+**What that buys, concretely** — re-baselined 2026-09-12 against the shipped
+`data/tuning.json`, at R7's recommended coached gradient of 0.05:
 
-**But 005 is not blocked.** It was scoped specifically to be safe mid-draft — no
-physics, no tuning, no `rulesVersion` movement — and that property is worth keeping.
-If the reset is not acceptable yet, 005 ships alone and unchanged, and the 389-unit
-lead is the right answer for the game as it actually is today.
+| Was going to be built                                  | Now                                                                       |
+| ------------------------------------------------------ | ------------------------------------------------------------------------- |
+| FR-187 restated: gentle gradient is cosmetic           | **FR-187 as approved.** Gradient is the speed control; the slope is slow. |
+| FR-191 restated: badge keys off skier x, 389-unit lead | **FR-191 as approved.** Badge binds to its object's visibility; no lead.  |
+| FR-192 restated: no dead ends, max forgiveness         | **Unchanged.** R3 measures clearance, not speed.                          |
 
-What this plan must not do is assume the answer. The amendments below are written for
-**005 shipping first**; if 006 lands ahead of it, FR-187 and FR-191 are revisited
-before the code that depends on them is written.
+Two mechanisms that were going to be built are now not going to be. That is the whole
+return on doing 006 first, and it is larger than the ordering table predicted.
+
+**The one thing left open**, and it is a feel question no measurement closes: the flip
+cue gets **2.19 s** tucked at gradient 0.05, against the 2.5 s R2 set out to buy. R7
+records the fallback — **30 units of lead** closes the gap — as a data change to reach
+for only if the player says the cue reads short. Build the simple thing, ride it,
+then decide. Principle VIII.
 
 ## Constitution Check
 
@@ -215,12 +234,18 @@ sprite drawing, and how `trickBadge.ts` already sits.
 
 Authored in `tools/gen-courses.ts` alongside the existing warm-up programme, because
 prepending shifts every one of the warm-up's 18 existing features and the generator
-is where that arithmetic belongs (R4). Gradient programme: **0.08** held through the
-coached section, interpolated up to the warm-up's opening **0.230** across the join —
-which CV-10 would have passed even as a hard step (0.146 rad against a 0.42
-tolerance), so the interpolation is belt and braces.
+is where that arithmetic belongs (R4). Gradient programme: **0.05** held through the
+coached section (R7 option C, re-baselined 2026-09-12 — it was 0.08 while speed was
+pinned and gradient bought nothing), interpolated up to the warm-up's opening **0.230**
+across the join — which CV-10 would have passed even as a hard step (0.176 rad against
+a 0.42 tolerance), so the interpolation is belt and braces. CV-23's stall floor is
+0.036, so 0.05 is legal with room; it would not have been at 006's pre-shipping
+friction.
 
-Layout, derived from R2's lead table rather than chosen:
+Layout, derived from R2's lead table rather than chosen. **Re-baselined 2026-09-12**:
+R7 option C drops the lead to zero, so the spacing below is now set by legibility and
+by the CV rules alone, not by a reading-time budget. Re-derive it when this section is
+built:
 
 | x         | What                  | Cue                       | Lead |
 | --------- | --------------------- | ------------------------- | ---- |

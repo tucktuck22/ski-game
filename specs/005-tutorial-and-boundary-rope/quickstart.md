@@ -25,7 +25,7 @@ The coached section is authored in the generator, not typed into JSON (research 
 
 ```bash
 npm run gen:courses          # rewrites data/courses/warmup.json
-npm run test:course          # all 18 CV rules over both courses
+npm run test:course          # every CV rule over both courses
 ```
 
 **Expect**: `gen:courses` exits clean, and `test:course` passes with zero violations.
@@ -90,8 +90,12 @@ npx vitest run tests/unit/coaching-cue.test.ts tests/unit/coaching-badge.test.ts
 
 **Expect**:
 
-- Each cue's `from` is exactly **389 units** before its object — asserted against the
-  generated course data, so moving an object without moving its cue fails the build.
+- Each cue is bound to **its object's visibility** — FR-191 as approved — asserted
+  against the generated course data, so moving an object without moving its cue fails
+  the build. _(Re-baselined 2026-09-12: this read "exactly 389 units before its
+  object", which was R2's lead-distance workaround. Feature 006 shipped and doubled
+  the reading time; the lead is withdrawn. See
+  [research R7](./research.md#r7--what-feature-006-did-to-r1-and-r2).)_
 - `cueAt` returns at most one cue at any x, and `null` everywhere outside the section.
 - The four strings match FR-190 character for character, arrows included.
 - One coaching badge in the DOM at a time; a trick badge landing beside it displaces
@@ -124,8 +128,12 @@ Open the printed URL, take the local session's roster, claim any name, and press
 
 **The things to actually judge** (the validator has no opinion on any of them):
 
-- Is 2.5 s enough to read the cue and act? R2 says it is the most the frame can give
-  without a lead; whether it is _enough_ is a human question.
+- **Is 2.19 s enough to read the flip cue and act?** That is what the frame gives a
+  _tucked_ player at the coached section's gradient of 0.05 (re-baselined 2026-09-12;
+  standing he gets 3.37 s, but the previous badge told him to stay crouched). R2 set
+  out to buy 2.5 s. Whether 2.19 s is _enough_ is a human question, and this is the
+  one to answer first. If it reads short, **30 units of lead** closes the gap — a data
+  change, not a mechanism. See [research R7](./research.md#r7--what-feature-006-did-to-r1-and-r2).
 - Does the rope read as a hazard from across the frame, or only once it is close?
 - Does **STAY CROUCHED!** land, given the previous cue just taught the opposite?
 - Does riding this three times per practice session become tedious? FR-186a means
@@ -163,9 +171,9 @@ npm run build:artifact       # single-file playable build
 ```
 
 Publish it and **name the link and the commit it was built from**. Do this at the
-first point the coached section runs — not at feature completion. R1 is the argument:
-the feature's premise is a pacing claim, and pacing is exactly what the course
-validator and both robot pilots hold no opinion about.
+first point the coached section runs — not at feature completion. The argument is the
+one R1 and R7 make between them: the feature's premise is a pacing claim, and pacing
+is exactly what the course validator and both robot pilots hold no opinion about.
 
 Record the findings against [spec.md](./spec.md) **in the player's own words**, before
 changing any of these values again.

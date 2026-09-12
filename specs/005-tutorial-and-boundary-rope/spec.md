@@ -288,6 +288,15 @@ the start line to the end of the coached section.
 - **FR-191**: A coaching badge MUST appear while its object is visible and before
   the player reaches it, and MUST clear once that object is behind him. No two
   coaching badges may be legible at the same time.
+
+> **FR-187 and FR-191 stand as approved.** Research R1 and R2 each found a measurement
+> that contradicted one of them and forced an amendment. Feature 006 shipped on
+> 2026-09-11 and removed both problems — gradient is now the speed control, and reading
+> time roughly doubled — so **both amendments are withdrawn and the text above is what
+> gets built**. Re-baselined 2026-09-12; see
+> [research R7](./research.md#r7--what-feature-006-did-to-r1-and-r2). Do not re-apply
+> them from the historical findings, which are kept in place as a record.
+
 - **FR-192**: The coached section MUST be completable by a player who performs the
   instructed verb, and MUST NOT be a dead end for one who does not. No coached
   object may be positioned such that failing to act on its badge makes the remainder
@@ -453,8 +462,13 @@ not a gap left.
   — the obstacle kind that is cleared only by going over, which is what "release to
   jump" answers.
 - **"Little jump" and "big kicker" are both the existing kicker object**, tuned
-  differently, as the warm-up course already does: it carries a `power: 1.9` ramp
-  and a `power: 0.7, launchAngle: 45, gravityScale: 0.25` booter today.
+  differently, as the warm-up course already does: it carries a `power: 1.029` ramp
+  and a `power: 1.35, launchAngle: 45` booter today. _(Re-baselined 2026-09-12. This
+  read `power: 1.9` and `power: 0.7, launchAngle: 45, gravityScale: 0.25` — feature 006
+  re-solved every ramp power against arrival speed and removed `gravityScale` from the
+  course entirely, because cheated gravity off a kicker was the defect the playtest
+  named. **Do not author a `gravityScale` into the coached section**; no kicker on
+  either shipped course carries one any more.)_
 - **Changing the warm-up course does not touch the rules freeze.** Only the official
   course's `rulesVersion` is submitted with a score and compared by the database
   trigger, so warm-up terrain can change freely mid-draft. This is what makes
