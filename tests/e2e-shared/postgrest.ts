@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 
 /**
@@ -12,6 +13,21 @@ import type { Page } from '@playwright/test';
 
 export const DRAFT_ID = '11111111-1111-1111-1111-111111111111';
 export const ENTRY_ID = '22222222-2222-2222-2222-222222222222';
+
+/**
+ * The rules version the SHIPPED course carries, read rather than written down.
+ *
+ * It was a literal '1.6.0' in two places here, and feature 006 moved the real one
+ * to 2.0.0 and broke this suite on CI — the one gate a local run of `npm test`,
+ * `test:build` and `test:determinism` does not cover. A frozen literal is exactly
+ * the defect these specs exist to catch (see 0004_rules_freeze.sql), so it has no
+ * business being one of them. Derive it, and the next bump cannot break this file.
+ */
+export const SHIPPED_RULES_VERSION: string = (
+  JSON.parse(
+    readFileSync(new URL('../../data/courses/official.json', import.meta.url), 'utf8'),
+  ) as { rulesVersion: string }
+).rulesVersion;
 
 export interface PostgrestError {
   code: string;
@@ -54,7 +70,7 @@ export function fixture(over: Partial<Fixture> = {}): Fixture {
 export async function mockPostgrest(
   page: Page,
   f: Fixture,
-  draftRulesVersion = '1.6.0',
+  draftRulesVersion = SHIPPED_RULES_VERSION,
 ): Promise<void> {
   await page.route('**/rest/v1/**', async (route) => {
     const req = route.request();
