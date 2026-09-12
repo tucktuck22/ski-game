@@ -20,6 +20,7 @@ import {
 import { renderLeaderboard, escapeHtml } from './ui/leaderboard.js';
 import { GameView, type RunReport } from './ui/game.js';
 import { popTrickBadge } from './ui/trickBadge.js';
+import { mountCoachingBadge } from './ui/coachingBadge.js';
 import { showYouDied } from './ui/youDied.js';
 import { Synth } from './audio/synth.js';
 import { MusicPlayer } from './audio/music.js';
@@ -672,6 +673,12 @@ async function startRun(kind: RunKind): Promise<void> {
   const canvas = app.querySelector('#screen') as HTMLCanvasElement;
   const badges = app.querySelector('#badges') as HTMLDivElement;
   const motion = resolveMotion();
+  // FR-197: no branch on run kind is needed to keep coaching out of scored runs.
+  // Every cue interval lies inside the warm-up course's coached section, and
+  // courseFor() already routes official runs and post-commit free play to
+  // official.json - so an official run simply never finds a cue. That is the
+  // reason the coached section is course DATA rather than a mode.
+  const coaching = mountCoachingBadge(badges, motion);
   game = new GameView(
     canvas,
     course,
@@ -685,6 +692,7 @@ async function startRun(kind: RunKind): Promise<void> {
     (trick) => popTrickBadge(badges, trick, motion),
     () => showYouDied(app, motion),
     sprites,
+    (cue) => coaching.set(cue),
   );
   game.start();
 
