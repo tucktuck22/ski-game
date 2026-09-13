@@ -286,6 +286,45 @@ th {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   The coaching badge (feature 005, FR-189, FR-191, FR-194).
+
+   Its own slot inside .badges, always the first child, so a trick badge landing
+   in the same moment stacks under it instead of displacing it. L-0: the
+   instruction the player still has to act on outranks the applause for what he
+   already did.
+
+   The idiom is the trick badge's, because FR-189 asks for exactly that - LT-3
+   sound-effect lettering, panelled, yellow on ink with the hard magenta drop.
+   What differs is lifetime, and that is owned by coachingBadge.ts rather than
+   by a CSS animation: this badge is cleared by the player's POSITION, never by
+   a clock. So the element carries .badge for the look and gets its hold from
+   the same .badge-still / badge-hold pair the trick badge uses under reduced
+   motion, with no pop-and-fade of its own.
+   --------------------------------------------------------------------------- */
+
+.coach-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* A coaching badge must not fade out from under an instruction the player has
+   not acted on yet, so it overrides the trick badge's forwards-running pop. */
+.coach-badge,
+.coach-badge.badge-still {
+  animation: none;
+  opacity: 1;
+}
+
+/* One line of copy rather than a word and a number, and the longest of them -
+   SWIPE OR <- -> TO FLIP! - has to fit a 320-unit buffer at readable size. */
+.coach-word {
+  font-size: 15px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
 /* FR-056 and T-5: reduced motion drops the movement, never the message. The
    badge still appears, still says the same thing, and still holds long enough
    to read — it is score feedback, and a player who turned off animation did not

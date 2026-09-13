@@ -1,4 +1,10 @@
-# 10. A ninth colour
+# 11. A ninth colour
+
+> **Renumbered from 10 to 11 on 2026-09-12** (feature 005, FR-211). It was filed as
+> 0010 on the same day as
+> [0010, organizer actions as secret-gated database functions](0010-organizer-actions-as-secret-gated-functions.md),
+> which was committed first and held the index slot. Two records claiming one number
+> is a broken index, and this one was the later of the two.
 
 Date: 2026-09-04
 

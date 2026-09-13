@@ -182,7 +182,7 @@ Before the change is done:
 
 - [ ] `assets/style-bible.md` section 1 has nine rows, and the new token has a rule
       assigning its role and forbidding it elsewhere (FR-181)
-- [ ] `docs/adr/0010-a-ninth-colour.md` exists and explains why eight stopped being
+- [ ] `docs/adr/0011-a-ninth-colour.md` exists and explains why eight stopped being
       true (FR-180)
 - [ ] `assets/sprites/README.md` records provenance; the editable source is committed
       (FR-170, FR-171)

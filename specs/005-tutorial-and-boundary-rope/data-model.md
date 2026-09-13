@@ -18,13 +18,13 @@ no migration, and no browser-storage key.
 Not a new type. The coached section is the **opening 2,900 units of the existing
 warm-up course**, expressed entirely in structures `Course` already has.
 
-| Field           | Contribution                                                                                                                     |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `terrain`       | Gradient 0.05 held to the join, then interpolated up to the warm-up's 0.230 (was 0.08 before the 2026-09-12 re-baseline; see R7) |
-| `obstacles`     | One `low` at clearance 15; one `solid` (deadfall)                                                                                |
-| `kickers`       | One small ramp; one booter                                                                                                       |
-| `length`        | Warm-up's 3,200 grows by the coached section's span                                                                              |
-| Everything else | Existing warm-up features, shifted right by the same span                                                                        |
+| Field           | Contribution                                                                                                                                                                  |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `terrain`       | Gradient 0.05 held to the join, then interpolated up to the warm-up's **0.26** (was 0.08 → 0.230 before the 2026-09-12 re-baseline; see R7 for the gradient, R4 for the join) |
+| `obstacles`     | One `low` at clearance 15; one `solid` (deadfall)                                                                                                                             |
+| `kickers`       | One small ramp; one booter                                                                                                                                                    |
+| `length`        | Warm-up's 3,200 grows by the coached section's span                                                                                                                           |
+| Everything else | Existing warm-up features, shifted right by the same span                                                                                                                     |
 
 **Why no new type**: a coached section that the simulation could distinguish from
 ordinary terrain would be a second kind of course, and every validator rule would
@@ -42,7 +42,7 @@ rules are the ones it is closest to:
 | CV-4  | 140 clear units after every low obstacle                    | 600 units of clear run to the deadfall                                                                                                                                               |
 | CV-5  | Low obstacles ≥ 140 apart                                   | Only one low obstacle in the section                                                                                                                                                 |
 | CV-7  | No `solid` overlapping a `low`                              | 600 units apart                                                                                                                                                                      |
-| CV-10 | Adjacent segments within 0.42 rad                           | Join is 0.176 rad, and interpolated rather than stepped (R4)                                                                                                                         |
+| CV-10 | Adjacent segments within 0.42 rad                           | Join is **0.204 rad** (0.05 → the warm-up's 0.26), interpolated not stepped (R4)                                                                                                     |
 | CV-11 | A `solid` must be jumpable, not trapped in a release window | Deadfall sits 600 past the rope, far outside its 140-unit window                                                                                                                     |
 | CV-15 | Ramps need clear air and must not overlap deadfall          | 600 units clear either side of each kicker                                                                                                                                           |
 | CV-23 | Gradient ≥ `slopeFriction * 3` = **0.036**                  | **0.05 clears it — the binding rule on this section.** Added by 006 after this table was written; at 006's pre-shipping friction the floor was 0.06 and 0.05 would have been illegal |
@@ -70,20 +70,30 @@ Cue {
 }
 ```
 
-| id             | text                    | Object     | Lead (`object.x − from`) |
-| -------------- | ----------------------- | ---------- | ------------------------ |
-| `crouch`       | `HOLD TO CROUCH!`       | rope       | 389                      |
-| `jump`         | `RELEASE TO JUMP!`      | deadfall   | 389                      |
-| `stayCrouched` | `STAY CROUCHED!`        | small ramp | 389                      |
-| `flip`         | `SWIPE OR ← → TO FLIP!` | booter     | 389                      |
+| id             | text                    | Object     | `from`                        |
+| -------------- | ----------------------- | ---------- | ----------------------------- |
+| `crouch`       | `HOLD TO CROUCH!`       | rope       | `object.x − PLAYER_LOOKAHEAD` |
+| `jump`         | `RELEASE TO JUMP!`      | deadfall   | `object.x − PLAYER_LOOKAHEAD` |
+| `stayCrouched` | `STAY CROUCHED!`        | small ramp | `object.x − PLAYER_LOOKAHEAD` |
+| `flip`         | `SWIPE OR ← → TO FLIP!` | booter     | `object.x − PLAYER_LOOKAHEAD` |
+
+`PLAYER_LOOKAHEAD` is 213.333, from `src/render/stage.ts`. A cue becomes legible
+exactly when its object crests the frame edge — FR-191 as approved.
+
+> **This table read `Lead 389` for all four cues until 2026-09-12.** R2 measured that
+> lead when speed was pinned to `baseSpeed`; feature 006 made gradient the speed
+> control, and R7 option C withdrew the lead rather than keep a mechanism nothing now
+> needs. Recorded rather than deleted, so it is not reintroduced from the historical
+> findings. See [research R7](./research.md#r7--what-feature-006-did-to-r1-and-r2).
 
 **Invariants**, each asserted in `tests/unit/coaching-cue.test.ts`:
 
 1. **Intervals never overlap.** `cueAt(x)` returns at most one cue, which is FR-191's
    one-at-a-time clause enforced by the data shape rather than by the caller.
-2. **Lead is 389 units for every cue.** Derived from R2's measurement of 2.5 s at
-   base speed, not chosen. The test asserts the arithmetic against the course data so
-   a moved object cannot silently shorten a cue.
+2. **Every `from` is its object's x minus `PLAYER_LOOKAHEAD`.** The cue becomes
+   legible exactly when its object becomes visible, which is FR-191 as approved. The
+   test asserts the arithmetic against the generated course data, so moving an object
+   without moving its cue fails the build rather than shortening a cue in silence.
 3. **`to` is at or past its object's trailing edge.** A cue never clears while the
    thing it describes is still ahead of the player.
 4. **Copy is exact.** The four strings are compared literally, including the arrow

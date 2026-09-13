@@ -161,6 +161,31 @@ function rampPowerFor(height: number, gradient: number, gravityScale = 1): numbe
 }
 
 /**
+ * Booter power that buys a given hang time to a rider tucked at `gradient`.
+ *
+ * Needed because a booter's impulse is `power * carried speed` (physics.ts) and
+ * the coached section is ridden at a fifth of the pitch the rest of the game is.
+ * The warm-up's BOOTER_MID of 1.35 is a fine multiplier on the 3-ish a player
+ * carries down a 0.26, and on the 1.62 he carries down a 0.05 it buys 20 ticks
+ * of air against a spin that costs 15 - a jump that technically permits a
+ * rotation and punishes anyone who takes it.
+ *
+ * FR-193 makes this the one object in the feature that MUST work: it is where
+ * the product names rotation for the first time. So the power is solved for the
+ * air it has to buy rather than copied from a course ridden at other speeds.
+ *
+ * Flight is `vy = impulse * sin(angle)` under constant gravity, so hang time is
+ * `2 * vy / gravity` - measured from the lip, and the real flight is LONGER
+ * because the hill keeps falling away underneath it. Solving against the shorter
+ * figure is deliberate: it errs toward more air than asked for, never less.
+ */
+function booterPowerForAir(ticks: number, gradient: number, angleDeg: number): number {
+  const up = (ticks * TUNING.gravity) / 2;
+  const impulse = up / Math.sin((angleDeg * Math.PI) / 180);
+  return Math.round((impulse / terminalAt(gradient, true)) * 1000) / 1000;
+}
+
+/**
  * How long a stretch of ice has to be on this pitch.
  *
  * CV-18 has two bounds and they both move with speed now: the span must exceed
@@ -193,7 +218,7 @@ function iceSpanFor(gradient: number): number {
   return Math.round(want);
 }
 
-const BOUGH_W = 40;
+const ROPE_W = 40;
 const DEADFALL_W = 24;
 const RAMP_W = 56;
 
@@ -399,7 +424,7 @@ function official(): Built {
   const ice: Built['ice'] = [];
 
   const bough = (x: number, clearance: number): void => {
-    obstacles.push({ x, kind: 'low', width: BOUGH_W, clearance });
+    obstacles.push({ x, kind: 'low', width: ROPE_W, clearance });
   };
   const deadfall = (x: number): void => {
     obstacles.push({ x, kind: 'solid', width: DEADFALL_W, clearance: 0 });
@@ -573,55 +598,165 @@ function official(): Built {
  * a bough, a shelf with its hazards, a booter - and nothing repeated, because
  * its job is to introduce the verbs rather than to test them.
  */
+/**
+ * The coached opening (feature 005, FR-186 -> FR-197).
+ *
+ * Prepended to the warm-up rather than built as a second course, because FR-186
+ * requires one continuous run with nothing to load between the halves. Every
+ * existing warm-up feature is shifted right by COACH_SPAN, which is arithmetic
+ * this generator already owns - hand-editing warmup.json is exactly the
+ * off-by-one it exists to prevent (research R4).
+ */
+const COACH_SPAN = 3200;
+
+/**
+ * The coached gradient (R7 option C, re-baselined 2026-09-12).
+ *
+ * It was 0.08 while feature 006 was still unshipped and speed was pinned to
+ * baseSpeed, where a gentler slope bought nothing. Now gradient IS the speed
+ * control, so 0.05 is genuinely slower - 1.054 standing against the warm-up's
+ * ~2.7 - and FR-187's "materially gentler, slow enough to read" is true rather
+ * than cosmetic.
+ *
+ * CV-23's stall floor is slopeFriction * 3 = 0.036, so this clears it with room.
+ * It would NOT have at 006's pre-shipping friction of 0.02, where the floor was
+ * 0.06 - gentler terrain became authorable only when the friction came down.
+ */
+const COACH_GRADE = 0.05;
+
+/** Where the coached gradient starts easing up into the warm-up's own pitch. */
+const COACH_JOIN = COACH_SPAN - 420;
+
 const WARMUP_GRADE: GradeKey[] = [
+  // The coached section: held flat and gentle, so the player has time to read.
+  { x: 0, g: COACH_GRADE },
+  { x: COACH_JOIN, g: COACH_GRADE },
+  // The join. Interpolated rather than stepped - CV-10 would pass either way
+  // (0.204 rad against a 0.42 tolerance, research R4 re-measured 2026-09-12),
+  // so this is belt and braces rather than a requirement.
+  { x: COACH_SPAN, g: 0.26 },
+  // From here, the warm-up exactly as it was, shifted right by COACH_SPAN.
   // Same band as the official course, so practice teaches the speeds the scored
   // run is actually ridden at. It used to open at 0.22, below the new floor.
-  { x: 0, g: 0.26 },
-  { x: 1400, g: 0.38 },
-  { x: 2200, g: 0.3 }, // held steady across the booter's flight
-  { x: 3200, g: 0.3 },
-  { x: 3400, g: 0.34 },
+  { x: COACH_SPAN + 1400, g: 0.38 },
+  { x: COACH_SPAN + 2200, g: 0.3 }, // held steady across the booter's flight
+  { x: COACH_SPAN + 3200, g: 0.3 },
+  { x: COACH_SPAN + 3400, g: 0.34 },
 ];
+
+/**
+ * Where each coached object stands, and therefore where its badge fires.
+ *
+ * Exported through the generated course rather than duplicated in the renderer:
+ * src/render/coachingCue.ts derives every cue's trigger from the course data, so
+ * moving an object here moves its cue with it and the unit test asserts the two
+ * still agree. A second copy of these numbers is how a badge ends up describing
+ * an object that is no longer there.
+ *
+ * Spacing is set by legibility and the CV rules, not by a reading-time budget -
+ * R7 option C withdrew the lead machinery, so a cue fires when its object crests
+ * the frame edge, one PLAYER_LOOKAHEAD (213.3) ahead.
+ */
+const COACH_ROPE_X = 689;
+const COACH_DEADFALL_X = 1289;
+const COACH_RAMP_X = 1889;
+const COACH_BOOTER_X = 2489;
+
+/** The small ramp's target height. Low: it teaches a verb, it is not a test. */
+const COACH_RAMP_H = 18;
+
+/**
+ * Hang time the coached booter must buy, in ticks.
+ *
+ * A rotation costs spinDurationTicks = 15. Sixty ticks is four rotations' worth
+ * of room for a lesson that asks for one, which is the margin FR-193 wants: the
+ * first flip a player ever throws should not be a timing test. The warm-up's own
+ * booter measures 74, so this is of a piece with the course it leads into rather
+ * than a special case.
+ */
+const COACH_BOOTER_AIR = 60;
 
 function warmup(): Built {
   // Terrain first, for the same reason as official(): ramp power and ice span
   // are derived against the pitch they stand on.
-  const pts = terrain(WARMUP_GRADE, 3200);
+  const pts = terrain(WARMUP_GRADE, COACH_SPAN + 3200);
   const grade = (x: number): number => gradeAtPoints(pts, x);
 
+  /** The warm-up's own features all move right by the coached section. */
+  const shift = COACH_SPAN;
+
   const obstacles: Built['obstacles'] = [
-    { x: 700, kind: 'low', width: BOUGH_W, clearance: 14 },
-    { x: 2000, kind: 'solid', width: DEADFALL_W, clearance: 0 },
+    // Coached: the boundary rope, at CV-3's most forgiving legal clearance.
+    //
+    // 15 against a standHeight of 16 and a crouchHeight of 9, so the gap a
+    // crouched player has is 6 units and the margin a standing one lacks is 1.
+    // R3 measured that no legal clearance lets a passive player through - CV-3
+    // requires 9 < clearance < 16 by construction - so the rope is allowed to
+    // bite (FR-192 as amended), and this is the kindest it is permitted to be.
+    { x: COACH_ROPE_X, kind: 'low', width: ROPE_W, clearance: 15 },
+    // Coached: the deadfall, 600 clear units later. CV-4 asks for 140 units to
+    // stand up in after a low obstacle and CV-11 asks that a solid not sit
+    // inside the rope's 140-unit release window; 600 clears both several times
+    // over, because this is a lesson rather than a test of spacing.
+    { x: COACH_DEADFALL_X, kind: 'solid', width: DEADFALL_W, clearance: 0 },
+    // The warm-up's own, shifted.
+    { x: 700 + shift, kind: 'low', width: ROPE_W, clearance: 14 },
+    { x: 2000 + shift, kind: 'solid', width: DEADFALL_W, clearance: 0 },
   ];
+
   const pickups: Built['pickups'] = [];
   for (let k = 1; k <= 4; k++) {
-    pickups.push({ x: Math.round(1496 + (700 * k) / 5), y: -(SHELF_H + 6), value: 'large' });
+    pickups.push({
+      x: Math.round(1496 + (700 * k) / 5) + shift,
+      y: -(SHELF_H + 6),
+      value: 'large',
+    });
   }
   for (let x = 300; x < 3000; x += 320) {
     if (x >= 2380 && x <= 3100) continue; // the booter's run-up and landing
-    pickups.push({ x, y: -(4 + (x % 7)), value: 'small' });
+    pickups.push({ x: x + shift, y: -(4 + (x % 7)), value: 'small' });
   }
+
   return {
     id: 'warmup',
     rulesVersion: '2.0.0',
-    length: 3200,
+    length: COACH_SPAN + 3200,
     terrain: pts,
     obstacles,
     pickups,
-    ledges: [{ x0: 1496, x1: 2196, height: SHELF_H }],
+    ledges: [{ x0: 1496 + shift, x1: 2196 + shift, height: SHELF_H }],
     kickers: [
-      { x: 1400, width: RAMP_W, power: rampPowerFor(SHELF_H, grade(1400)) },
+      // Coached: the small ramp. STAY CROUCHED! teaches itself here without a
+      // special case, because a tuck lowers drag rather than raising a target
+      // (feature 006) - so a player who holds it arrives at the lip faster and
+      // the launch, being power x carried speed, is bigger for it.
+      {
+        x: COACH_RAMP_X,
+        width: RAMP_W,
+        power: rampPowerFor(COACH_RAMP_H, grade(COACH_RAMP_X)),
+      },
+      // Coached: the booter, where the product names rotation for the first
+      // time (FR-193). Power solved for the air it must buy at this pitch, not
+      // copied from the warm-up's - see booterPowerForAir.
+      {
+        x: COACH_BOOTER_X,
+        width: BOOTER_W_WARMUP,
+        power: booterPowerForAir(COACH_BOOTER_AIR, grade(COACH_BOOTER_X), BOOTER_MID_ANGLE),
+        launchAngle: BOOTER_MID_ANGLE,
+      },
+      // The warm-up's own, shifted.
+      { x: 1400 + shift, width: RAMP_W, power: rampPowerFor(SHELF_H, grade(1400 + shift)) },
       {
         // Clear of the shelf that ends at 2196: a kicker under a ledge never
         // fires, because the skier rides off the shelf already airborne.
-        x: 2386,
+        x: 2386 + shift,
         width: BOOTER_W_WARMUP,
         power: BOOTER_MID,
         launchAngle: BOOTER_MID_ANGLE,
       },
     ],
-    rocks: [{ x: 1926, width: 16, height: 12 }],
-    ice: [{ x0: 1726, x1: 1726 + iceSpanFor(grade(1726)) }],
+    rocks: [{ x: 1926 + shift, width: 16, height: 12 }],
+    ice: [{ x0: 1726 + shift, x1: 1726 + shift + iceSpanFor(grade(1726 + shift)) }],
   };
 }
 

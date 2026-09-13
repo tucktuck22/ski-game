@@ -101,7 +101,7 @@ ratification. Three things ship together or none do (FR-180):
 
 1. Section 1's table gains one row, and a new rule assigns the token its role and
    forbids it everywhere else (FR-181).
-2. `docs/adr/0010-a-ninth-colour.md` records why "eight colours" stopped being true.
+2. `docs/adr/0011-a-ninth-colour.md` records why "eight colours" stopped being true.
 3. `tests/unit/palette.test.ts` — which currently asserts the token set
    **exhaustively** — is updated to nine and gains the CVD separation check against
    `orange` (FR-182). It is tightened, never loosened.
@@ -231,7 +231,7 @@ tests/e2e-build/
 └── sprite-never-blocks.spec.ts      # NEW  Sheet blocked -> run still completes and commits
 
 assets/style-bible.md                # MOD  Section 1 table + the new token's role rule
-docs/adr/0010-a-ninth-colour.md      # NEW  Why eight became nine
+docs/adr/0011-a-ninth-colour.md      # NEW  Why eight became nine
 ```
 
 **Structure Decision**: the existing layout is kept exactly — simulation in `src/sim`,

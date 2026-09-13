@@ -3,7 +3,7 @@ import { derive, initialState, step } from '../../src/sim/step.js';
 import { MAX_TICKS } from '../../src/sim/run.js';
 import type { RunInput, RunState } from '../../src/sim/types.js';
 import { finalScore } from '../../src/sim/scoring.js';
-import { ride, RELEASE_WITHIN, CHARGE_FROM } from './pilots.js';
+import { ride, releaseWithin, chargeFrom } from './pilots.js';
 import { official, scoring, tuning } from './fixtures.js';
 
 /**
@@ -46,8 +46,8 @@ function rideFirstShelf(opts: { hopIce: boolean; jumpRock: boolean }): RunState 
       if (d > -30 && d < gap) gap = d;
     }
     const duck = !onShelf && boughs.some((o) => s.x + 30 >= o.x && s.x < o.x + o.width);
-    const charging = gap < CHARGE_FROM && gap > RELEASE_WITHIN;
-    const releasing = gap <= RELEASE_WITHIN && gap > -30;
+    const charging = gap < chargeFrom(s.vx) && gap > releaseWithin(s.vx);
+    const releasing = gap <= releaseWithin(s.vx) && gap > -30;
 
     const input: RunInput = {
       crouch: !releasing && (duck || charging || (s.grounded && s.ledge < 0)),
@@ -140,10 +140,13 @@ describe('rocks on the shelf (FR-117)', () => {
       const next = deadfall.find((o) => o.x + o.width > s.x);
       const gap = next ? next.x - s.x : Infinity;
       const duck = boughs.some((o) => s.x + 30 >= o.x && s.x < o.x + o.width);
-      const releasing = gap <= RELEASE_WITHIN && gap > -30;
+      const releasing = gap <= releaseWithin(s.vx) && gap > -30;
       s = step(
         s,
-        { crouch: !releasing && (duck || (gap < CHARGE_FROM && gap > RELEASE_WITHIN)), rotate: 0 },
+        {
+          crouch: !releasing && (duck || (gap < chargeFrom(s.vx) && gap > releaseWithin(s.vx))),
+          rotate: 0,
+        },
         official,
         tuning,
         scoring,

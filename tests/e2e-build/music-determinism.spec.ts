@@ -41,6 +41,18 @@ async function practiceRun(page: Page): Promise<RunResult> {
 }
 
 test.describe('the simulation does not hear the music', () => {
+  // Three sequential practice runs, and each one got longer when feature 005
+  // prepended the coached section. That is the feature working: FR-187 makes the
+  // opening deliberately gentle, and a passive run now spends about thirteen
+  // seconds crossing it before the boundary rope ends things, where the old
+  // warm-up put its first obstacle 700 units down a 0.26 pitch. Three of those
+  // do not fit Playwright's 30-second default.
+  //
+  // The budget is what moved. Nothing about what this test asserts has changed:
+  // the three runs must still produce byte-identical outcomes whether the music
+  // plays, is muted, or never loads.
+  test.setTimeout(180_000);
+
   test('the same run scores identically with music playing, muted, and unavailable', async ({
     browser,
   }) => {

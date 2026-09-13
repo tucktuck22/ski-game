@@ -85,7 +85,7 @@ const launchParts = (k: Kicker, impulse: number): { up: number; along: number } 
   return { up: impulse * Math.sin(rad), along: impulse * Math.cos(rad) };
 };
 
-/** Minimum vertical margin between a shelf and the boughs it sails over (CV-14). */
+/** Minimum vertical margin between a shelf and the ropes it sails over (CV-14). */
 const LEDGE_BRANCH_MARGIN = 8;
 
 /** How far past a ramp's lip a shelf may begin and still be enterable (CV-13). */
@@ -392,27 +392,27 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
     }
   }
 
-  // CV-14: a shelf must clear every bough beneath it. A bough hangs from
+  // CV-14: a shelf must clear every rope beneath it. A rope hangs from
   // ground - clearance - branchThickness; a skier on the shelf has his feet at
-  // ground - height. If the shelf is not clear above the boughs it crosses, the
+  // ground - height. If the shelf is not clear above the ropes it crosses, the
   // upper track is a corridor of collisions.
   for (const l of ledges) {
     for (const o of lows) {
       if (o.x + o.width <= l.x0 || o.x >= l.x1) continue;
-      const boughTop = o.clearance + tuning.branchThickness;
-      if (l.height < boughTop + LEDGE_BRANCH_MARGIN)
+      const ropeTop = o.clearance + tuning.branchThickness;
+      if (l.height < ropeTop + LEDGE_BRANCH_MARGIN)
         v.push({
           rule: 'CV-14',
           message:
-            `ledge at x=${l.x0} runs ${l.height} above the piste but crosses the bough at ` +
-            `x=${o.x}, whose top is at ${boughTop}. A skier on the shelf would ride straight ` +
-            `into it; it needs at least ${boughTop + LEDGE_BRANCH_MARGIN}.`,
+            `ledge at x=${l.x0} runs ${l.height} above the piste but crosses the boundary rope ` +
+            `at x=${o.x}, whose top is at ${ropeTop}. A skier on the shelf would ride straight ` +
+            `into it; it needs at least ${ropeTop + LEDGE_BRANCH_MARGIN}.`,
         });
     }
   }
 
   // CV-15: ramps launch unconditionally, so they need the same clear air a
-  // crouch release needs. A ramp under or beside a bough throws the player into
+  // crouch release needs. A ramp under or beside a rope throws the player into
   // it with no input he could have given differently, which is exactly the
   // unwinnable situation CV-4 and CV-11 exist to prevent.
   for (const k of course.kickers) {
@@ -425,7 +425,7 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
         v.push({
           rule: 'CV-15',
           message:
-            `ramp at x=${k.x} sits within the safe release window of the bough at x=${o.x}. ` +
+            `ramp at x=${k.x} sits within the safe release window of the rope at x=${o.x}. ` +
             'A ramp launches whether the player asked for it or not (FR-088).',
         });
     }
@@ -519,7 +519,7 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
   // CV-19: the piste under a stretch of ice must be clear.
   //
   // Falling through is involuntary and unannounced - the player gave no input
-  // that chose it. Dropping him onto a bough or a log would make an unavoidable
+  // that chose it. Dropping him onto a rope or a log would make an unavoidable
   // transition fatal, which is the same unfairness CV-4 and CV-15 exist to
   // prevent, arriving from above instead.
   for (const sec of course.ice) {
@@ -571,7 +571,7 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
 
   // CV-21: a launch must have somewhere to come down.
   //
-  // CV-15 keeps a ramp clear of the boughs BESIDE it. It says nothing about
+  // CV-15 keeps a ramp clear of the ropes BESIDE it. It says nothing about
   // where the flight ends, which did not matter while every ramp on the course
   // was a 40-unit hop onto a shelf 96 units away. A booter is a different
   // object: it buys sixty-odd ticks of air and carries the player the better
@@ -584,7 +584,7 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
   // which Principle II will not have; 2*v/g matched the simulation's measured
   // air to within a tick at both the old cap and the new one, and a quarter is
   // added on top of that. The rule is deliberately strict - it forbids anything
-  // under the arc, including a bough the flight would in fact clear - because a
+  // under the arc, including a rope the flight would in fact clear - because a
   // conservative rule that is obviously right beats a precise one that is
   // subtly wrong about a case nobody has built yet.
   // A quarter was margin enough while every launch landed on the slope it left.
@@ -632,7 +632,7 @@ export function validateCourse(course: Course, tuning: Tuning, scoring: Scoring)
   // off a shelf is not optional, and jumping off it is the best trick on the
   // mountain - a long air, three rotations, and the score to match - so the
   // course should be inviting it. But he commits to that launch at the lip,
-  // and a bough 400 units downhill is not on screen when he commits. It comes
+  // and a rope 400 units downhill is not on screen when he commits. It comes
   // into view while he is airborne, spinning, and has no input left that would
   // change where he lands. That is the same trap CV-4, CV-15 and CV-21 exist
   // to refuse, arriving from a new direction.
