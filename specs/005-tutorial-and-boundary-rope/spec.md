@@ -443,6 +443,43 @@ as a requirement so the work is traceable per Principle I.
 - **SC-073**: Three consecutive practice runs, across two devices and a cleared
   browser, present a byte-identical coached section.
 
+## Playtest findings — 2026-09-13, build `ae54ade`
+
+Principle VIII, satisfied: the coached section reached the maintainer as a playable
+build before its values were settled, and this is his verdict, recorded before any
+further change to them.
+
+Quickstart §5 lists four things to judge that the validator and both robot pilots
+hold no opinion on. All four were put to him as numbered questions. His answer, in
+full:
+
+> "1-4 are all non issues"
+
+**Verdict: all four clear. No value moves.**
+
+| §5 question                                                                  | Answer                                                                                                                                                                                                                                   |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Is 2.19 s enough to read the flip cue and act?                            | **Answered: yes.** This was the feature's one open question — 2.19 s tucked at gradient 0.05, against the 2.5 s R2 set out to buy. R7's 30-unit lead fallback is therefore **retired unused**, not merely unapplied.                     |
+| 2. Does the rope read as a hazard from across the frame?                     | **Answered: yes.** SC-066 rests on this, and it is the whole reason the `low` obstacle stopped being a bough. Judged on the build that carries the real skier, so the rope was read against the drawn player rather than against a stub. |
+| 3. Does **STAY CROUCHED!** land, given the previous cue taught the opposite? | **Answered: yes.** The sequencing risk quickstart flagged — teaching release and then immediately teaching hold — is not one in play.                                                                                                    |
+| 4. Does riding this three times per session become tedious?                  | **Answered: no.** FR-186a puts every player through the coached section on all three practice runs, and the passive crossing now takes about thirteen seconds, so this was the cost that decision was always going to be judged on.      |
+
+### What this verdict does and does not establish
+
+It is a **direct answer to all four**, not absence of complaint — the questions were
+numbered and the reply answers them by number. That distinction is the one feature
+006's own playtest record insisted on and it is worth keeping.
+
+What it does not carry is observational detail. There is no description of what the
+runs looked like, so nothing here supports a claim beyond "none of these four is a
+problem". If one of them later turns out to be wrong, this record should show exactly
+how much was established, which is: the maintainer rode the build and none of the
+four flagged risks bothered him.
+
+SC-063 through SC-065 and SC-071 through SC-073 are outcomes about players other than
+the maintainer, and remain to be observed with the eight-person group rather than
+settled here.
+
 ## Assumptions
 
 Recorded defaults where the description did not specify. Each is a decision taken,

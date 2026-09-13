@@ -354,6 +354,14 @@ second thing 006 handed this feature. The join is unaffected: R4, re-measured
 2026-09-12 against the warm-up's actual opening gradient of 0.26, puts 0.05 → 0.26 at
 0.204 rad against CV-10's 0.42 tolerance.
 
+> **CLOSED 2026-09-13 by the play pass.** 2.19 s is enough. The maintainer rode
+> build `ae54ade` and answered this and the other three open questions with "1-4 are
+> all non issues", so the 30-unit lead below is **retired unused** rather than held in
+> reserve — the feature ships with no lead machinery at all, which is what R7 option C
+> was chosen to make possible. See
+> [spec.md § Playtest findings](./spec.md#playtest-findings--2026-09-13-build-ae54ade).
+> The paragraph below is kept as the record of what was uncertain and why.
+
 **What C does not settle.** 2.19 s is close to R2's 2.5 s target but under it, and
 reading time is a feel question that no measurement closes — Principle VIII. If the
 flip cue reads short in play, **30 units of lead** brings 0.05 to 2.5 s. That is a
