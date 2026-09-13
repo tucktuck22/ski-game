@@ -65,8 +65,8 @@ export function resolveCrouch(
   // FR-088: releasing under a low obstacle launches into it. No clearance check,
   // no charge threshold, no suppressed jump. The timing IS the skill.
   //
-  // Only on the piste. A skier riding the upper track is above every bough by
-  // construction (CV-14), so the boughs below him are not his ceiling and
+  // Only on the piste. A skier riding the upper track is above every rope by
+  // construction (CV-14), so the ropes below him are not his ceiling and
   // standing up there is simply standing up.
   const clearance = state.ledge < 0 ? overheadClearanceAt(course, state.x) : Infinity;
   if (clearance < tuning.standHeight) {

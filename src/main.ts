@@ -20,6 +20,7 @@ import {
 import { renderLeaderboard, escapeHtml } from './ui/leaderboard.js';
 import { GameView, type RunReport } from './ui/game.js';
 import { popTrickBadge } from './ui/trickBadge.js';
+import { mountCoachingBadge } from './ui/coachingBadge.js';
 import { showYouDied } from './ui/youDied.js';
 import { Synth } from './audio/synth.js';
 import { MusicPlayer } from './audio/music.js';
@@ -672,6 +673,21 @@ async function startRun(kind: RunKind): Promise<void> {
   const canvas = app.querySelector('#screen') as HTMLCanvasElement;
   const badges = app.querySelector('#badges') as HTMLDivElement;
   const motion = resolveMotion();
+  // FR-197: coaching is a property of PRACTICE, and the branch is load-bearing.
+  //
+  // The plan argued no branch was needed here: the cue intervals lie inside the
+  // warm-up course's coached section, and courseFor() sends scored runs to
+  // official.json, so an official run "simply never finds a cue". That argument
+  // is wrong, and the build spec caught it. `cueAt` is a function of x ALONE -
+  // it has no idea which course is loaded - and both courses start at x=0, so
+  // an official run rides straight through the cue intervals and gets coached
+  // through a scored descent.
+  //
+  // Gating on the course would not be enough either: free play BEFORE the
+  // official run is committed is served the warm-up course by courseFor(), and
+  // FR-197 excludes free play by name as well. So the gate is the run kind,
+  // which is what the requirement actually says.
+  const coaching = kind === 'practice' ? mountCoachingBadge(badges, motion) : null;
   game = new GameView(
     canvas,
     course,
@@ -685,6 +701,7 @@ async function startRun(kind: RunKind): Promise<void> {
     (trick) => popTrickBadge(badges, trick, motion),
     () => showYouDied(app, motion),
     sprites,
+    (cue) => coaching?.set(cue),
   );
   game.start();
 

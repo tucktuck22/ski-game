@@ -4,7 +4,7 @@ import { MAX_TICKS } from '../../src/sim/run.js';
 import { terrainYAt } from '../../src/sim/terrain.js';
 import type { Course, Kicker, RunInput } from '../../src/sim/types.js';
 import { cameraAirLift, rampRise, AIR_LIFT, AIR_LIFT_MAX } from '../../src/render/rampGeometry.js';
-import { RELEASE_WITHIN, CHARGE_FROM } from './pilots.js';
+import { RIG_RELEASE_WITHIN, RIG_CHARGE_FROM } from './pilots.js';
 import { official, tuning, scoring } from './fixtures.js';
 
 /**
@@ -65,7 +65,7 @@ function fly(course: Course, k: Kicker, tuckIn: boolean, spins = 0): Flight {
       if (dd > -30 && dd < gap) gap = dd;
     }
     const duck = !onShelf && boughs.some((o) => s.x + 30 >= o.x && s.x < o.x + o.width);
-    const releasing = gap <= RELEASE_WITHIN && gap > -30;
+    const releasing = gap <= RIG_RELEASE_WITHIN && gap > -30;
     let rotate: -1 | 0 | 1 = 0;
     if (!s.grounded && launched && thrown < spins && s.spinTicksLeft === 0) {
       rotate = 1;
@@ -75,7 +75,7 @@ function fly(course: Course, k: Kicker, tuckIn: boolean, spins = 0): Flight {
       crouch:
         !releasing &&
         (duck ||
-          (gap < CHARGE_FROM && gap > RELEASE_WITHIN) ||
+          (gap < RIG_CHARGE_FROM && gap > RIG_RELEASE_WITHIN) ||
           (tuckIn && s.grounded && s.ledge < 0)),
       rotate,
     };
@@ -275,11 +275,13 @@ describe('the wedge points where the flight is seen to go', () => {
           if (dd > -30 && dd < gap) gap = dd;
         }
         const duck = !onShelf && boughs.some((o) => s.x + 30 >= o.x && s.x < o.x + o.width);
-        const rel = gap <= RELEASE_WITHIN && gap > -30;
+        const rel = gap <= RIG_RELEASE_WITHIN && gap > -30;
         const input: RunInput = {
           crouch:
             !rel &&
-            (duck || (gap < CHARGE_FROM && gap > RELEASE_WITHIN) || (s.grounded && s.ledge < 0)),
+            (duck ||
+              (gap < RIG_CHARGE_FROM && gap > RIG_RELEASE_WITHIN) ||
+              (s.grounded && s.ledge < 0)),
           rotate: 0,
         };
         const before = s;

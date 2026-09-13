@@ -20,7 +20,7 @@ asset that cannot cite a rule is rejected, not merged with a promise to fix late
 Nine colours. Nothing outside this set appears in any asset.
 
 > This said **eight** until 2026-09-04. The ninth, `skin`, was added for the player
-> sprite in feature 004; see [ADR-0010](../docs/adr/0010-a-ninth-colour.md) for why the
+> sprite in feature 004; see [ADR-0011](../docs/adr/0011-a-ninth-colour.md) for why the
 > rule changed and why a single named token was chosen over a shading ramp.
 
 | Token     | Hex       | Role                                                   |
@@ -118,16 +118,31 @@ to be looked at.
   visible slope rather than to terrain sampled at the rank's own parallax is not
   a shortcut — the piste descends thousands of world units over a run, and a
   rank sampled at its own offset leaves the frame within seconds.
-- **TR-2** — Obstacles are trees, and each reads as its own kind of tree from its
-  silhouette alone. A `low` obstacle is an overhanging bough: a tapered limb with
-  filled needle wedges hanging to the collision floor, so the shape the player
-  sees IS the shape he has to get under. A `solid` obstacle is deadfall: a
-  snow-capped log with its end grain out. Neither may be drawn as a rectangle,
-  which is what both were before this rule existed.
+- **TR-2** — Every obstacle reads as its own kind of thing from its silhouette
+  alone, and **the shape the player sees IS the shape he has to get under**. A
+  `low` obstacle is a ski boundary rope: a twisted cord carrying triangular
+  pennants that hang point-down to the collision floor, with the floor itself
+  marked flat across the full span. A `solid` obstacle is deadfall: a snow-capped
+  log with its end grain out. Neither may be drawn as a rectangle, which is what
+  both were before this rule existed.
+  &nbsp;
+  _Amended by feature 005 (FR-205). The `low` obstacle was an overhanging limb
+  until then, and it failed the first clause of this very rule in a way the rule
+  could not see: TR-1 fills the frame with five ranks of pine, so a tree-shaped
+  hazard in a forest of trees shares its vocabulary, its palette and its scale
+  with the scenery, and the player cannot pick it out in time to duck. The
+  contract sentence is carried over verbatim because it is the part that was
+  never wrong. The sag in the cord is drawn inside the cord's own band, above
+  the pennant tips: a silhouette that dipped lower in the middle than the line
+  that actually kills is the exact misread this clause forbids._
 - **TR-3** — Hazards keep `orange` (P-4) as an edge on the surface that actually
-  kills — the underside of a bough, the body of a log — never as a fill over the
-  whole silhouette. A tree painted entirely `orange` reads as a warning sign
-  rather than as a tree, and loses the shape TR-2 is buying.
+  kills — the tips of a boundary rope's pennants, the body of a log — never as a
+  fill over the whole silhouette. An object painted entirely `orange` reads as a
+  warning sign rather than as the thing it is, and loses the shape TR-2 is
+  buying.
+  &nbsp;
+  _Amended by feature 005 (FR-205): the killing edge moved from a limb's
+  underside to the pennant tips. The rule itself did not move._
 - **TR-4** — A ramp is never drawn in `snow` alone. Snow on snow is invisible, and
   a ramp is the one object that launches the player without being asked, so it
   carries `yellow` hazard stripes, chevrons, and a marked lip.

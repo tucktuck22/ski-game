@@ -32,5 +32,7 @@ and is superseded by a later ADR rather than edited.
 | [0005](0005-trust-the-players.md)                           | Trust the players — amend Principle V                                       | **Proposed** | 2026-09-01 |
 | [0006](0006-platform-baseline-and-budgets.md)               | Evergreen mobile web, hand-written simulation, mid-range phone as reference | Accepted     | 2026-09-01 |
 | [0007](0007-keep-the-free-database-awake.md)                | Keep the free database awake with a scheduled Action                        | Accepted     | 2026-09-01 |
+| [0008](0008-verify-the-real-thing.md)                       | Verify the real thing, and treat setup instructions as code                 | Accepted     | 2026-09-03 |
 | [0009](0009-recorded-music.md)                              | Music may be recorded; sound effects stay synthesised                       | Accepted     | 2026-09-04 |
 | [0010](0010-organizer-actions-as-secret-gated-functions.md) | Organizer actions run as secret-gated database functions                    | Accepted     | 2026-09-04 |
+| [0011](0011-a-ninth-colour.md)                              | A ninth colour                                                              | Accepted     | 2026-09-04 |

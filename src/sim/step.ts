@@ -205,11 +205,11 @@ export function step(
   // 5. Obstacles, with real vertical extent on both axes.
   //
   // y increases downward, the skier's feet are at s.y and his head at
-  // s.y - height. A `low` obstacle is an overhanging bough: a slab occupying
+  // s.y - height. A `low` obstacle is a boundary rope: a slab occupying
   // [ground - clearance - branchThickness, ground - clearance]. You pass it by
   // ducking under it OR by clearing it from above, and the two ways out are the
   // reason it is a slab rather than the infinite ceiling it was first written
-  // as - an infinite ceiling made every bough a wall to anyone on the upper
+  // as - an infinite ceiling made every rope a wall to anyone on the upper
   // track, which is the whole reason that track exists. A `solid` obstacle is
   // deadfall lying on the ground: you pass it by going over.
   const height = tuning.standHeight - (tuning.standHeight - tuning.crouchHeight) * s.crouchProfile;
@@ -220,7 +220,7 @@ export function step(
     if (o.kind === 'low') {
       const bottom = groundHere - o.clearance;
       const top = bottom - tuning.branchThickness;
-      if (headY > bottom) continue; // wholly below the bough: ducked under
+      if (headY > bottom) continue; // wholly below the rope: ducked under
       if (s.y < top) continue; // wholly above it: cleared it
     } else {
       const blockTop = groundHere - tuning.standHeight;

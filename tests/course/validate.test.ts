@@ -33,6 +33,26 @@ const rulesFired = (c: Course): string[] => [
   ...new Set(validateCourse(c, tuning, scoring).map((v) => v.rule)),
 ];
 
+/**
+ * The ramp that actually feeds the first shelf — the one CV-13 has an opinion
+ * about.
+ *
+ * Found rather than indexed. These fixtures used `kickers[0]` until feature 005
+ * prepended a coached section whose own ramp took that slot, at which point two
+ * CV-13 fixtures silently stopped violating anything: the rule they were meant
+ * to trip was still correct, and the course they handed it was no longer broken.
+ * A negative test that quietly stops testing is worse than no negative test, so
+ * this asks the course which ramp it means instead of counting on an order.
+ */
+const rampFeeding = (c: Course): Kicker => {
+  const x0 = (c.ledges[0] as Ledge).x0;
+  const feed = c.kickers
+    .filter((k) => k.x + k.width <= x0)
+    .sort((a, b) => b.x + b.width - (a.x + a.width))[0];
+  if (!feed) throw new Error('no ramp before the first ledge; the fixture is not what it claims');
+  return feed;
+};
+
 describe('validator rules fire on deliberately broken courses', () => {
   it('CV-1: non-increasing terrain x', () => {
     const c = clone(warmup);
@@ -130,17 +150,17 @@ describe('validator rules fire on deliberately broken courses', () => {
     // The trap this rule exists for. The course still validates on every other
     // rule; what it has quietly done is take the cautious pilot's line away.
     const c = clone(warmup);
-    (c.kickers[0] as Kicker).power = 6;
+    rampFeeding(c).power = 6;
     expect(rulesFired(c)).toContain('CV-13');
   });
 
   it('CV-13: a ramp too weak to reach the shelf even at full tuck', () => {
     const c = clone(warmup);
-    (c.kickers[0] as Kicker).power = 0.4;
+    rampFeeding(c).power = 0.4;
     expect(rulesFired(c)).toContain('CV-13');
   });
 
-  it('CV-14: a shelf that runs into the bough it crosses', () => {
+  it('CV-14: a shelf that runs into the boundary rope it crosses', () => {
     const c = clone(warmup);
     const l = c.ledges[0] as Ledge;
     // A bough placed under the shelf, hanging above the shelf's own surface.

@@ -19,7 +19,7 @@ export const CAMERA_X_OFFSET = INTERNAL_WIDTH / 3;
  *
  * It lives here rather than in the renderer because it is not only a drawing
  * number: it is the reaction time the course is allowed to assume. CV-24 reads
- * it to keep a bough from coming into view while the player is still airborne
+ * it to keep a boundary rope from coming into view while the player is still airborne
  * off the end of a shelf and can no longer do anything about it.
  */
 export const PLAYER_LOOKAHEAD = INTERNAL_WIDTH - CAMERA_X_OFFSET;

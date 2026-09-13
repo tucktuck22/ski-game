@@ -26,7 +26,7 @@ export const PALETTE = {
    * not, so `tests/unit/palette.test.ts` can keep asserting the set exhaustively.
    *
    * The value is SAMPLED from the supplied sheet rather than invented (FR-179) -
-   * the mean of its warm face pixels. See docs/adr/0010-a-ninth-colour.md.
+   * the mean of its warm face pixels. See docs/adr/0011-a-ninth-colour.md.
    *
    * Rule P-6 confines it to player sprites: never a ground, never text, never a
    * terrain edge, never a hazard.

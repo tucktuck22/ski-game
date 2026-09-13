@@ -13,6 +13,7 @@ import { finalScore } from '../sim/scoring.js';
 import { createStage, type Stage } from '../render/stage.js';
 import { applyCrt, resetCrt } from '../render/filters/crt.js';
 import { resolveMotion, type MotionSettings } from '../render/reducedMotion.js';
+import { cueAt, type Cue } from '../render/coachingCue.js';
 import { drawRun, resetSceneryCache, type SkierSkin } from '../render/draw.js';
 import { LeanState, PoseTimers, selectPose } from '../render/skierPose.js';
 import type { SpriteSheets } from '../render/sprites.js';
@@ -82,6 +83,15 @@ export class GameView {
      * and gets the primitive renderer.
      */
     private readonly sheets: SpriteSheets | null = null,
+    /**
+     * Fired when the coaching instruction changes, and only then (FR-191).
+     *
+     * A callback rather than a field on the view, for the same reason `onTrick`
+     * is one: the run reports what happened and the caller decides what the DOM
+     * does about it. Defaults to a no-op, so every existing call site - and the
+     * official course, which never finds a cue - is unaffected.
+     */
+    private readonly onCue: (cue: Cue | null) => void = () => {},
   ) {
     const motion = resolveMotion();
     this.motion = motion;
@@ -168,6 +178,18 @@ export class GameView {
       }
     }
 
+    // The coaching cue, derived from the two states either side of this tick
+    // exactly as the landing flash and the trick payout above are. NOTHING IS
+    // ADDED TO RunState: the cue is a pure function of x, so it cannot reach the
+    // state hash and cannot change a score (FR-204).
+    //
+    // Identity comparison is sufficient and intentional - CUES entries are
+    // frozen singletons, so !== is a transition and never a false positive - and
+    // it is what keeps this to one comparison a tick rather than a DOM write.
+    const cueBefore = cueAt(this.prevState.x);
+    const cueAfter = cueAt(this.state.x);
+    if (cueBefore !== cueAfter) this.onCue(cueAfter);
+
     if (this.state.outcome !== 'running' && !this.finished) {
       this.finished = true;
       if (this.state.outcome === 'wiped_out') {
@@ -232,6 +254,8 @@ export class GameView {
 
   destroy(): void {
     this.loop?.stop();
+    // No badge may outlive the run it was describing.
+    this.onCue(null);
     this.sampler.destroy();
     this.stage.destroy();
     if (this.skipListener) {
