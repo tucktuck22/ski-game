@@ -26,13 +26,13 @@ not ambiguous.
 
 ### Roster entry (changed)
 
-| Field                     | Change                                                                                                                         |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `official_status`         | **Replaced.** A binary `unused`/`committed` cannot express "one attempt spent, two left"                                       |
-| `official_attempts_used`  | **New.** int 0–3, `CHECK (between 0 and 3)`. The authority on how many remain (FR-235). Writable only via the dispenser (R2)   |
-| `official_run_started_at` | **Retained, unchanged.** Already marks a run as begun so abandonment survives a killed tab. This is the primitive FR-234 needs |
-| `practice_runs_used`      | Unchanged, 0–3 (FR-244)                                                                                                        |
-| `abandoned_official_runs` | Still unread. Left in place by FR-065's withdrawal; this feature does not revive or drop it                                    |
+| Field                     | Change                                                                                                                                 |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `official_status`         | **Replaced.** A binary `unused`/`committed` cannot express "one attempt spent, two left"                                               |
+| `official_attempts_used`  | **New.** int 0–3, `CHECK (between 0 and 3)`. The authority on how many remain (FR-235). Client-written, like `practice_runs_used` (R2) |
+| `official_run_started_at` | **Retained, unchanged.** Already marks a run as begun so abandonment survives a killed tab. This is the primitive FR-234 needs         |
+| `practice_runs_used`      | Unchanged, 0–3 (FR-244)                                                                                                                |
+| `abandoned_official_runs` | Still unread. Left in place by FR-065's withdrawal; this feature does not revive or drop it                                            |
 
 ### Committed score (changed)
 
@@ -54,9 +54,9 @@ Never stored. Computed from the attempt set each time the snapshot is read.
 | Finished           | `official_attempts_used = 3`, or the deadline has passed                                                               | FR-239      |
 | Forfeit            | No attempt row at all at the deadline — whether he never started or abandoned all three. The two are not distinguished | FR-242      |
 
-**Why the abandonment gap is unambiguous**: the counter is advanced by the dispenser
-before gameplay and never decremented, so `official_attempts_used` minus the number of
-score rows is exactly the number of attempts abandoned. Nothing needs to record an
+**Why the abandonment gap is unambiguous**: the counter is advanced when the run starts
+and never decremented, so `official_attempts_used` minus the number of score rows is
+exactly the number of attempts abandoned. Nothing needs to record an
 abandonment as an event, which is what feature 001's orphaned `abandonment.ts` tried to
 do and never wired up.
 
@@ -67,8 +67,8 @@ do and never wired up.
                     ┌──────────────┐
                     │  NOT STARTED │
                     └──────┬───────┘
-                           │  start_official_attempt()  ← counter advances HERE (FR-234)
-                           │  refused if already 3, or after the deadline (FR-241)
+                           │  startOfficialAttempt()  ← counter advances HERE (FR-234)
+                           │  best-effort: a failed write does not stop the run (R2)
                            ▼
                     ┌──────────────┐
                     │  IN PROGRESS │

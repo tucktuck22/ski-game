@@ -4,7 +4,8 @@
 
 **Created**: 2026-09-13
 
-**Status**: Draft — ready for `/speckit-plan`
+**Status**: Approved 2026-09-14 — three organizer decisions landed (attempt count, the
+crashed-tab cost, and the trust model), ready for `/speckit-implement`
 
 **Input**: User description: "I think players either need to be able to practice the
 real course and have one shot to do it, or have multiple attempts on the actual course
@@ -38,9 +39,20 @@ stood unmitigated and known ever since.
 
 This feature replaces the one-shot rule with **three attempts on the official course,
 of which the best single attempt counts**, and makes **starting an attempt spend it**.
-The second half is what closes the hole: the dishonest player and the honest player now
-get the same three attempts, because there is no longer a free restart for either of
-them.
+
+The second half is what changes the shape of the hole. It does not weld it shut, and the
+distinction matters. Under FR-019 the product _told_ players that restarting was free and
+unlimited — the loophole was the documented rule, so the cautious player was following
+instructions while the curious one was too. Under FR-233 the product says you have three,
+counts them, and takes your word for it. Nothing stops a player editing that count, in
+exactly the way nothing stops him posting a forged score (FR-064, ADR-0004). The
+organizer chose this deliberately on 2026-09-14: _"We should not build this with cheaters
+in mind. This is a friends ski trip and we can count on honorable behavior."_
+
+So the honest player and the curious one now get the same three attempts **by the rules
+as written**, which is the change. Enforcing that against someone determined to ignore
+them is not attempted, and would be strange in a product that already hands him the score
+field.
 
 ## Why best-of-three and not two-runs-combined
 
@@ -146,8 +158,9 @@ any device, and confirm the attempt count has decreased and no score was posted.
    **Then** it agrees that two attempts remain.
 3. **Given** a player who has abandoned all three attempts, **When** the deadline
    passes, **Then** he is FORFEIT, exactly as a player who never played.
-4. **Given** a player about to start an attempt, **When** shared storage cannot record
-   the attempt as spent, **Then** the attempt MUST NOT begin and he is told why.
+4. **Given** a player starting an attempt, **When** shared storage cannot record it as
+   spent, **Then** the run still begins — the write is bookkeeping, not a gate — and the
+   count reconciles from shared storage on his next load.
 
 ---
 
@@ -211,12 +224,18 @@ states attempts used and that a player with attempts remaining is visibly not fi
   restarts, and it is the amendment that
   `specs/001-shredpocalypse-bed-draft/spec.md:402` requires before any technical block on
   restarts may be introduced.
-- **FR-234**: An official attempt MUST be recorded as spent in shared storage **before**
-  gameplay begins. If that record cannot be written, the attempt MUST NOT start and the
-  player MUST be told that it did not start and why.
+- **FR-234**: An official attempt MUST be recorded as spent in shared storage at the
+  moment it starts, before the run's outcome is known. The write is best-effort and MUST
+  NOT gate gameplay: a run whose counter write fails MUST still start, and the count
+  reconciles from shared storage on the next load. Spending the attempt at start rather
+  than at end is what makes an abandoned attempt cost something without needing to detect
+  the abandonment.
 - **FR-235**: The count of attempts used MUST be held in shared storage and MUST be the
   only authority on how many remain. Switching devices, clearing browser data, or using a
-  private window MUST NOT grant a fourth attempt (extends FR-021).
+  private window MUST NOT grant a fourth attempt (extends FR-021). The count is **not**
+  defended against deliberate tampering: a player who edits it gets more attempts, in the
+  same way that FR-064 lets him post any score. This is an accepted consequence, not an
+  oversight — see Accepted Consequences.
 - **FR-236**: Ties on best score MUST break by the commit timestamp **of the attempt that
   produced that best score**, not of the player's most recent attempt. Timestamps remain
   server-assigned (FR-037). Ties surviving this remain unresolved and flagged for a coin
@@ -296,10 +315,18 @@ states attempts used and that a player with attempts remaining is visibly not fi
   tiebreak follows the best attempt, taking another attempt can never lower a player's
   standing. There is nothing to protect him from, so the product does not add a ceremony
   to protect him from it.
-- **Three, not two.** The organizer said best of three. Three also gives a player who
-  loses one attempt to a dead battery a genuine second chance rather than a last one.
+- **Three, not two. Confirmed by the organizer 2026-09-14**: _"3 is right."_ Answered by
+  acceptance rather than by play, and recorded as such — the same way feature 006 recorded
+  two of its four playtest questions. Three also gives a player who loses one attempt to a
+  dead battery a genuine second chance rather than a last one.
 - **The draft is not live and no scores are committed** (organizer, 2026-09-13). No draft
   reset is required and no player is mid-competition under the old rules.
+- **Honourable behaviour is assumed, and the count is not defended.** The organizer,
+  2026-09-14: _"We should not build this with cheaters in mind. This is a friends ski trip
+  and we can count on honorable behavior."_ This reverses an earlier design decision — see
+  [research R2](./research.md#r2--where-starting-spends-it-is-enforced) — and is
+  consistent with ADR-0004, which already accepts client-reported scores among the same
+  eight people.
 - **The existing start-marking mechanism is sufficient.** `roster_entry.official_run_started_at`
   already records that an official run began, specifically so abandonment is detectable
   when an unload handler cannot fire. FR-234 needs exactly that primitive; it is already
@@ -307,11 +334,21 @@ states attempts used and that a player with attempts remaining is visibly not fi
 
 ## Accepted Consequences
 
-- **A dead battery now costs an attempt.** This is the cost ADR-0002 declined to impose,
-  accepted here only because the thing it falls on is one of three rather than the whole
-  draft. A player who loses all three attempts to genuine misfortune has no in-product
-  remedy and must go to the organizer. This is judged acceptable for eight friends with a
-  group chat, and would not be for strangers.
+- **A dead battery now costs an attempt. Ruled acceptable by the organizer, 2026-09-14**:
+  _"Losing a run to a crashed tab is acceptable."_ This is the cost ADR-0002 declined to
+  impose, and the ruling is what lets this feature reverse it. A player who loses all three
+  attempts to genuine misfortune has no in-product remedy and must go to the organizer.
+  Judged acceptable for eight friends with a group chat; it would not be for strangers.
+
+  Recorded honestly: this was **decided in advance rather than discovered in play**. It is
+  the one judgement in the feature that a playtest could still overturn, and if the first
+  real bail feels worse than it reads here, FR-233 is the requirement to revisit.
+
+- **The attempt count is honour-system.** Editing it grants more attempts. Accepted per
+  the organizer's ruling above and consistent with ADR-0004. What is _not_ honour-system
+  is the number of attempts that can carry a **score**: at most three, enforced by a
+  database constraint. That constraint is there for retry idempotency rather than for
+  trust (research R1) and would exist regardless.
 - **Sessions get longer.** Up to three practice runs on the 3,200-unit warm-up slope plus
   three attempts on the 12,000-unit official course. The official course is the long one,
   so total play time roughly triples for a player who uses everything.

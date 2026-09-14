@@ -9,9 +9,9 @@
 Replace the single official run with three official attempts on the official course, of
 which the best single attempt counts, and make starting an attempt spend it.
 
-The technical approach is **append-only attempt rows plus a server-side attempt
-dispenser**. Each attempt gets a number, 1 to 3, allocated by a `security definer`
-function before gameplay begins; scores are inserted as separate immutable rows keyed
+The technical approach is **append-only attempt rows plus a client-advanced attempt
+counter**. Each attempt gets a number, 1 to 3, taken when the run starts; scores are
+inserted as separate immutable rows keyed
 `(draft_id, entry_id, attempt_no)`; the leaderboard score is derived by reducing that set
 to its best. Nothing is ever updated or deleted, which preserves the immutability
 property `0002_policies.sql` was built around, and the per-attempt unique index preserves
@@ -78,10 +78,11 @@ carried into `/speckit-tasks`, not a design violation.
 - **Principle V** remains knowingly violated by ADR-0004 (client-reported scores).
   Three attempts triple the number of unverified values without changing the trust
   model. Recorded in the spec's Accepted Consequences.
-- **The abandonment counter is only as honest as the dispenser.** R2 moves attempt
-  allocation into a `security definer` function specifically so this is enforced rather
-  than advisory. Without R2 the feature's central fairness claim would be false, so R2
-  is not optional.
+- **The abandonment counter is honour-system**, by the organizer's ruling of 2026-09-14
+  (_"we should not build this with cheaters in mind"_). An earlier revision of this plan
+  hardened it with a `security definer` function; [R2](./research.md#r2--where-starting-spends-it-is-enforced)
+  records the reversal. The rule is stated, implemented and counted — it is simply not
+  defended, exactly as ADR-0004 does not defend the score field beside it.
 
 ## Project Structure
 
@@ -104,7 +105,7 @@ specs/007-best-of-three-official/
 
 ```text
 supabase/
-├── migrations/0005_best_of_three.sql   NEW — schema, dispenser function, policy changes
+├── migrations/0005_best_of_three.sql   NEW — schema and the counter's update grant
 ├── setup.sql                            APPEND 0005 (hand-maintained concatenation)
 └── tests/invariants.sql                 EXTEND — per-attempt invariants, in the
                                          deliberate-violation style already used
@@ -144,10 +145,10 @@ the feature is about harder to find, not easier. Feature 001 already shipped an 
 
 ## Complexity Tracking
 
-| Violation                                                          | Why Needed                                                                                                                                                                                                                 | Simpler Alternative Rejected Because                                                                                                                                                                                                                                                   |
-| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A `security definer` function to allocate attempts (R2)            | FR-233/FR-234 make "starting spends it" the fairness fix. A counter a player can decrement is not a limit, and the entire justification for reversing ADR-0002 is that everyone gets the same three.                       | A plain column update, which the anon role must be able to perform, can also be undone by the anon role. That leaves abandonment advisory — exactly the hole this feature exists to close. ADR-0010 already establishes the function pattern for rules a client must not route around. |
-| An explicit `attempt_no` rather than just allowing three rows (R1) | It restores insert idempotency, which today's `UNIQUE (draft_id, entry_id)` provides for free and which the outbox's retry loop silently depends on. It also caps scored attempts in the schema rather than in the client. | "Just drop the unique index" means a commit that succeeded but whose response was lost gets retried and posts a phantom second attempt. The outbox is built to retry until confirmed; without a natural key it cannot tell a retry from a new attempt.                                 |
+| Violation                                                          | Why Needed                                                                                                                                                                                                                             | Simpler Alternative Rejected Because                                                                                                                                                                                                                   |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ~~A `security definer` function to allocate attempts~~             | **WITHDRAWN 2026-09-14** by the organizer's ruling on the trust model. The feature is simpler for it: no function, no revoke, no network round-trip gating gameplay. See [R2](./research.md#r2--where-starting-spends-it-is-enforced). | The plain column update it was rejected in favour of is now the decision, matching `recordPracticeRun` at `src/state/supabase.ts:213`.                                                                                                                 |
+| An explicit `attempt_no` rather than just allowing three rows (R1) | It restores insert idempotency, which today's `UNIQUE (draft_id, entry_id)` provides for free and which the outbox's retry loop silently depends on. It also caps scored attempts in the schema rather than in the client.             | "Just drop the unique index" means a commit that succeeded but whose response was lost gets retried and posts a phantom second attempt. The outbox is built to retry until confirmed; without a natural key it cannot tell a retry from a new attempt. |
 
 ### Found in passing, deliberately NOT fixed here
 
@@ -170,19 +171,21 @@ Design is complete. Nothing in Phase 1 changed a gate's verdict, and two got sha
   a pre-feature score, which is feature 001's still-unchecked T039. "Ships with a
   migration and a round-trip test" is now something a reviewer can check rather than
   take on trust.
-- **Principle VI** gained a failure state that did not exist before Phase 1. R2's
-  decision that the attempt dispenser fails _closed_ creates a reachable failure the
-  player has never seen — an attempt that refuses to start. Principle VI requires every
-  such state to be produced deliberately in a test and to render a message naming the
-  cause and the remedy, so quickstart Scenario 5 exists and is not optional.
+- **Principle VI** briefly gained a failure state and then lost it again. R2's original
+  decision — the dispenser failing closed — created a reachable failure the player had
+  never seen, an attempt that refuses to start, which Principle VI would have required a
+  deliberate test for. The organizer's 2026-09-14 ruling removed the dispenser, and with
+  it that state and its test. **Fewer reachable failure states is the right direction**,
+  and it is worth noting that the simplification came from a product decision rather than
+  from engineering.
 
 **Design-stage findings that did not change a verdict but are worth a reviewer's eye:**
 
-- The feature adds **one network round-trip that gates gameplay**, which this product
-  has never had. Every other write fails open so a bad connection cannot cost a player
-  his run. The dispenser inverts that deliberately — failing open would mean unlimited
-  offline attempts — and it is the one place the feature makes the offline experience
-  worse. Documented in the contract rather than left to be discovered in play.
+- **The feature no longer gates gameplay on the network.** An earlier revision did, and
+  it was the single worst consequence in the design — offline meant you could not start a
+  run. The organizer's trust ruling removed it. What remains is that an offline player's
+  attempt may go uncounted; that is recorded in the contract as an accepted cost rather
+  than left to be discovered in play.
 - **Three latent defects** in shipping code (research R1, R3, R4) become live bugs under
   a naive implementation. All three are silent: a phantom attempt from a retried commit,
   a queued score overwritten by the next attempt, and a leaderboard ranking on whichever

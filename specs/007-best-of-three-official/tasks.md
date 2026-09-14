@@ -32,30 +32,32 @@ Single project. `src/` and `tests/` at repository root; SQL under `supabase/`.
 
 ## A note on playtest ordering — read before starting
 
-Principle VIII requires the play pass at the **first point the change is playable**, and
-[plan.md](./plan.md) scheduled it before the database work. **Investigation during task
-generation found that will not work for half the feature**, so the play pass is split.
+**Revised 2026-09-14.** The organizer answered three of the four playtest questions in
+advance, which changes what the play passes are for.
 
-`src/state/localDraft.ts` is explicitly in-memory ("An in-memory draft store", line 1) and
-has no persistence at all. There is also **no in-app quit path during a run** — the only
-way to abandon is to kill the tab, and killing the tab in local mode destroys the whole
-draft, roster included. So a player cannot come back to "you have two attempts left"
-until real shared storage exists.
+| Question                                      | Status                                                         |
+| --------------------------------------------- | -------------------------------------------------------------- |
+| Does three attempts feel right?               | **Answered**: _"3 is right."_                                  |
+| Does losing an attempt to a bail feel fair?   | **Answered**: _"Losing a run to a crashed tab is acceptable."_ |
+| Defend the count against tampering?           | **Answered**: no — _"we can count on honorable behavior."_     |
+| Does the tripled session outstay its welcome? | **OPEN** — only play answers this                              |
 
-Consequently:
+Answered by acceptance rather than by play, and recorded that way in
+[spec.md](./spec.md); feature 006 logged two of its four the same way. So:
 
-- **Playtest A (Phase 5)** — local mode, before any SQL. Answers three of quickstart's
-  four questions: does three feel right, does session length outstay its welcome, is
-  attempt 1 still a cold read worth having.
-- **Playtest B (Phase 8)** — against a real Supabase project, after the storage phase.
-  Answers the fourth and riskiest: **does losing an attempt to a bail feel fair or
-  punitive.** That is the ADR-0002 reversal meeting a real person and it cannot be asked
-  earlier.
+- **Playtest A (Phase 5)** now carries **one** open question — session length — rather
+  than three. It stays where it is: it is still the first playable point, and a session
+  that outstays its welcome is cheapest to fix before the course or the allowances are
+  written into constraints.
+- **Playtest B (Phase 8)** is no longer a blocking design gate, because the question it
+  existed to ask is settled. It becomes **verification** that the tab-kill behaviour works
+  against real storage, plus one informal question: did the acceptance survive contact?
 
-This is still "the first playable point" for each half. It is written down rather than
-quietly reordered, because the original plan said otherwise.
-
----
+The structural reason for the split is unchanged and still worth knowing.
+`src/state/localDraft.ts` is in-memory with no persistence, and there is **no in-app quit
+path during a run**, so the only way to abandon is to kill the tab — which in local mode
+destroys the draft rather than costing an attempt. The bail cannot be exercised at all
+until Phase 7.
 
 ## Phase 1: Setup
 
@@ -108,7 +110,7 @@ shows the highest and only the highest (quickstart Scenario 1, SC-082).
 - [ ] T016 [US1] Rewrite `hasCommitted()` in `src/state/runEconomy.ts` as `isFinished()` — true when three attempts are used or the deadline has passed — and update `courseFor()` so free play reaches the official course only then (FR-068, FR-244)
 - [ ] T017 [US1] Update `src/state/localDraft.ts`'s `snapshot()` to store attempts as a list per entry and expose the best via the shared `bestAttempt` from T010, so local mode and Supabase agree by construction rather than by coincidence (research R6)
 - [ ] T018 [US1] Replace `submitCommit`'s single-commit refusal in `src/state/localDraft.ts` with the per-attempt rule: reject a duplicate `(entryId, attemptNo)`, reject `attemptNo` outside 1–3, mirroring the constraints Phase 7 adds to Postgres (research R6, R1)
-- [ ] T019 [US1] Update `endRun()` in `src/main.ts` to enqueue with the attempt number and to stop calling `markOfficialRunEnded` — that write moves earlier, to the dispenser in Phase 4 (contracts/storage-api.md, FR-234)
+- [ ] T019 [US1] Update `endRun()` in `src/main.ts` to enqueue with the attempt number and to stop calling `markOfficialRunEnded` — that write moves earlier, to the start of the run in Phase 4 (contracts/storage-api.md, FR-234)
 - [ ] T020 [US1] Update the menu in `src/main.ts:409` so the official control reads attempts remaining (e.g. `OFFICIAL RUN (2 left)`), matching the existing practice control's idiom, and is disabled at zero (FR-239, FR-055)
 - [ ] T021 [US1] Update the menu copy at `src/main.ts:422` — "The official run is a course you have not seen" is no longer true after attempt one and a spec that disagrees with shipped behaviour is a defect (Principle I, spec Accepted Consequences)
 
@@ -132,27 +134,27 @@ Phase 7 lands** — see the playtest note above and T028.
 ### Implementation for User Story 2
 
 - [ ] T024 [US2] Add `startOfficialAttempt(entryId)` to the local backend in `src/state/localDraft.ts`: increments, returns 1–3, refuses beyond three and after the deadline (contracts/storage-api.md, FR-233, FR-241)
-- [ ] T025 [US2] Add the same operation to `src/state/supabase.ts`, calling the `security definer` function Phase 7 creates, and delete `markOfficialRunEnded` along with its call site (research R2, FR-234)
-- [ ] T026 [US2] Gate `startRun()` in `src/main.ts:648` on a successful allocation **before** any gameplay: on failure the run must not begin (FR-234). This is the first network round-trip in this product that gates play, and it fails **closed** on purpose — failing open means unlimited offline attempts (contracts/storage-api.md)
-- [ ] T027 [US2] Render the failed-start message naming cause **and** remedy, and saying the attempt was **not** lost — the player's instinct will be that he was charged. Principle VI requires this state to be produced deliberately in a test, so add it to `tests/e2e/` rather than only writing the string (FR-234, research R9, quickstart Scenario 5)
+- [ ] T025 [US2] Add `startOfficialAttempt(entryId, used)` to `src/state/supabase.ts` as a plain column update on `official_attempts_used`, mirroring `recordPracticeRun` at `src/state/supabase.ts:213`, and delete `markOfficialRunEnded` with its call site (research R2, FR-234)
+- [ ] T026 [US2] In `startRun()` (`src/main.ts:648`), advance the attempt counter **before** gameplay begins but do **not** await it as a gate: a failed write must not stop the run, matching how `markOfficialRunEnded` was "best effort by design" (`src/main.ts:754`). Spending at start rather than at end is the point; blocking on the network is not (FR-234, research R2)
+- [ ] T027 [US2] Show attempts remaining optimistically from local state and let the next snapshot correct it, as the practice counter already does. Do **not** add a failure screen — the counter write no longer gates the run, so the "could not start" state does not exist. Assert in `tests/e2e/` that going offline still starts a run (FR-234, research R9, quickstart Scenario 5)
 - [ ] T028 [US2] Rewrite `tests/e2e-shared/official-run-is-spent.spec.ts` as `attempts-are-spent.spec.ts`: an attempt is spent at start whatever the commit does, and a refused commit does not return it. This is the spec that held the original bug shut and it must keep holding under three attempts (FR-233, FR-234)
 
 **Checkpoint**: MVP complete. Both P1 stories work; the rule is still client-side only until Phase 7.
 
 ---
 
-## Phase 5: Playtest A — the earliest honest play pass (Principle VIII)
+## Phase 5: Playtest A — the one question still open (Principle VIII)
 
-**⚠️ BLOCKING.** Principle VIII is NON-NEGOTIABLE and this is the first point the
-best-of-three change is playable. Do not start Phase 6 or 7 before it. If the player says
-three should be two, that is a constant; if he says it after the migration is written, it
-is a constant plus rework.
+**Still blocking**, though for a narrower reason than before. The attempt count is settled;
+what is not is whether a session of up to three practice runs plus three 12,000-unit
+attempts is too long. That is cheapest to learn here, before Phase 7 writes allowances
+into constraints.
 
 - [ ] T029 Publish a playable single-file build — `npm run build:artifact` — and hand over the link, naming the commit it was built from (Principle VIII, Definition of Done item 6)
-- [ ] T030 Ask the player, and record the answers **in his own words** in `spec.md` before any further change to these rules: (1) does three attempts feel right, or does it want to be two? (2) session length roughly triples — does it outstay its welcome, and if so is the answer fewer attempts or fewer practice runs? (3) is attempt 1 still a cold read worth having now that 2 and 3 are informed by it? (Principle VIII, quickstart Playtest)
-- [ ] T031 If the answers move the attempt count or the practice allowance, amend `spec.md` FR-231/FR-244 **before** Phase 7 writes the `CHECK (attempt_no between 1 and 3)` constraint against them (Principle I)
+- [ ] T030 Ask the player two questions and record both **in his own words** in `spec.md`: (1) does the session outstay its welcome now that it roughly triples, and if so is the answer fewer attempts, fewer practice runs, or a shorter official course? (2) is attempt 1 still a cold read worth having now that 2 and 3 are informed by it? The first is the open gate; the second is free to ask while someone is holding the phone (Principle VIII, quickstart Playtest)
+- [ ] T031 If the answers move the attempt count or the practice allowance, amend `spec.md` FR-231/FR-244 **before** Phase 7 writes `CHECK (attempt_no between 1 and 3)` against them (Principle I)
 
-**Checkpoint**: The riskiest tunable is settled by a person, not by a document.
+**Checkpoint**: the last tunable nobody can settle from a desk is settled.
 
 ---
 
@@ -185,12 +187,12 @@ attempts used and only a finished player reads as final (SC-085).
 not accept. This is what makes the feature's central fairness claim true.
 
 - [ ] T037 Write `supabase/migrations/0005_best_of_three.sql` per [research R7](./research.md#r7--migration-strategy): add `official_attempts_used` (0–3) backfilled from `official_status`; add `attempt_no` to `committed_score` backfilled to 1; drop `committed_score_one_per_entry`; create `UNIQUE (draft_id, entry_id, attempt_no)` and `CHECK (attempt_no between 1 and 3)` (FR-231, FR-237)
-- [ ] T038 Add `start_official_attempt(p_draft, p_entry)` as `security definer` to that migration — increments, returns the attempt number, refuses beyond three and after the deadline — following the ADR-0010 pattern in `supabase/migrations/0003_organizer.sql` (FR-233, FR-234, research R2)
-- [ ] T039 Revoke direct UPDATE on `official_attempts_used` from `anon` and `authenticated`, and grant execute on the dispenser. **A counter the player's bundle can decrement is not a limit**, and the whole justification for reversing ADR-0002 is that everyone gets the same three (FR-235, research R2)
+- [ ] T038 Add `official_attempts_used` to the **column-level** UPDATE grant on `roster_entry` in that migration, alongside `practice_runs_used`. `0002_policies.sql` grants specific columns, not the table, so a new column is unwritable until it is named — the client would silently fail to spend attempts (FR-235, research R2)
+- [ ] T039 Confirm that grant stays **column-scoped**: `name`, `origin`, `removed_at` and `removed_score` remain revoked, so widening it for the counter does not hand players organizer territory. There is deliberately **no** `security definer` function and **no** revoke of the counter — the organizer ruled the count honour-system on 2026-09-14 (FR-006, research R2)
 - [ ] T040 Verify the migration is safe run **standalone** against a project that already has data, not only as part of a fresh `setup.sql` — the README documents organizers pasting single migrations for exactly this reason (Principle VII, research R7)
 - [ ] T041 Append 0005 to `supabase/setup.sql` — it is a hand-maintained concatenation, not generated — and update its header comment, which currently advertises "one committed score per entry, forever" (Principle VII)
 - [ ] T042 [P] Extend `supabase/tests/invariants.sql` with the new deliberate violations: a fourth attempt row rejected; `attempt_no` of 0 or 4 rejected; a duplicate `(entry, attempt_no)` rejected; UPDATE and DELETE on `committed_score` still refused; a direct UPDATE of the counter refused (FR-231, FR-235, FR-237)
-- [ ] T043 [P] Assert the dispenser refuses a fourth allocation **in SQL**, in the same file. The cap is a schema-level rule and a constraint nobody has tripped is not evidence of anything (research R2)
+- [ ] T043 [P] Assert in SQL that a player can update his own counters but still **cannot** update `name`, `origin` or `removed_at`, so T038's widened grant is proved scoped rather than assumed (FR-006, Principle VI)
 - [ ] T044 **Migration round-trip test** — feature 001's T039, still unchecked and no longer deferrable, since this is the first schema change since it was written. Assert a pre-feature draft with committed scores migrates without corrupting them (FR-050, Principle II, quickstart Scenario 6)
 - [ ] T045 Update `src/state/supabase.ts`'s `snapshot()` to read `official_attempts_used` and to select attempt rows with an explicit `ORDER BY`, so the reduction never depends on unspecified row order (research R4)
 - [ ] T046 [P] Confirm `classifyError` still maps the per-attempt unique violation (`23505`) to `rejected`, so a retry after a lost response is dropped rather than posting a phantom attempt. This is the idempotency T012 flagged (research R1, FR-046)
@@ -201,19 +203,23 @@ not accept. This is what makes the feature's central fairness claim true.
 
 ---
 
-## Phase 8: Playtest B — the question only real storage can ask
+## Phase 8: Playtest B — verify the bail, and check the acceptance held
 
-**⚠️ BLOCKING for feature completion.** This is the one the feature actually rides on.
+**No longer a blocking design gate.** The question this phase existed to ask — does losing
+an attempt to a bail feel fair or punitive — was answered by the organizer on 2026-09-14:
+_"Losing a run to a crashed tab is acceptable."_ What remains is verification that the
+behaviour works against real storage, which cannot be done earlier for the structural
+reason at the top of this file.
 
-- [ ] T049 Publish a build against a real Supabase project and have the player **start an attempt and kill the tab**, then reopen and find one fewer attempt (quickstart Scenario 2). This cannot be asked in local mode: `localDraft.ts` is in-memory and there is no in-app quit, so a tab kill destroys the draft rather than costing an attempt
-- [ ] T050 Ask the question and record the answer in the player's own words in `spec.md`: **does losing an attempt to a bail feel fair, or punitive?** This is ADR-0002's reasoning — that penalising abandonment punishes a dead battery as hard as a rage-quit — meeting a real person. Everything else in this feature is tunable; this is the design (Principle VIII, spec "Why starting spends it is safe now")
+- [ ] T049 Publish a build against a real Supabase project and have the player **start an attempt and kill the tab**, then reopen and find one fewer attempt (quickstart Scenario 2, SC-083). This is the first point the bail is exercisable at all: `localDraft.ts` is in-memory and there is no in-app quit, so a tab kill in local mode destroys the draft rather than costing an attempt
+- [ ] T050 Ask one informal question and record the answer in `spec.md`: **did the acceptance survive contact?** The cost was accepted in advance rather than discovered in play, and Principle VIII is explicit that where measurement and the player disagree the player wins. If the first real bail stings more than it read on paper, FR-233 is the requirement to revisit — the spec already says so (Principle VIII, spec Accepted Consequences)
 
 ---
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
 - [ ] T051 Bump `rulesVersion` `2.0.0` → `3.0.0` in `tools/gen-courses.ts` for both courses and regenerate via `npm run gen:courses` (FR-243, research R8)
-- [ ] T052 Write `docs/adr/0011-three-attempts-best-one-counts.md` recording the partial reversal of ADR-0002 and why it is safe now — the penalty falls on one of three rather than on an unrepeatable run. Note that 0011 is used because **two existing files are numbered 0010**; do not fix that collision here (plan.md Complexity Tracking)
+- [ ] T052 Write `docs/adr/0011-three-attempts-best-one-counts.md` recording (a) the partial reversal of ADR-0002 and why it is safe now — the penalty falls on one of three rather than on an unrepeatable run, and the organizer ruled that cost acceptable on 2026-09-14 — and (b) the trust decision: the attempt count is honour-system by choice, consistent with ADR-0004, and an earlier design that hardened it was withdrawn. Use 0011 because **two existing files are numbered 0010**; do not fix that collision here (plan.md Complexity Tracking, research R2)
 - [ ] T053 Amend `specs/001-shredpocalypse-bed-draft/spec.md`: mark FR-019 superseded by FR-233, restate FR-017/FR-018 at attempt granularity, and update the Accepted Consequence at line 400 — the defect it records is now closed. A spec that disagrees with shipped behaviour is a defect (Principle I)
 - [ ] T054 [P] Update `specs/001-shredpocalypse-bed-draft/contracts/storage-api.md`'s invariant table, whose first row still reads "One committed score per entry, forever" (Principle I)
 - [ ] T055 [P] Update `README.md` where it describes the run economy, and `assets/` or docs copy that says one official run
@@ -236,8 +242,8 @@ not accept. This is what makes the feature's central fairness claim true.
 - **Phase 5 (Playtest A)**: after Phase 4 — **blocks Phases 6 and 7**
 - **Phase 6 (US3)**: after Phase 5
 - **Phase 7 (Storage)**: after Phase 5; independent of Phase 6
-- **Phase 8 (Playtest B)**: after Phase 7
-- **Phase 9 (Polish)**: after Phase 8
+- **Phase 8 (Playtest B)**: after Phase 7. No longer blocks Phase 9 — its design question is settled, so verification and polish can overlap
+- **Phase 9 (Polish)**: after Phase 7; T049–T050 may run alongside
 
 ### Critical Path
 
@@ -282,13 +288,13 @@ Phase 7 the limit is client-side. Stopping at Phase 5 is a valid pause, not a re
 1. **After Phase 2** — the three latent defects are closed and the suite is still green.
 2. **After Phase 5** — the player has answered the tunable questions. Amend the spec here if needed; it is the cheapest moment in the feature.
 3. **After Phase 7** — the database refuses what it must, proven on real Postgres.
-4. **After Phase 8** — the bail question is answered.
+4. **After Phase 8** — the bail is verified against real storage and the accepted cost has met a real player.
 
 ### What must not be skipped
 
 - **T007, T009, T046.** The three silent defects. None fails a build; all three corrupt a bed order.
-- **T039.** Without the revoke, the attempt counter is advisory and the feature's central claim is false.
-- **T030 and T050.** Principle VIII is NON-NEGOTIABLE, and T050 is the one that can invalidate the design.
+- **T038.** Without the column added to the grant, the client silently cannot spend attempts — `0002_policies.sql` grants columns, not tables, so the write fails quietly and every attempt looks free.
+- **T030.** Principle VIII is NON-NEGOTIABLE and session length is the one question nobody has answered from a desk. T050 is now a check rather than a gate, but it is the only chance to find out whether an accepted cost survives contact.
 - **T044.** Feature 001's T039 has been deferred since it was written. This is the first schema change since; it stops being deferrable here.
 
 ---

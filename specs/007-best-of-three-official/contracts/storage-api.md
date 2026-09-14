@@ -11,15 +11,14 @@ values while still bound by rules.
 
 ## Invariants enforced server-side
 
-| Invariant                                              | Enforcement                                                                         | Requirement    |
-| ------------------------------------------------------ | ----------------------------------------------------------------------------------- | -------------- |
-| ~~One committed score per entry, forever~~             | **SUPERSEDED** by the two rows below                                                | ~~FR-017~~     |
-| At most three scored attempts per entry, forever       | `UNIQUE (draft_id, entry_id, attempt_no)` + `CHECK (attempt_no between 1 and 3)`    | FR-231, FR-237 |
-| A committed attempt is never amended or erased         | No UPDATE and no DELETE grant to any client role, unchanged from feature 001        | FR-237         |
-| At most three attempts _started_, decrement impossible | Counter written only by `start_official_attempt()`; direct UPDATE revoked from anon | FR-233, FR-235 |
-| An attempt is spent before gameplay, not after         | The dispenser is a precondition of starting, and it advances the counter            | FR-234         |
-| Commit timestamps not client-set                       | `commit_at` default `now()`, excluded from the insert grant — unchanged             | FR-037, FR-236 |
-| No attempt started after the deadline                  | The dispenser refuses; the existing insert trigger still refuses late commits       | FR-241         |
+| Invariant                                        | Enforcement                                                                      | Requirement    |
+| ------------------------------------------------ | -------------------------------------------------------------------------------- | -------------- |
+| ~~One committed score per entry, forever~~       | **SUPERSEDED** by the two rows below                                             | ~~FR-017~~     |
+| At most three scored attempts per entry, forever | `UNIQUE (draft_id, entry_id, attempt_no)` + `CHECK (attempt_no between 1 and 3)` | FR-231, FR-237 |
+| A committed attempt is never amended or erased   | No UPDATE and no DELETE grant to any client role, unchanged from feature 001     | FR-237         |
+| An attempt is spent at start, not at end         | The client advances the counter when the run begins, best-effort                 | FR-234         |
+| Commit timestamps not client-set                 | `commit_at` default `now()`, excluded from the insert grant — unchanged          | FR-037, FR-236 |
+| No commit after the deadline                     | The existing insert trigger, unchanged                                           | FR-241         |
 
 The first row is the change this feature is really making. Feature 001's contract called
 `UNIQUE (draft_id, entry_id)` "the one-run rule"; it is now the three-attempt rule, and
@@ -27,29 +26,38 @@ it is still a uniqueness constraint rather than application logic for the same r
 
 ## Player operations
 
-| Operation                                           | Contract                                                                                                                      | Failure modes                                                                                                                                                      |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `startOfficialAttempt(entryId)` **new**             | Allocates and spends the next attempt. Returns its number, 1–3. **Must succeed before gameplay begins**                       | Already used three → rejected, naming it. Deadline passed → rejected. Offline → **rejected, and the attempt MUST NOT start**; the player keeps it (see below)      |
-| `commitAttempt(entryId, attemptNo, score, outcome)` | Inserts one immutable attempt row                                                                                             | Duplicate `(entry, attempt_no)` → rejected as already recorded; this is the retry-after-lost-response case and is a **correct** outcome. Offline → queued (FR-046) |
-| ~~`markOfficialRunEnded(id)`~~                      | **REMOVED.** Its job — recording that the run is spent even when the commit does not land — moves _earlier_, to the dispenser | —                                                                                                                                                                  |
-| `listDraft()`                                       | Roster now carries attempts used and the **best** attempt's score and timestamp                                               | Offline → last cached snapshot, marked stale                                                                                                                       |
-| `incrementPractice(id)`                             | Unchanged (FR-244)                                                                                                            | Abandoned practice never calls this (FR-066)                                                                                                                       |
+| Operation                                           | Contract                                                                                                                        | Failure modes                                                                                                                                                      |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `startOfficialAttempt(entryId)` **new**             | Spends the next attempt and returns its number, 1–3. Best-effort: **does not gate gameplay**                                    | Already used three → the menu never offers it. Offline → the write is lost and the run starts anyway; the count reconciles on the next load (see below)            |
+| `commitAttempt(entryId, attemptNo, score, outcome)` | Inserts one immutable attempt row                                                                                               | Duplicate `(entry, attempt_no)` → rejected as already recorded; this is the retry-after-lost-response case and is a **correct** outcome. Offline → queued (FR-046) |
+| ~~`markOfficialRunEnded(id)`~~                      | **REMOVED.** Its job — recording the run as spent even when the commit does not land — moves _earlier_, to the start of the run | —                                                                                                                                                                  |
+| `listDraft()`                                       | Roster now carries attempts used and the **best** attempt's score and timestamp                                                 | Offline → last cached snapshot, marked stale                                                                                                                       |
+| `incrementPractice(id)`                             | Unchanged (FR-244)                                                                                                              | Abandoned practice never calls this (FR-066)                                                                                                                       |
 
-### Why `startOfficialAttempt` fails closed
+### Why `startOfficialAttempt` fails open
 
-Every other write in this system fails **open** so that a bad network cannot cost a
-player his run — `markOfficialRunEnded` is explicitly "best effort by design"
-(`src/main.ts:754`), because the score is already safe in the outbox and losing it to
-bookkeeping would be worse.
+Every write in this system fails **open** so that a bad network cannot cost a player his
+run. `markOfficialRunEnded` was explicitly "best effort by design" (`src/main.ts:754`),
+because the score is already safe in the outbox and losing it to bookkeeping would be
+worse. `recordPracticeRun` behaves the same way.
 
-The dispenser inverts that, deliberately. If it could fail open, a player with no
-connection would get unlimited attempts, which is the loophole this feature exists to
-close. So the attempt does not start, and the player is told he has **not** lost it —
-that second half is required, because his instinct on a failed start will be to assume
-he has been charged.
+The attempt counter joins them. **An earlier revision of this contract had it fail
+closed** — no connection, no attempt — on the reasoning that failing open hands an offline
+player unlimited attempts. The organizer reversed that on 2026-09-14 (_"we should not build
+this with cheaters in mind"_), and the reversal is a straight improvement for everyone who
+is not cheating: gameplay no longer waits on the network, offline play works, and a whole
+failure screen stops existing.
 
-This is the one place where the feature makes the offline experience worse, and it is
-the price of the rule being real. Recorded here rather than discovered in play.
+The cost is stated plainly rather than buried: **an offline player's attempt may not be
+counted.** He gets a free attempt by accident, and a dishonest one could arrange it on
+purpose. Accepted per the organizer's ruling and consistent with
+[ADR-0004](../../../docs/adr/0004-accept-client-reported-scores.md), which already lets
+the same player report any score he likes.
+
+What does **not** fail open is the number of attempts that can carry a score: three, by
+`UNIQUE (draft_id, entry_id, attempt_no)` and `CHECK (attempt_no between 1 and 3)`. That
+is [R1](../research.md#r1--how-three-attempts-are-stored)'s idempotency constraint doing
+a second job, not a trust boundary.
 
 ## Commit durability
 

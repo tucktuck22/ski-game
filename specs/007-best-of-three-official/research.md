@@ -52,41 +52,65 @@ existing logic needs no change in kind.
 
 ## R2 — Where "starting spends it" is enforced
 
-**Decision**: A `security definer` function — `start_official_attempt(p_draft, p_entry)`
-— increments the attempt counter and returns the allocated attempt number, refusing
-beyond three. Direct UPDATE on the attempt counter column is revoked from `anon`.
+**Decision**: The client writes the attempt counter directly, as a plain column update,
+matching how `recordPracticeRun` already works. **No `security definer` function, no
+revoke.** The write is best-effort and does **not** gate gameplay.
 
-**Rationale**: this is the decision the feature stands or falls on. FR-233 and FR-234
-make "starting spends it" the mechanism that closes the unfairness recorded at
-`specs/001-shredpocalypse-bed-draft/spec.md:400`, and the justification for reversing
-ADR-0002 is that **everyone now gets the same three attempts**. A counter the player's
-own bundle can decrement makes that claim false: the honest player takes three, the
-curious one takes as many as he likes, and the feature has moved the loophole rather
-than closed it.
+**Reversed by the organizer, 2026-09-14.** The original decision on this page was a
+`security definer` dispenser that allocated attempt numbers and refused beyond three,
+with direct UPDATE revoked from `anon`, so the count could not be tampered with. The
+organizer read it and said no:
 
-The pattern is already established here. `0003_organizer.sql` and
-[ADR-0010](../../docs/adr/0010-organizer-actions-as-secret-gated-functions.md) use
-`security definer` functions for exactly this reason — a rule the client must not be
-able to route around, implemented as a function rather than as a table write with a
-policy. This feature reuses it without inventing anything.
+> _"We should not build this with cheaters in mind. This is a friends ski trip and we can
+> count on honorable behavior."_
 
-**Note on what this does and does not buy.** It makes the attempt _count_ honest. It
-does not make the score honest — ADR-0004 still accepts client-reported values, and a
-player willing to open developer tools can still post whatever he likes. The two are
-separate holes and only one is in scope. Stating that plainly matters, because "the
-attempt limit is server-enforced" could otherwise be misread as "the leaderboard is
-now trustworthy". It is not.
+**Rationale**: the original decision was internally sound and pointed the wrong way. It
+defended the attempt count against a determined attacker in a product that
+[ADR-0004](../../docs/adr/0004-accept-client-reported-scores.md) already lets that same
+attacker post any score he likes. Hardening the counter while the score beside it is
+taken on trust buys nothing — someone willing to edit one would edit the other, and he
+would not bother with the counter when the score is right there. It was armour on one
+side of an open door.
+
+What it cost was real, and all of it now goes away:
+
+- **Gameplay no longer waits on the network.** The dispenser had to be a precondition of
+  starting, which made it the first network round-trip in this product to gate play. It
+  is gone; the counter write joins `recordPracticeRun` and the old
+  `markOfficialRunEnded` as best-effort bookkeeping.
+- **Offline play works again.** Failing closed meant no connection, no attempt. Since a
+  trusted client may start its own attempt, being offline no longer stops a run.
+- **One reachable failure state disappears** — the "could not start your attempt" screen,
+  along with the test Principle VI would have required for it.
+- **The migration loses a function and a revoke**, and `0005` becomes ordinary DDL.
+
+**What is still enforced, and why it is not a cheater defense**: at most three _scored_
+attempts, by `UNIQUE (draft_id, entry_id, attempt_no)` and
+`CHECK (attempt_no between 1 and 3)`. That constraint stays for [R1](#r1--how-three-attempts-are-stored)'s
+reason, which is **idempotency, not trust** — it is what stops the outbox posting a
+phantom attempt when a commit succeeds and its response is lost. That failure hits an
+honest player on bad wifi, and no amount of good faith prevents it. The cap on scored
+attempts is a side effect of a correctness constraint, and it would stay even if the
+product trusted its players completely. Which it now does.
+
+**What is now honour-system**: the abandonment count. A player who edits
+`official_attempts_used` downward gets more attempts. This is a deliberate, recorded
+acceptance, in the same register as ADR-0004 — and, unlike the old FR-019, the product
+now _states_ the rule and _implements_ it. It simply does not defend it. The difference
+between "abandoning is free and unlimited, by design" and "you have three, and we are
+taking your word for it" is the whole of what this feature changes about abandonment.
 
 **Alternatives considered**:
 
-- _Plain column update, as `official_status` works today._ Rejected: reversible by the
-  same grant that sets it. Today that is tolerable because the _score_ is protected by
-  the unique index regardless of what `official_status` says; under this feature the
-  abandonment count has no such backstop and is the thing being enforced.
-- _Trust the client, as ADR-0004 does for scores._ Rejected: ADR-0004 accepts unverified
-  _values_ among friends. This is a _rule_, and feature 001 already found that leaving
-  this particular rule social rather than enforced cost the honest players specifically
-  (spec.md:400). Repeating that choice while claiming to fix it would be incoherent.
+- _`security definer` dispenser with the counter revoked._ The original decision, above.
+  Rejected by the organizer as solving for an adversary this product does not have, at a
+  cost (gameplay gated on the network) paid by everyone who does not cheat.
+- _A non-`security definer` RPC purely to make the increment atomic_
+  (`used = used + 1` rather than a client-computed absolute). Rejected as inconsistent:
+  `recordPracticeRun` at `src/state/supabase.ts:213` already computes `n + 1` on the
+  client and writes it absolutely, and a second idiom for the same kind of counter would
+  be harder to follow than the race it avoids. One player racing himself across two
+  devices is not a scenario worth a new pattern.
 
 ---
 
@@ -161,8 +185,8 @@ R4 rather than teaching the ranker about attempts.
 
 ## R6 — Local mode must mirror every rule
 
-**Decision**: `src/state/localDraft.ts` implements the attempt dispenser, the 1..3
-refusal, and the best-of reduction, matching the database exactly.
+**Decision**: `src/state/localDraft.ts` implements the attempt counter, the 1..3
+refusal on scored attempts, and the best-of reduction, matching the database exactly.
 
 **Rationale**: local mode is what runs when no Supabase project is configured, and it is
 what the `test:build` smoke journey drives. It already mirrors the unique index
@@ -190,8 +214,12 @@ and safe to run on its own against an existing project. Appended to
 2. Add `attempt_no` to `committed_score`, backfilling existing rows to 1.
 3. Drop `committed_score_one_per_entry`; create `UNIQUE (draft_id, entry_id, attempt_no)`
    and the `CHECK (attempt_no between 1 and 3)`.
-4. Create `start_official_attempt(...)` as `security definer`; grant execute to `anon`.
-5. Revoke direct UPDATE on the attempt counter column from `anon`.
+4. Extend the existing column-level UPDATE grant on `roster_entry` to include
+   `official_attempts_used`, alongside `practice_runs_used` — the counter is written by
+   the client, per R2.
+
+There is no function and no revoke. An earlier revision of this plan had both; see
+[R2](#r2--where-starting-spends-it-is-enforced) for why they were removed.
 
 **Rationale**: the organizer pastes SQL by hand — the README documents exactly this for
 `0003_organizer.sql` and `0004_rules_freeze.sql` — so the migration must be correct when
@@ -227,17 +255,23 @@ together, and any draft seeded from an older `seed-draft.sql` must be reseeded.
 
 ## R9 — What the player is told
 
-**Decision**: The menu states attempts remaining before the first attempt is taken, and
-after each. The leaderboard distinguishes a player with attempts remaining from one who
-is finished (FR-239).
+**Decision**: The menu states attempts remaining before the first attempt and after each
+one. The leaderboard distinguishes a player with attempts remaining from one who is
+finished (FR-239).
 
-**Rationale**: FR-234 introduces a failure the player has never seen — an attempt that
-refuses to start because shared storage could not record it as spent. Principle VI
-requires every reachable failure state to be produced deliberately in a test and to
-render a message naming the cause and the remedy. "Could not start your attempt — you
-have not lost it. Check your connection and try again" is the shape; the remedy matters
-because the player's instinct on a failed start will otherwise be to assume he has been
-charged for it.
+**Revised 2026-09-14 alongside R2.** This section previously specified a failure message
+for an attempt that refused to start, because the dispenser failed closed. With the
+counter written best-effort, **there is no such failure state**: the run starts, and a
+counter write that cannot get out is retried or simply lost, exactly as
+`recordPracticeRun` behaves today. The message, and the Principle VI test that would have
+been required to produce it deliberately, are both gone.
+
+What replaces it is smaller and worth getting right anyway: if the counter write fails,
+the player should not be told his attempt was free. Saying nothing is correct — the
+count will reconcile from shared storage on the next load — but silently showing him
+three attempts remaining when he has taken one would be a lie the next screen contradicts.
+Prefer optimistic local display that the next snapshot corrects, which is what the menu
+already does for practice runs.
 
 The leaderboard already carries live run state (`PRACTISING (n/3)`,
 `READY — NOT YET OFFICIAL` in `src/ui/leaderboard.ts:59`), so attempt state extends an
