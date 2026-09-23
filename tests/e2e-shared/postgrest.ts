@@ -58,7 +58,7 @@ export function fixture(over: Partial<Fixture> = {}): Fixture {
       origin: 'organizer',
       claimed_at: null,
       practice_runs_used: 0,
-      official_status: 'unused',
+      official_attempts_used: 0,
       official_run_started_at: null,
       removed_at: null,
       removed_score: null,
@@ -107,6 +107,7 @@ export async function mockPostgrest(
       f.scores.push({
         entry_id: ENTRY_ID,
         draft_id: DRAFT_ID,
+        attempt_no: body['attempt_no'],
         score: body['score'],
         outcome: body['outcome'],
         commit_at: new Date().toISOString(),
@@ -121,13 +122,24 @@ export async function mockPostgrest(
   await page.routeWebSocket('**/realtime/**', (ws) => ws.close());
 }
 
-/** Claim a name and take the one run that counts, through to its last frame. */
+/** Claim a name and take one official attempt, through to its last frame. */
 export async function takeOfficialRun(page: Page): Promise<void> {
   await page.goto(`/?draft=${DRAFT_ID}`);
   await page.locator('#drop-in').click();
   await page.locator('button[data-claim]').first().click();
-  await page.locator('#official').click();
+  await startOfficialAttempt(page);
   await page.locator('#go').click();
   await page.locator('.sfx').waitFor({ timeout: 90_000 });
   await page.locator('#done').click();
+}
+
+/**
+ * Press the official control, whatever its attempt counter currently reads.
+ *
+ * The label carries the count now — `OFFICIAL RUN (2 left)` — so a selector
+ * matching on text would break every time an attempt is spent. Matching the id
+ * keeps these specs readable as the count changes under them.
+ */
+export async function startOfficialAttempt(page: Page): Promise<void> {
+  await page.locator('#official').click();
 }

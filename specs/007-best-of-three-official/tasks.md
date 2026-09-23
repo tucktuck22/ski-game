@@ -150,7 +150,7 @@ what is not is whether a session of up to three practice runs plus three 12,000-
 attempts is too long. That is cheapest to learn here, before Phase 7 writes allowances
 into constraints.
 
-- [ ] T029 Publish a playable single-file build — `npm run build:artifact` — and hand over the link, naming the commit it was built from (Principle VIII, Definition of Done item 6)
+- [x] T029 Publish a playable single-file build — `npm run build:artifact` — and hand over the link, naming the commit it was built from (Principle VIII, Definition of Done item 6)
 - [ ] T030 Ask the player two questions and record both **in his own words** in `spec.md`: (1) does the session outstay its welcome now that it roughly triples, and if so is the answer fewer attempts, fewer practice runs, or a shorter official course? (2) is attempt 1 still a cold read worth having now that 2 and 3 are informed by it? The first is the open gate; the second is free to ask while someone is holding the phone (Principle VIII, quickstart Playtest)
 - [ ] T031 If the answers move the attempt count or the practice allowance, change `officialAttempts` in `data/tuning.json` and amend `spec.md` FR-231/FR-244 to match. No migration is needed — the allowance is data, and the schema carries only a sanity rail (FR-245, research R10, Principle I)
 
@@ -312,8 +312,13 @@ code**: `git-lfs` is not installed in this container, so the sprite PNGs are uns
 is green. Recorded rather than glossed, so "2 failing" after this feature is not mistaken
 for a regression it caused.
 
-**After Phases 1-4: 446 passed, 2 failed (448)** — same two, +15 new tests, lint and
-typecheck clean.
+**After Phases 1-4 + T029: 446 passed, 2 failed (448)** unit/sim — same two, +15 new
+tests. **`npm run test:shared`: 8 passed**, including the rewritten attempt specs and the
+two new ones (375 x 667 legibility, and a run starting while every roster write fails).
+Lint and typecheck clean. Commands run on Linux, Node 22, headless Chromium.
+
+**T029 build**: `npm run build:artifact` -> `dist/artifact.html`, 401 KiB, built from the
+commit this note ships in.
 
 - **Found during task generation, out of scope, worth its own change**: there is **no
   in-app way to abandon a run**. Under the old rules bailing was free, so killing the tab
