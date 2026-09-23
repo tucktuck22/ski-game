@@ -76,6 +76,7 @@ const commit = {
   id: 'e1-official',
   draftId: 'd1',
   entryId: 'e1',
+  attemptNo: 1,
   score: 51234,
   outcome: 'finished' as const,
   rulesVersion: '1.5.0',

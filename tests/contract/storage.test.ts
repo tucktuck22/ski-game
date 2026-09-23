@@ -1,12 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { classifyError } from '../../src/state/supabase.js';
+import { LocalDraftStore } from '../../src/state/localDraft.js';
 
 const sql = (f: string): string =>
   readFileSync(new URL(`../../supabase/migrations/${f}`, import.meta.url), 'utf8');
 
 const init = sql('0001_init.sql');
 const policies = sql('0002_policies.sql');
+const attempts = sql('0005_best_of_three.sql');
 
 /**
  * A FAST PRE-CHECK, not the proof.
@@ -24,10 +26,56 @@ const policies = sql('0002_policies.sql');
  * exist yet, which made setup.sql fail outright.
  */
 describe('storage invariants are database constraints, not client code', () => {
-  it('one committed score per entry, forever (FR-017, FR-018)', () => {
+  /**
+   * Feature 007 replaced the one-per-ENTRY index with one-per-ATTEMPT. The old
+   * index was carrying two rules and only one was written down: the stated
+   * one-run rule, and — unstated — the idempotency the outbox silently depends
+   * on. A commit that succeeds but loses its response gets retried, and the
+   * collision is what makes that retry a no-op rather than a phantom attempt.
+   */
+  it('one committed score per ATTEMPT, forever (FR-231, FR-237, research R1)', () => {
     expect(init).toMatch(
       /create unique index committed_score_one_per_entry\s+on committed_score \(draft_id, entry_id\)/,
     );
+    // ...and 0005 replaces it rather than merely dropping it. Dropping without
+    // replacing is the regression that would let a retry double-post.
+    expect(attempts).toMatch(/drop index if exists committed_score_one_per_entry/);
+    expect(attempts).toMatch(
+      /create unique index committed_score_one_per_attempt\s+on committed_score \(draft_id, entry_id, attempt_no\)/,
+    );
+  });
+
+  /**
+   * FR-245. The allowance is a tuning value, so the schema must NOT pin it at
+   * three: a constraint that could veto data/tuning.json would make re-tuning
+   * half-obeyed, surfacing to the player as a constraint violation he reads as a
+   * bug. The CHECK is a sanity rail and this asserts it stays one.
+   */
+  it('does not pin the attempt allowance in the schema (FR-245, research R10)', () => {
+    expect(attempts).toMatch(/check \(attempt_no between 1 and 9\)/);
+    expect(attempts).not.toMatch(/check \(attempt_no between 1 and 3\)/);
+  });
+
+  /**
+   * 0002_policies.sql grants NAMED COLUMNS rather than the table, so a new
+   * column is unwritable until it is listed — and the failure is silent: the
+   * PATCH is refused with nobody watching and every attempt looks free.
+   */
+  it('puts the attempt counter in the column-level update grant (FR-235)', () => {
+    expect(attempts).toMatch(
+      /grant update \(official_attempts_used\) on roster_entry to anon, authenticated/,
+    );
+  });
+
+  /**
+   * research R2, reversed by the organizer on 2026-09-14. The count is
+   * honour-system by choice, consistent with ADR-0004 already accepting whatever
+   * score the client reports. This guards against someone "hardening" it back
+   * and reintroducing a network round-trip that gates gameplay.
+   */
+  it('leaves the attempt counter client-written, by decision (research R2)', () => {
+    expect(attempts).not.toMatch(/security definer/i);
+    expect(attempts).not.toMatch(/revoke update \(official_attempts_used\)/);
   });
 
   it('grants no UPDATE or DELETE on committed_score to any client role', () => {
@@ -162,5 +210,88 @@ describe('the seeded rules version matches the rules the client sends (FR-023)',
     );
     // A CHANGE ME in an executable line is a script that stops rather than runs.
     expect(fix).not.toMatch(/:=\s*'CHANGE ME'/);
+  });
+});
+
+/**
+ * THE LOCAL BACKEND HELD TO THE SAME CONTRACT.
+ *
+ * `LocalDraftStore` is what runs with no Supabase project configured, and it is
+ * what the built-artifact smoke journey drives. A local mode that hands out
+ * unlimited attempts would make that gate assert the wrong behaviour, which
+ * Principle VI is explicit about: verification against a convenient
+ * approximation is not verification.
+ *
+ * The Supabase half of these rules is proven by the `storage` job against real
+ * Postgres, not here — grepping SQL can only say a statement is present.
+ */
+describe('the local backend obeys the attempt rules too (FR-233, FR-235, research R6)', () => {
+  const store = (): LocalDraftStore =>
+    new LocalDraftStore({
+      id: 'local-draft',
+      deadline: new Date(Date.now() + 86_400_000).toISOString(),
+      courseSeed: 1986,
+      rulesVersion: '3.0.0',
+      finalizedAt: null,
+    });
+
+  it('spends attempts one at a time and refuses past the allowance (FR-233)', async () => {
+    const s = store();
+    const id = await s.seedOrganizerEntry('Dave');
+    for (let n = 1; n <= 3; n++) {
+      const r = await s.startOfficialAttempt(id, 3);
+      expect(r).toEqual({ ok: true, attemptNo: n });
+    }
+    const fourth = await s.startOfficialAttempt(id, 3);
+    expect(fourth.ok).toBe(false);
+  });
+
+  it('honours the allowance it is given rather than a hardcoded 3 (FR-245)', async () => {
+    const s = store();
+    const id = await s.seedOrganizerEntry('Dave');
+    expect((await s.startOfficialAttempt(id, 1)).ok).toBe(true);
+    expect((await s.startOfficialAttempt(id, 1)).ok).toBe(false);
+  });
+
+  it('charges an abandoned attempt, which posts no score at all (FR-233)', async () => {
+    const s = store();
+    const id = await s.seedOrganizerEntry('Dave');
+    await s.startOfficialAttempt(id, 3); // started, never committed — the tab died
+    const [entry] = (await s.snapshot()).entries;
+    expect(entry?.officialAttemptsUsed).toBe(1);
+    expect(entry?.score).toBeNull();
+  });
+
+  it('exposes no way to lower the counter (FR-235)', () => {
+    const surface = Object.getOwnPropertyNames(LocalDraftStore.prototype);
+    expect(surface.filter((k) => /refund|restore|resetAttempt|decrement/i.test(k))).toEqual([]);
+  });
+
+  /**
+   * R1's idempotency trap. A commit that succeeded but whose response was lost
+   * gets retried by the outbox, which has no other way to tell a retry from a
+   * new submission. The SAME attempt must be rejected; a DIFFERENT one must not.
+   */
+  it('rejects a duplicate attempt but accepts the next one (research R1)', async () => {
+    const s = store();
+    const id = await s.seedOrganizerEntry('Dave');
+    const commit = (attemptNo: number, score: number) => ({
+      id: `${id}-official-${attemptNo}`,
+      draftId: 'local-draft',
+      entryId: id,
+      attemptNo,
+      score,
+      outcome: 'finished' as const,
+      rulesVersion: '3.0.0',
+      queuedAt: Date.now(),
+      attempts: 0,
+    });
+    expect(await s.submitCommit(commit(1, 4000))).toEqual({ kind: 'confirmed' });
+    expect((await s.submitCommit(commit(1, 4000))).kind).toBe('rejected');
+    expect(await s.submitCommit(commit(2, 6100))).toEqual({ kind: 'confirmed' });
+
+    // FR-232: the best stands, not the latest.
+    const [entry] = (await s.snapshot()).entries;
+    expect(entry?.score).toBe(6100);
   });
 });

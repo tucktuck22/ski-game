@@ -8,12 +8,18 @@
 import { assembleGameData, type GameData } from './data/load.js';
 import { LocalDraftStore } from './state/localDraft.js';
 import { DraftStore, discoverDraft, type DraftSnapshot } from './state/supabase.js';
-import { Outbox, indexedDbStore, type OutboxStore, type PendingCommit } from './state/outbox.js';
+import {
+  Outbox,
+  indexedDbStore,
+  type OutboxStore,
+  type PendingCommit,
+  commitKey,
+} from './state/outbox.js';
 import { OutboxRunner, browserEnvironment } from './state/outboxRunner.js';
 import {
   availability,
   courseFor,
-  hasCommitted,
+  isFinished,
   PRACTICE_RUNS,
   type RunKind,
 } from './state/runEconomy.js';
@@ -144,6 +150,14 @@ let snapshot: DraftSnapshot;
 // killed module initialisation and rendered a blank page. See safeStorage.ts.
 let myEntryId: string | null = null;
 let game: GameView | null = null;
+/**
+ * The attempt number the in-flight official run is spending (FR-234).
+ *
+ * Captured when the run STARTS, because that is when the attempt is charged,
+ * and carried to the commit so the score lands on the right attempt row. Null
+ * for practice and free play, which cost nothing.
+ */
+let currentAttemptNo: number | null = null;
 let commitStatus: 'idle' | 'pending' | 'confirmed' | 'rejected' = 'idle';
 let commitMessage = '';
 // Held in state rather than written straight to the DOM: refresh() re-renders,
@@ -365,7 +379,7 @@ function render(): void {
       </div>
       ${me ? renderPlayer(me) : renderRoster()}
     </div>
-    ${renderLeaderboard(snapshot.entries, draftIsFinal())}
+    ${renderLeaderboard(snapshot.entries, draftIsFinal(), data.tuning.officialAttempts)}
     ${isOrganizer ? renderOrganizer(snapshot.entries, snapshot.draft.deadline, organizerError) : ''}`;
   wire();
 }
@@ -391,7 +405,7 @@ function renderRoster(): string {
 }
 
 function renderPlayer(me: NonNullable<ReturnType<typeof myEntry>>): string {
-  const a = availability(me, !canStartOfficialRun(deadline()));
+  const a = availability(me, !canStartOfficialRun(deadline()), data.tuning.officialAttempts);
   return `
     <p>
       You are <strong style="color:var(--magenta)">${escapeHtml(me.name)}</strong>.
@@ -410,7 +424,9 @@ function renderPlayer(me: NonNullable<ReturnType<typeof myEntry>>): string {
         <button id="practice" ${a.practiceRemaining === 0 || a.freePlayOnly ? 'disabled' : ''}>
           PRACTICE RUN (${a.practiceRemaining} left)
         </button>
-        <button id="official" class="danger" ${a.officialAvailable ? '' : 'disabled'}>OFFICIAL RUN</button>
+        <button id="official" class="danger" ${a.officialAvailable ? '' : 'disabled'}>
+          OFFICIAL RUN (${a.officialAttemptsRemaining} left)
+        </button>
         <button id="free" ${a.freePlayOnly ? '' : 'disabled'}>FREE PLAY</button>
       </div>
       ${a.blockedReason ? `<p id="blocked-reason" style="color:var(--yellow)">${escapeHtml(a.blockedReason)}</p>` : ''}
@@ -419,7 +435,9 @@ function renderPlayer(me: NonNullable<ReturnType<typeof myEntry>>): string {
       ${commitStatus === 'confirmed' ? `<p class="confirmed">SCORE CONFIRMED. ${escapeHtml(commitMessage)}</p>` : ''}
       ${commitStatus === 'rejected' ? renderRejection(commitMessage) : ''}
       <p style="color:var(--cyan);font-size:12px">
-        Practice is the warm-up slope. The official run is a course you have not seen.
+        Practice is the warm-up slope. You get ${data.tuning.officialAttempts} official
+        attempts on the real course and your BEST one counts — but starting one spends it,
+        so a run you walk away from is gone.
         Hold to tuck and go faster — let go to jump. Let go under something low and you eat it.
       </p>
     </div>`;
@@ -649,9 +667,31 @@ function confirmOfficial(): void {
 async function startRun(kind: RunKind): Promise<void> {
   const me = myEntry();
   if (!me) return;
-  // FR-068: free play moves to the official course once the official run is
-  // spent — which is at run end, not when the score row appears.
-  const which = courseFor(kind, hasCommitted(me));
+
+  /**
+   * FR-233/FR-234: an official attempt is spent the moment it STARTS.
+   *
+   * Deliberately NOT awaited as a gate. Every other write in this product fails
+   * open so a bad connection cannot cost a player his run, and gating gameplay
+   * on the network would be a first here. The organizer ruled the count
+   * honour-system (research R2), so an attempt that goes uncounted offline is an
+   * accepted cost. The attempt number is taken optimistically from what we know
+   * and reconciles from shared storage on the next load.
+   */
+  currentAttemptNo = null;
+  if (kind === 'official') {
+    currentAttemptNo = me.officialAttemptsUsed + 1;
+    void backend
+      .startOfficialAttempt(me.id, data.tuning.officialAttempts, me.officialAttemptsUsed)
+      .catch(() => {
+        // Swallowed on purpose: the run is already under way and the count will
+        // catch up. Stopping the player here is the one thing we must not do.
+      });
+  }
+
+  // FR-068 at attempt granularity: free play reaches the official course only
+  // once every attempt is spent, not after the first one commits.
+  const which = courseFor(kind, isFinished(me, data.tuning.officialAttempts));
   const course = which === 'official' ? data.official : data.warmup;
 
   app.innerHTML = `
@@ -748,38 +788,36 @@ async function endRun(report: RunReport): Promise<void> {
     commitStatus = 'pending';
     // The score first, always: the queue is what makes it survivable, so
     // nothing may run ahead of it and fail.
+    // The attempt number was fixed when the run started. Falling back to
+    // attemptsUsed is defensive only — endRun is never reached without startRun.
+    const attemptNo = currentAttemptNo ?? me.officialAttemptsUsed;
     await outbox.enqueue({
-      id: `${me.id}-official`,
+      // ATTEMPT-SCOPED, via the shared helper so tests exercise this exact
+      // path. `${me.id}-official` would have a second attempt overwrite a first
+      // still queued, destroying what may be his best score (research R3).
+      id: commitKey(me.id, attemptNo),
       draftId: snapshot.draft.id,
       entryId: me.id,
+      attemptNo,
       score: report.score,
       outcome: report.outcome,
       rulesVersion: data.official.rulesVersion,
     });
 
     /**
-     * FR-017/FR-018: the run is spent the moment it ends, whatever the score
-     * insert goes on to do.
+     * NOTHING IS SPENT HERE ANY MORE, AND THAT IS THE CHANGE.
      *
-     * This is the write that was missing. The only record of a used official
-     * run was the score row, so a commit that was refused or merely still
-     * queued left the run looking untaken — and `availability()`, reading only
-     * the score, put OFFICIAL RUN back on the screen, live. That is the "they
-     * can just do it again" half of the reported bug, and it is independent of
-     * why the insert failed.
+     * This used to call markOfficialRunEnded, because the run was spent when it
+     * reached a finish or a wipeout. That could only ever charge for a run that
+     * ENDED: a player who closed the tab mid-descent paid nothing, which is the
+     * unfairness feature 007 exists to close (FR-233). The charge moved to
+     * startRun, where it costs an attempt whether or not the run reaches an end
+     * state — and without needing to detect the abandonment, which cannot be
+     * done reliably when the tab is killed.
      *
-     * Best effort by design. If this write cannot get out either, the score is
-     * already safe in the outbox and this session's `commitStatus` still holds
-     * the button shut; the next successful commit closes the run properly. What
-     * must not happen is losing the score because the bookkeeping failed.
+     * The score still goes through the outbox first, for the same reason as
+     * before: it is the irreplaceable half.
      */
-    try {
-      await backend.markOfficialRunEnded(me.id);
-    } catch {
-      playerError =
-        'Your run is over and the score is queued, but the draft could not be told ' +
-        'the run is used up. Stay on this tab until it says CONFIRMED.';
-    }
     // Through the runner, not straight at the outbox: a pass that comes back
     // "retry" must leave a scheduled retry behind it. This one call used to BE
     // the whole of FR-046's "retried until confirmed".

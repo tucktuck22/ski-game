@@ -13,9 +13,21 @@
  */
 
 export interface PendingCommit {
+  /**
+   * The IndexedDB key. MUST be scoped to the attempt, not just the entry.
+   *
+   * It used to be `${entryId}-official`, which was correct while one entry could
+   * only ever have one official commit. Under best-of-N that fixed key is a
+   * score-eater: the store puts by keyPath, so a second attempt queued while the
+   * first is still pending OVERWRITES it - on exactly the lodge wifi this queue
+   * exists for, and silently destroying what may have been the player's best
+   * attempt (research R3).
+   */
   id: string;
   draftId: string;
   entryId: string;
+  /** 1-based (FR-231). Part of the natural key that keeps a retry idempotent. */
+  attemptNo: number;
   score: number;
   outcome: 'finished' | 'wiped_out';
   rulesVersion: string;
@@ -23,6 +35,16 @@ export interface PendingCommit {
   queuedAt: number;
   attempts: number;
 }
+
+/**
+ * The queue key for one attempt's commit.
+ *
+ * Exported so the test can exercise THE REAL THING. A test that writes its own
+ * `${entry}-official-${n}` string would keep passing if the caller quietly went
+ * back to a per-entry key, which is the exact regression this guards.
+ */
+export const commitKey = (entryId: string, attemptNo: number): string =>
+  `${entryId}-official-${attemptNo}`;
 
 /** Minimal persistence surface, so the outbox is testable without a browser. */
 export interface OutboxStore {
