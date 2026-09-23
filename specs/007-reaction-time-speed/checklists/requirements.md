@@ -53,3 +53,12 @@ tucked player back under the budget (230–330 units at 0.25–0.30), and the sp
 changes the course shape at the five failing box approaches only, leaving tuning
 untouched. Drag is kept as the explicit fallback (FR-241) rather than dropped, because
 the big booter 560 units after the 4,640 box may not get its speed back in time.
+
+**Validation run 3 — 2026-09-23 (`/speckit-clarify`). All items pass.** Re-measuring
+with a simulated tucked ride and the real camera showed the frame's bottom edge hides
+steep boxes, so the worst box leaves 398 ms, not 524 ms. The Context table is
+corrected in place. The maintainer chose to fix the vertical framing as well as ease
+the approaches (option A), which adds FR-242 to FR-244 and SC-086. The earlier "20%"
+figure used speed along the slope rather than horizontal speed. The real reduction
+needed at the box is about 8%, and the Clarifications entry now says so rather than
+leaving the superseded number standing.

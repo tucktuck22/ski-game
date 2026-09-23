@@ -18,23 +18,33 @@ players aren't moving quite so fast. And have more time to react to obstacles."
 
 **The complaint is about time, not speed.** A box, which is the deadfall the player
 has to jump, is dangerous for one reason: the player sees it and has to act before it
-arrives. The game shows a fixed amount of course ahead of the skier, 213 units on
-every device (a deliberate choice for phone/desktop fairness). So the time a player
-has is that distance divided by how fast they are going when the box comes into view.
+arrives. Two things limit how early it can be seen:
 
-Measured on the shipped build (rules `2.0.0`), riding tucked, which is what a player
-holding crouch is doing:
+- **Horizontally**, the game shows 213 units of course ahead of the skier on every
+  device. That is a deliberate choice for phone/desktop fairness, and it stays.
+- **Vertically**, the camera holds the skier 60% of the way down the frame. That
+  leaves 72 units of screen below them. On ground steeper than about 0.41, a box 213
+  units ahead is more than that below the skier, so it is still under the bottom edge
+  of the screen when it is close enough horizontally. **On the steep boxes this, not
+  speed, is the main reason there is so little time.**
 
-| Course   | Box at x | Gradient | Tucked speed | On screen before arrival | Time to decide |
-| -------- | -------: | -------: | -----------: | -----------------------: | -------------: |
-| official |    1,830 |     0.32 |         4.48 |                   794 ms |         709 ms |
-| official |    3,600 |     0.51 |         5.54 |                   642 ms |     **557 ms** |
-| official |    4,120 |     0.55 |         5.72 |                   622 ms |     **537 ms** |
-| official |    4,640 |     0.58 |         5.84 |                   609 ms |     **524 ms** |
-| official |    6,100 |     0.40 |         5.00 |                   711 ms |     **626 ms** |
-| official |   11,600 |     0.56 |         5.76 |                   617 ms |     **532 ms** |
-| warm-up  |    1,289 |     0.05 |         1.62 |                 2,197 ms |       2,112 ms |
-| warm-up  |    5,200 |     0.31 |         4.44 |                   801 ms |         716 ms |
+Measured on the shipped build (rules `2.0.0`) by simulating a tucked ride into each box
+with the real camera. Tucked is what a player holding crouch is doing:
+
+| Course   | Box at x | Gradient | Horizontal speed at box | If only the 213 units limited it | Actually on screen | Time to decide |
+| -------- | -------: | -------: | ----------------------: | -------------------------------: | -----------------: | -------------: |
+| official |    1,830 |     0.32 |                    4.20 |                           833 ms |             833 ms |         748 ms |
+| official |    3,600 |     0.51 |                    4.81 |                           733 ms |             617 ms |     **532 ms** |
+| official |    4,120 |     0.55 |                    4.92 |                           717 ms |             533 ms |     **448 ms** |
+| official |    4,640 |     0.58 |                    5.01 |                           700 ms |             483 ms |     **398 ms** |
+| official |    6,100 |     0.40 |                    4.64 |                           750 ms |             750 ms |     **665 ms** |
+| official |   11,600 |     0.56 |                    4.93 |                           717 ms |             533 ms |     **448 ms** |
+| warm-up  |    1,289 |     0.05 |                    1.62 |                         2,167 ms |           2,167 ms |       2,082 ms |
+| warm-up  |    5,200 |     0.31 |                    4.38 |                           800 ms |             800 ms |         715 ms |
+
+_Corrected 2026-09-23 during `/speckit-clarify`. The first version of this table
+treated speed along the slope as horizontal speed and ignored the frame's bottom edge,
+giving 524 ms at the worst box. The measured figure is 398 ms._
 
 "Time to decide" is the on-screen time minus about 85 ms. That is how long the jump
 needs to climb to box height, so it is the latest a release can still clear the box.
@@ -42,10 +52,11 @@ Published human visual reaction time is roughly 250 ms for a single expected sti
 and 400–500 ms when the player first has to identify _what_ appeared. Touch input and
 display latency on a phone come on top of that.
 
-**Five of the six official boxes sit on steep ground (gradient 0.40–0.58) and leave
-under 630 ms. The two boxes on moderate ground are already comfortable.** The problem
-is not the course's speed in general; it is that boxes were placed on its fastest
-ground. Three of them (3,600 / 4,120 / 4,640) also come about 1.5 s apart, so a
+**Five of the six official boxes leave under 680 ms. Four of them sit on ground steep
+enough that the frame hides them, and at the worst the player has 398 ms, less than
+it takes to recognise something new.** The boxes on moderate ground are comfortable.
+The problem is not the course's speed in general; it is that boxes were placed on its
+fastest, steepest ground, where they are both seen late and approached fast. Three of them (3,600 / 4,120 / 4,640) also come about 1.5 s apart, so a
 player who is late on the first is still recovering when the next appears.
 
 **Numbering**: requirements continue from feature 006 (FR-231+, SC-081+).
@@ -54,11 +65,13 @@ player who is late on the first is still recovering when the next appears.
 
 ### Session 2026-09-23
 
-- **Q: How much reaction time?** → **A: 680 ms to decide at every box**, the
-  equivalent of a 20% slow-down at the fastest box. It covers a player who first has
-  to recognise what appeared, plus phone input latency, with some margin. Equivalent
-  to at least **765 ms on screen**, which at the fixed view ahead means a tucked
-  player reaches every box at a horizontal speed of **4.65 or less**.
+- **Q: How much reaction time?** → **A: 680 ms to decide at every box.** It covers a
+  player who first has to recognise what appeared, plus phone input latency, with
+  some margin. Equivalent to at least **765 ms on screen**, which at the fixed 213
+  units ahead means a tucked player reaches every box at a horizontal speed of
+  **about 4.6 or less**, roughly 8% under today's steep boxes. (When first answered,
+  this was put as "a 20% slow-down"; that figure used speed along the slope and is
+  superseded.)
 - **Q: Does a live draft hold committed scores?** → **A: No.** No reset or player
   notice is needed. `rulesVersion` is still bumped, because the official course
   changes. The draft's first-commit freeze then adopts the new version from the
@@ -66,15 +79,27 @@ player who is late on the first is still recovering when the next appears.
 - **Q: How to slow the player down?** → The maintainer asked that the physics not
   change and suggested reshaping the slope instead. Three ways were weighed:
 
-  | Approach                            | What moves                               | Verdict                                                                                                                                                                                                                                                                                                                                                         |
-  | ----------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-  | Raise drag everywhere               | Tuning file, and every kicker's power    | **Fallback.** It slows the whole game to fix five spots, costs the speed feel feature 006's play pass accepted, and forces every ramp and booter to be re-tuned. A 20% probe failed 11 existing tests.                                                                                                                                                          |
-  | Flatten the whole mountain          | Every terrain point                      | **Rejected.** 20% slower everywhere needs gradients of about 0.16–0.37. That is well under the 0.25 floor feature 006's first playtest raised the gentlest ground to, because it felt dead.                                                                                                                                                                     |
-  | **Ease the ground before each box** | Terrain on each fast box's approach only | **Chosen.** Tuning is untouched, so the physics, the speed anchor and the tuck are exactly as they are. Measured: a run of 230–330 units at gradient 0.25–0.30 brings a tucked player from 5.84 down to 4.7 or less. The steeps elsewhere and the speed carried into each kicker are unchanged. The maintainer's suggestion, applied only where the problem is. |
+  | Approach                            | What moves                               | Verdict                                                                                                                                                                                                                                                                                                                                                  |
+  | ----------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | Raise drag everywhere               | Tuning file, and every kicker's power    | **Fallback.** It slows the whole game to fix five spots, costs the speed feel feature 006's play pass accepted, and forces every ramp and booter to be re-tuned. A 20% probe failed 11 existing tests.                                                                                                                                                   |
+  | Flatten the whole mountain          | Every terrain point                      | **Rejected.** 20% slower everywhere needs gradients of about 0.16–0.37. That is well under the 0.25 floor feature 006's first playtest raised the gentlest ground to, because it felt dead.                                                                                                                                                              |
+  | **Ease the ground before each box** | Terrain on each fast box's approach only | **Chosen.** Tuning is untouched, so the physics, the speed anchor and the tuck are exactly as they are. Needs to take about 8% off horizontal speed at the box, which a short stretch of gentler ground does. The steeps elsewhere and the speed carried into each kicker are unchanged. The maintainer's suggestion, applied only where the problem is. |
 
   A side effect worth keeping: **the ground easing off becomes a tell that a box is
   coming.** That is a readable pattern, not a flaw, and it helps exactly the new
   player the description is worried about.
+
+- **Q: Should the camera show more ground below the skier on steep slopes, alongside
+  the eased approaches?** → **A: Yes (option A).** A hazard hidden under the frame's
+  bottom edge is a legibility defect in its own right: the constitution says
+  legibility outranks style. It also affects ropes on steep ground, not only boxes.
+  Fixing the camera alone lifts the worst box from 398 ms to about 615 ms. The eased
+  approaches cover the rest, and can be shorter, because they only have to slow the
+  player, not also bring the box into frame. The camera is drawing only. It changes
+  no score, no course and no rules version. Rejected: easing alone (each approach
+  would have to be a full screen long to bring its box into frame, and ropes on steep
+  ground stay hidden); camera alone (about 615 ms, short of the 680 ms answered
+  above).
 
 ## User Scenarios & Testing _(mandatory)_
 
@@ -148,9 +173,20 @@ the rotations available off each booter, and which shelves each robot pilot reac
   what the stall rule protects.
 - **Standing players.** A player who is not tucked already reaches every box well
   inside the budget (3.79 at the steepest). They are unaffected.
-- **Ropes and upper-track hazards.** Not reported as a problem and not in scope.
-  Ropes are ducked by staying crouched, which a tucked player already is. They must
-  not get _worse_ (FR-237).
+- **Ropes and upper-track hazards.** Not reported as a problem. Ropes are ducked by
+  staying crouched, which a tucked player already is. They must not get _worse_
+  (FR-237), and the camera change should make ropes on steep ground visible sooner
+  too.
+- **The camera and the jumps.** Showing more ground below the skier leaves less
+  above. The big booter's apex already nearly fills the 180-unit frame, and the camera
+  already lifts while airborne to keep it in view. The camera change must not cost
+  that headroom in the air (FR-243).
+- **The camera must not jump.** It moves continuously today, deliberately, so a
+  landing or a shelf exit is not an unreadable snap. Whatever makes it show more
+  ground below on steep slopes must ease in and out the same way.
+- **Upper shelves.** A skier on the piste under a shelf needs to see the shelf 50–55
+  units above them to read it as a choice. Holding the skier higher in the frame must
+  not push shelves or ropes above the top edge before they matter.
 - **Low-charge jumps.** A player who crouches late has little charge, and a
   low-charge jump already has a narrow clearing window (about 100 ms). Arriving slower
   does not widen that window, which is set by jump height, not ground speed. This
@@ -162,10 +198,12 @@ the rotations available off each booter, and which shelves each robot pilot reac
 
 - **FR-231**: At every box (deadfall) on both shipped courses, a player riding tucked
   MUST have at least **680 ms** between the box entering view and the last release
-  that still clears it. This is measured by simulating the actual ride, not by the
-  local gradient's terminal speed, because speed lags behind the slope.
-- **FR-232**: The reduction MUST come from the course's shape. The tuning file MUST
-  NOT change: gravity, friction, drag, the speed limits and every launch value stay
+  that still clears it. "Entering view" means the box's top edge is inside the frame
+  both horizontally and vertically, with the camera the player actually sees. This is
+  measured by simulating the actual ride, not by the local gradient's terminal speed,
+  because speed lags behind the slope.
+- **FR-232**: The gain MUST come from two places only: the camera's vertical framing
+  (FR-242) and the course's shape. The tuning file MUST NOT change: gravity, friction, drag, the speed limits and every launch value stay
   as they are. So the speed model, the speed anchor and what a tuck is worth all stay
   as they are.
 - **FR-233**: Terrain MUST change only on the approach to a box that fails FR-231
@@ -195,13 +233,28 @@ the rotations available off each booter, and which shelves each robot pilot reac
   fallback MUST be taken in this order. First, move the box to gentler ground.
   Second, and only with the maintainer's agreement, raise drag instead, as recorded
   under Clarifications. FR-235 MUST NOT be traded away silently.
+- **FR-242**: On steep ground, the camera MUST show enough of the slope below the
+  skier that a hazard up to 213 units ahead is in the frame no later than it would be
+  on level ground. The view ahead MUST stay at 213 units horizontally and MUST stay
+  identical on every device. The change MUST ease in and out with the slope, with no
+  visible snap.
+- **FR-243**: The camera change MUST NOT reduce how much of any jump stays in frame:
+  every booter's apex that is fully visible today MUST still be fully visible. While
+  riding the piste under an upper shelf, the shelf MUST stay in frame as it does today.
+- **FR-244**: The camera is drawing only. It MUST NOT change the simulation, and runs
+  MUST stay bit-for-bit identical, so it carries no rules-version consequence of its
+  own.
 
 ### Key Entities
 
 - **Reaction budget**: 680 ms. The minimum time a player is guaranteed between a box
   appearing and the last moment they can still release and clear it.
 - **Eased approach**: A stretch of gentler ground ahead of a box, long enough that a
-  tucked player has slowed to 4.65 or less by the time the box comes into view.
+  tucked player has slowed to about 4.6 horizontally or less by the time the box
+  comes into view.
+- **Steep-slope framing**: How far the camera shifts the skier up the frame on steep
+  ground, so the slope below and ahead is visible. It is set by how steep the ground
+  is, and zero on gentle ground.
 - **Box**: Deadfall. The obstacle cleared only by jumping over it.
 
 ## Success Criteria _(mandatory)_
@@ -209,7 +262,9 @@ the rotations available off each booter, and which shelves each robot pilot reac
 ### Measurable Outcomes
 
 - **SC-081**: The shortest time any box gives a tucked player to decide rises from
-  524 ms to at least 680 ms.
+  398 ms to at least 680 ms.
+- **SC-086**: On every stretch of either course steeper than 0.41, a hazard enters the
+  frame when it comes within 213 units horizontally, rather than later.
 - **SC-082**: The maintainer, riding the official course on the play-pass build,
   clears every box on their first run of that build without releasing early from
   memory, and says so in their own words.
@@ -227,9 +282,11 @@ the rotations available off each booter, and which shelves each robot pilot reac
   (feature 005 established this reading).
 - **The warm-up course does not change.** Both of its boxes already leave more than
   680 ms.
-- **Seeing further ahead is out of scope.** Widening the view ahead of the skier
-  would also buy reaction time. It is not what was asked for, and the fixed view is a
-  phone/desktop fairness decision. It is recorded as the alternative if SC-085 fails.
+- **Seeing further ahead horizontally is out of scope.** Widening the 213-unit view
+  would also buy reaction time, but it is a phone/desktop fairness decision, and the
+  course validator and the tutorial's cue timing both rely on it. The vertical framing
+  is in scope (FR-242) because it only makes visible what the 213 units already
+  promise. Widening is recorded as the alternative if SC-085 fails.
 - **Late-crouch jumps stay as hard as they are.** This feature gives more time to
   _decide_. It does not make a jump started at the last moment more forgiving. If the
   play pass shows the problem is a late, weak jump rather than a late decision, that
