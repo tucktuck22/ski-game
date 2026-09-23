@@ -42,6 +42,8 @@ export interface Fixture {
   /** Every committed_score row the app managed to insert. */
   posts: Record<string, unknown>[];
   entry: Record<string, unknown>;
+  /** Extra roster rows, so a spec can put a rival on the board to beat. */
+  rivals: Record<string, unknown>[];
   scores: Record<string, unknown>[];
 }
 
@@ -50,6 +52,7 @@ export function fixture(over: Partial<Fixture> = {}): Fixture {
     commitError: null,
     patches: [],
     posts: [],
+    rivals: [],
     scores: [],
     entry: {
       id: ENTRY_ID,
@@ -90,7 +93,7 @@ export async function mockPostgrest(
       const single = (req.headers()['accept'] ?? '').includes('pgrst.object');
       return json(single ? row : [row]);
     }
-    if (method === 'GET' && table === 'roster_entry') return json([f.entry]);
+    if (method === 'GET' && table === 'roster_entry') return json([f.entry, ...f.rivals]);
     if (method === 'GET' && table === 'committed_score') return json(f.scores);
 
     if (method === 'PATCH' && table === 'roster_entry') {

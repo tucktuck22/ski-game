@@ -219,16 +219,16 @@ reason at the top of this file.
 ## Phase 9: Polish & Cross-Cutting Concerns
 
 - [x] T051 Bump `rulesVersion` `2.0.0` → `3.0.0` in `tools/gen-courses.ts` for both courses and regenerate via `npm run gen:courses` (FR-243, research R8)
-- [ ] T052 Write `docs/adr/0011-three-attempts-best-one-counts.md` recording (a) the partial reversal of ADR-0002 and why it is safe now — the penalty falls on one of three rather than on an unrepeatable run, and the organizer ruled that cost acceptable on 2026-09-14 — and (b) the trust decision: the attempt count is honour-system by choice, consistent with ADR-0004, and an earlier design that hardened it was withdrawn. Use 0011 because **two existing files are numbered 0010**; do not fix that collision here (plan.md Complexity Tracking, research R2)
-- [ ] T053 Amend `specs/001-shredpocalypse-bed-draft/spec.md`: mark FR-019 superseded by FR-233, restate FR-017/FR-018 at attempt granularity, and update the Accepted Consequence at line 400 — the defect it records is now closed. A spec that disagrees with shipped behaviour is a defect (Principle I)
-- [ ] T054 [P] Update `specs/001-shredpocalypse-bed-draft/contracts/storage-api.md`'s invariant table, whose first row still reads "One committed score per entry, forever" (Principle I)
-- [ ] T055 [P] Update `README.md` where it describes the run economy, and `assets/` or docs copy that says one official run
-- [ ] T056 [P] Update `tests/e2e/us1-claim-and-commit.spec.ts` and `tests/e2e/us2-*` for three attempts, including that device switching grants no fourth (FR-235, SC-084)
-- [ ] T057 Run the full suite and every quickstart scenario, recording results in [quickstart.md](./quickstart.md) (Definition of Done items 1, 2, 8)
+- [x] T052 Write `docs/adr/0011-three-attempts-best-one-counts.md` recording (a) the partial reversal of ADR-0002 and why it is safe now — the penalty falls on one of three rather than on an unrepeatable run, and the organizer ruled that cost acceptable on 2026-09-14 — and (b) the trust decision: the attempt count is honour-system by choice, consistent with ADR-0004, and an earlier design that hardened it was withdrawn. Use 0011 because **two existing files are numbered 0010**; do not fix that collision here (plan.md Complexity Tracking, research R2)
+- [x] T053 Amend `specs/001-shredpocalypse-bed-draft/spec.md`: mark FR-019 superseded by FR-233, restate FR-017/FR-018 at attempt granularity, and update the Accepted Consequence at line 400 — the defect it records is now closed. A spec that disagrees with shipped behaviour is a defect (Principle I)
+- [x] T054 [P] Update `specs/001-shredpocalypse-bed-draft/contracts/storage-api.md`'s invariant table, whose first row still reads "One committed score per entry, forever" (Principle I)
+- [x] T055 [P] Update `README.md` where it describes the run economy, and `assets/` or docs copy that says one official run
+- [x] T056 [P] Update `tests/e2e/us1-claim-and-commit.spec.ts` and `tests/e2e/us2-*` for three attempts, including that device switching grants no fourth (FR-235, SC-084)
+- [x] T057 Run the full suite and every quickstart scenario, recording results in [quickstart.md](./quickstart.md) (Definition of Done items 1, 2, 8)
 - [ ] T058 Confirm CI is green on the head commit — **checked, not assumed**. Citing a check that did not run is a defect of the same severity as the bug it conceals (Definition of Done item 8)
-- [ ] T059 [P] Re-run `npm run test:build` and confirm the journey works against the built artifact at `/ski-game/`, naming the command and environment (Principle VI, Definition of Done item 7)
-- [ ] T060 Record in `spec.md` what was verified and what was not, per Principle VI — in particular whether Playtest B's answer changed anything
-- [ ] T061 **The feature's acceptance demonstration (SC-081).** Drive one player end to end through: wipe out on attempt 1 for a near-zero score, take attempts 2 and 3, finish top of the leaderboard — against the built artifact at `/ski-game/`, not a unit test. SC-081 says "demonstrated end to end, not argued", and it is the single criterion that proves the feature does what it claims: a bad first run no longer ends your draft (SC-081, FR-238, Principle VI)
+- [x] T059 [P] Re-run `npm run test:build` and confirm the journey works against the built artifact at `/ski-game/`, naming the command and environment (Principle VI, Definition of Done item 7)
+- [x] T060 Record in `spec.md` what was verified and what was not, per Principle VI — in particular whether Playtest B's answer changed anything
+- [x] T061 **The feature's acceptance demonstration (SC-081).** Drive one player end to end through: wipe out on attempt 1 for a near-zero score, take attempts 2 and 3, finish top of the leaderboard — against the built artifact at `/ski-game/`, not a unit test. SC-081 says "demonstrated end to end, not argued", and it is the single criterion that proves the feature does what it claims: a bad first run no longer ends your draft (SC-081, FR-238, Principle VI)
 
 ---
 

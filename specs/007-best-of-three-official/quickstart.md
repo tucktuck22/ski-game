@@ -162,3 +162,50 @@ Ask, and record the answer in the player's own words in [spec.md](./spec.md):
 
 Question 2 is not a formal gate — it is already decided — but Principle VIII is explicit
 that where measurement and the player disagree, the player wins. Ask it anyway.
+
+---
+
+## Results — recorded 2026-09-23 (Definition of Done items 1, 2, 7, 8)
+
+Commands run on Linux, Node 22, headless Chromium, and a Postgres 16 server started from
+`/usr/lib/postgresql/16/bin` inside the session container.
+
+| Gate                              | Command                                          | Result                                     |
+| --------------------------------- | ------------------------------------------------ | ------------------------------------------ |
+| Lint + format                     | `npm run lint`                                   | **PASS**                                   |
+| Typecheck                         | `npx tsc --noEmit`                               | **PASS**                                   |
+| Unit / sim / course / contract    | `npm test`                                       | **455 passed, 2 failed (457)** — see below |
+| Shared storage journey            | `npm run test:shared`                            | **8 passed**                               |
+| User journeys                     | `npx playwright test --project chromium`         | **32 passed**                              |
+| Built artifact at `/ski-game/`    | `npm run test:build`                             | **26 passed**                              |
+| Schema, as an organizer pastes it | `psql -f supabase/setup.sql`                     | **applies clean**                          |
+| Storage invariants                | `psql -f supabase/tests/invariants.sql`          | **29 PASS · ALL STORAGE INVARIANTS HELD**  |
+| Migration round-trip              | `psql -f supabase/tests/migration-roundtrip.sql` | **MIGRATION ROUND-TRIP HELD**              |
+| Seed script                       | `psql -f supabase/seed-draft.sql`                | **prints usable links**                    |
+
+**The two failures are `tests/unit/sprite-palette.test.ts`, and they are environmental.**
+`git-lfs` is not installed in this container, so the sprite PNGs are unsmudged 131-byte
+pointer files. They failed identically at the T001 baseline, before this feature changed
+anything. CI checks out with `lfs: true` (`.github/workflows/ci.yml:18`).
+
+### Scenario status
+
+| Scenario                              | Status                                                                                                                                                                                             |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 — Best of three counts              | **Automated**: `tests/unit/ordering.test.ts`, `tests/e2e/us1-claim-and-commit.spec.ts`                                                                                                             |
+| 2 — Starting spends it                | **Automated against a mocked server**: `tests/e2e-shared/attempts-are-spent.spec.ts`, including a session killed mid-descent. **Not yet exercised against a real Supabase project** — that is T049 |
+| 3 — A wipeout does not end your draft | **Automated**: run-economy unit cases and the e2e journey. The full end-to-end demonstration is **T061, outstanding**                                                                              |
+| 4 — No fourth attempt                 | **Partially automated**: refused by both backends in `tests/contract/storage.test.ts`. The device-switching half needs a real project (T049)                                                       |
+| 5 — Offline does not block a run      | **Automated**: `tests/e2e-shared/attempts-ux.spec.ts` aborts every roster write and requires the run to start                                                                                      |
+| 6 — Migration round-trip              | **Automated and executed** against real Postgres, and wired into CI                                                                                                                                |
+
+### Not verified by any of the above
+
+- **T049/T050** need a real Supabase project, which this session has no credentials for.
+  The tab-kill behaviour is proven against a mocked PostgREST, not against Postgres over
+  the network.
+- **No playtest has happened.** The allowance was settled by the organizer in advance
+  (_"3 and 3 sounds fine"_), recorded in spec.md as acceptance rather than as a finding
+  from play.
+- **Performance budgets** are unmeasured, as they are for every feature — constitution
+  open deviation 3, unchanged by this work.

@@ -61,9 +61,7 @@ test.describe('US1: claim, practise, commit', () => {
     await expect(page.locator('#official')).toBeVisible();
   });
 
-  test('the official run commits irreversibly and offers only free play afterwards', async ({
-    page,
-  }) => {
+  test('an attempt commits irreversibly, and two attempts remain (FR-238)', async ({ page }) => {
     await dropIn(page);
     await page.locator('button[data-claim]').first().click();
     await page.locator('#official').click();
@@ -73,14 +71,39 @@ test.describe('US1: claim, practise, commit', () => {
     await expect(page.locator('.sfx')).toBeVisible({ timeout: 90_000 });
     await page.locator('#done').click();
 
-    // FR-018: no path back to an official run, anywhere.
+    // FR-018 as amended by feature 007: the ATTEMPT cannot be retaken, but it
+    // does not end the competition. Two remain, and that is the point of the
+    // feature — one bad run no longer decides where you sleep (FR-238).
+    await expect(page.locator('#official')).toBeEnabled();
+    await expect(page.locator('#official')).toContainText('2 left');
+
+    // FR-068 at attempt granularity (FR-244): free play still cannot reach the
+    // official course, or the remaining two attempts would be rehearsed runs.
+    await expect(page.locator('#free')).toBeDisabled();
+
+    // The score is on the board with a pick position, and the board says plainly
+    // that this is a best-so-far rather than a result (FR-239).
+    await expect(page.locator('table')).toContainText(/PICKS FIRST|PICK \d/);
+    await expect(page.locator('table')).toContainText('SO FAR');
+  });
+
+  test('spending every attempt ends the competition and opens free play', async ({ page }) => {
+    await dropIn(page);
+    await page.locator('button[data-claim]').first().click();
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      await expect(page.locator('#official')).toContainText(`${4 - attempt} left`);
+      await page.locator('#official').click();
+      await page.locator('#go').click();
+      await expect(page.locator('.sfx')).toBeVisible({ timeout: 90_000 });
+      await page.locator('#done').click();
+    }
+
     await expect(page.locator('#official')).toBeDisabled();
     await expect(page.locator('#practice')).toBeDisabled();
+    // FR-068: only now does free play get the official course.
     await expect(page.locator('#free')).toBeEnabled();
-    await expect(page.locator('#blocked-reason')).toContainText('committed');
-
-    // The score is on the board with a pick position.
-    await expect(page.locator('table')).toContainText(/PICKS FIRST|PICK \d/);
+    await expect(page.locator('#blocked-reason')).toContainText('attempts are used');
   });
 
   test('nobody is called a forfeit before the deadline', async ({ page }) => {
