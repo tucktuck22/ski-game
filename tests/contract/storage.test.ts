@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { classifyError } from '../../src/state/supabase.js';
+import { LocalDraftStore } from '../../src/state/localDraft.js';
 
 const sql = (f: string): string =>
   readFileSync(new URL(`../../supabase/migrations/${f}`, import.meta.url), 'utf8');
@@ -162,5 +163,88 @@ describe('the seeded rules version matches the rules the client sends (FR-023)',
     );
     // A CHANGE ME in an executable line is a script that stops rather than runs.
     expect(fix).not.toMatch(/:=\s*'CHANGE ME'/);
+  });
+});
+
+/**
+ * THE LOCAL BACKEND HELD TO THE SAME CONTRACT.
+ *
+ * `LocalDraftStore` is what runs with no Supabase project configured, and it is
+ * what the built-artifact smoke journey drives. A local mode that hands out
+ * unlimited attempts would make that gate assert the wrong behaviour, which
+ * Principle VI is explicit about: verification against a convenient
+ * approximation is not verification.
+ *
+ * The Supabase half of these rules is proven by the `storage` job against real
+ * Postgres, not here — grepping SQL can only say a statement is present.
+ */
+describe('the local backend obeys the attempt rules too (FR-233, FR-235, research R6)', () => {
+  const store = (): LocalDraftStore =>
+    new LocalDraftStore({
+      id: 'local-draft',
+      deadline: new Date(Date.now() + 86_400_000).toISOString(),
+      courseSeed: 1986,
+      rulesVersion: '3.0.0',
+      finalizedAt: null,
+    });
+
+  it('spends attempts one at a time and refuses past the allowance (FR-233)', async () => {
+    const s = store();
+    const id = await s.seedOrganizerEntry('Dave');
+    for (let n = 1; n <= 3; n++) {
+      const r = await s.startOfficialAttempt(id, 3);
+      expect(r).toEqual({ ok: true, attemptNo: n });
+    }
+    const fourth = await s.startOfficialAttempt(id, 3);
+    expect(fourth.ok).toBe(false);
+  });
+
+  it('honours the allowance it is given rather than a hardcoded 3 (FR-245)', async () => {
+    const s = store();
+    const id = await s.seedOrganizerEntry('Dave');
+    expect((await s.startOfficialAttempt(id, 1)).ok).toBe(true);
+    expect((await s.startOfficialAttempt(id, 1)).ok).toBe(false);
+  });
+
+  it('charges an abandoned attempt, which posts no score at all (FR-233)', async () => {
+    const s = store();
+    const id = await s.seedOrganizerEntry('Dave');
+    await s.startOfficialAttempt(id, 3); // started, never committed — the tab died
+    const [entry] = (await s.snapshot()).entries;
+    expect(entry?.officialAttemptsUsed).toBe(1);
+    expect(entry?.score).toBeNull();
+  });
+
+  it('exposes no way to lower the counter (FR-235)', () => {
+    const surface = Object.getOwnPropertyNames(LocalDraftStore.prototype);
+    expect(surface.filter((k) => /refund|restore|resetAttempt|decrement/i.test(k))).toEqual([]);
+  });
+
+  /**
+   * R1's idempotency trap. A commit that succeeded but whose response was lost
+   * gets retried by the outbox, which has no other way to tell a retry from a
+   * new submission. The SAME attempt must be rejected; a DIFFERENT one must not.
+   */
+  it('rejects a duplicate attempt but accepts the next one (research R1)', async () => {
+    const s = store();
+    const id = await s.seedOrganizerEntry('Dave');
+    const commit = (attemptNo: number, score: number) => ({
+      id: `${id}-official-${attemptNo}`,
+      draftId: 'local-draft',
+      entryId: id,
+      attemptNo,
+      score,
+      outcome: 'finished' as const,
+      rulesVersion: '3.0.0',
+      queuedAt: Date.now(),
+      attempts: 0,
+    });
+    expect(await s.submitCommit(commit(1, 4000))).toEqual({ kind: 'confirmed' });
+    expect((await s.submitCommit(commit(1, 4000))).kind).toBe('rejected');
+    expect(await s.submitCommit(commit(2, 6100))).toEqual({ kind: 'confirmed' });
+
+    // FR-232: the best stands, not the latest.
+    const [entry] = (await s.snapshot()).entries;
+    expect(entry?.score).toBe(6100);
   });
 });

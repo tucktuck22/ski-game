@@ -15,7 +15,7 @@
 
 - [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
-- [ ] Success criteria are measurable
+- [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
 - [x] All acceptance scenarios are defined
 - [x] Edge cases are identified
@@ -39,17 +39,21 @@ fully checked against a spec that no longer existed. `/speckit-analyze` caught t
 Principle VI problem: the difference between what was verified and what ships must be
 stated, not implied. It has now been re-run against the current spec.
 
-**One box comes UNCHECKED, and it is a real failure, not a formality.**
+**One box came unchecked, and was resolved on 2026-09-23 rather than waived.**
 
-- **Success criteria are measurable** — **FAILS on SC-087.** _"A player can determine how
+- **Success criteria are measurable** — **SC-087 failed, now fixed.** It read: _"A player can determine how
   many attempts he has left, and what his best score is, within five seconds of opening
   the game, without scrolling."_ No device, viewport or measurement method is named, so
-  two people can disagree about whether it passed and both be right. Every other SC in
-  this feature is a pass/fail anyone can adjudicate; this one is not. T020 now carries
-  SC-087 so the intent is built, but **the criterion itself still needs quantifying** —
-  name the reference viewport from the constitution's reference hardware, or demote it to
-  a review checklist item. Deliberately left failing rather than quietly reworded, because
-  the organizer has not been asked which.
+  two people could disagree about whether it passed and both be right. The organizer chose
+  to quantify it rather than demote it. It now names **375 × 667 CSS pixels** — the iPhone
+  SE 3rd-gen class from the constitution's reference hardware, and the narrowest of the
+  three listed, so passing there passes on all of them — and delegates the timing half to
+  the existing time-to-interactive budget instead of restating it.
+
+  **Noted while fixing it**: no suite in this repository tests a mobile viewport. Every
+  Playwright project runs `devices['Desktop Chrome']`, on a product whose platform baseline
+  is the evergreen mobile web. T020 now asserts at 375 × 667, which makes this feature the
+  first thing checked at phone width — a gap worth its own change rather than this one.
 
 **Two boxes were at risk and now pass on their merits:**
 

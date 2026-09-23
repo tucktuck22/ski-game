@@ -63,9 +63,9 @@ until Phase 7.
 
 **Purpose**: Establish the baseline this feature will be measured against.
 
-- [ ] T001 Confirm the suite is green before any change — `npm run lint`, `npx tsc --noEmit`, `npm test` — and record the pass/fail counts in this file under Notes. A baseline nobody captured is not a baseline (Definition of Done item 8)
-- [ ] T002 [P] Record the current `rulesVersion` (`2.0.0`, `tools/gen-courses.ts:558` and `:606`) and confirm no live draft holds committed scores, re-verifying the spec Assumption that permits shipping without a reset (FR-243)
-- [ ] T003 [P] Read `supabase/tests/invariants.sql` end to end and note the deliberate-violation block style; Phase 7 extends this file and must match it rather than inventing a second idiom
+- [x] T001 Confirm the suite is green before any change — `npm run lint`, `npx tsc --noEmit`, `npm test` — and record the pass/fail counts in this file under Notes. A baseline nobody captured is not a baseline (Definition of Done item 8)
+- [x] T002 [P] Record the current `rulesVersion` (`2.0.0`, `tools/gen-courses.ts:558` and `:606`) and confirm no live draft holds committed scores, re-verifying the spec Assumption that permits shipping without a reset (FR-243)
+- [x] T003 [P] Read `supabase/tests/invariants.sql` end to end and note the deliberate-violation block style; Phase 7 extends this file and must match it rather than inventing a second idiom
 
 ---
 
@@ -78,15 +78,15 @@ until Phase 7.
 defects are silent — none would fail a build — so they are fixed deliberately here
 rather than discovered in play.
 
-- [ ] T004 Extend `EntryView` in `src/state/ordering.ts`: replace `officialStatus: 'unused' | 'committed'` with `officialAttemptsUsed: number` (0–3), keeping `score` and `commitAt` as the **best** attempt's values so `computeStandings` needs no change (FR-231, FR-235, research R5)
-- [ ] T005 **D1 — the allowance is data, not a constant.** Add `officialAttempts: 3` to `data/tuning.json`, validate it in `parseTuning` (`src/data/load.ts`) as a positive integer like every other key, and read it in `src/state/runEconomy.ts` via an `attemptsRemaining()` helper. Principle III is a MUST and T030/T031 already anticipate play moving this number (FR-231, FR-245, research R10)
-- [ ] T006 Add `attemptNo: number` to `PendingCommit` in `src/state/outbox.ts` (FR-231, contracts/storage-api.md)
-- [ ] T007 **Defect 1 — outbox key collision.** Change the enqueue key at `src/main.ts:735` from `` `${me.id}-official` `` to `` `${me.id}-official-${attemptNo}` ``. The IndexedDB store uses `keyPath: 'id'` and `put()`, so today a second attempt queued while the first is still pending overwrites it — destroying a score that may be the player's best, on exactly the wifi the outbox exists for (research R3, FR-046)
-- [ ] T008 [P] **Defect 1 test.** In `tests/unit/outbox.test.ts`, queue two attempts for one entry without draining and assert both survive. Assert it against the real key-generation path, not a hand-written key, or the test passes while the bug ships (research R3)
-- [ ] T009 **Defect 2 — snapshot keeps the wrong row.** Replace the score map at `src/state/supabase.ts:137` with a reduction to the best attempt: highest score, ties to the earliest `commit_at`. `new Map(pairs)` keeps the **last** value per key, and with no `ORDER BY` the row returned last is unspecified — so the bed order would be wrong and would not reproduce (research R4, FR-232, FR-236)
-- [ ] T010 [P] Extract that reduction as a pure exported function (`bestAttempt`) in `src/state/ordering.ts` so it is unit-testable without a server and is shared by both backends, matching how this project already tests bed-order rules (`ordering.ts:6`, research R4, R6)
-- [ ] T011 [P] **Defect 2 test.** In `tests/unit/ordering.test.ts`, assert `bestAttempt` picks the highest score regardless of input order, and that a tie carries the **earlier** timestamp — the FR-236 property that stops a player losing a tiebreak by taking an attempt he was entitled to. Assert that property directly, as SC-086 states it: a player is never ranked lower for having used an attempt (FR-232, FR-236, SC-086)
-- [ ] T012 **Defect 3 — idempotency.** Record in `contracts/storage-api.md` (already written) and in the Phase 7 migration that `UNIQUE (draft_id, entry_id, attempt_no)` is what preserves retry idempotency. No code here; this task is the check that Phase 7 does not simply drop the old index (research R1, FR-237)
+- [x] T004 Extend `EntryView` in `src/state/ordering.ts`: replace `officialStatus: 'unused' | 'committed'` with `officialAttemptsUsed: number` (0–3), keeping `score` and `commitAt` as the **best** attempt's values so `computeStandings` needs no change (FR-231, FR-235, research R5)
+- [x] T005 **D1 — the allowance is data, not a constant.** Add `officialAttempts: 3` to `data/tuning.json`, validate it in `parseTuning` (`src/data/load.ts`) as a positive integer like every other key, and read it in `src/state/runEconomy.ts` via an `attemptsRemaining()` helper. Principle III is a MUST and T030/T031 already anticipate play moving this number (FR-231, FR-245, research R10)
+- [x] T006 Add `attemptNo: number` to `PendingCommit` in `src/state/outbox.ts` (FR-231, contracts/storage-api.md)
+- [x] T007 **Defect 1 — outbox key collision.** Change the enqueue key at `src/main.ts:735` from `` `${me.id}-official` `` to `` `${me.id}-official-${attemptNo}` ``. The IndexedDB store uses `keyPath: 'id'` and `put()`, so today a second attempt queued while the first is still pending overwrites it — destroying a score that may be the player's best, on exactly the wifi the outbox exists for (research R3, FR-046)
+- [x] T008 [P] **Defect 1 test.** In `tests/unit/outbox.test.ts`, queue two attempts for one entry without draining and assert both survive. Assert it against the real key-generation path, not a hand-written key, or the test passes while the bug ships (research R3)
+- [x] T009 **Defect 2 — snapshot keeps the wrong row.** Replace the score map at `src/state/supabase.ts:137` with a reduction to the best attempt: highest score, ties to the earliest `commit_at`. `new Map(pairs)` keeps the **last** value per key, and with no `ORDER BY` the row returned last is unspecified — so the bed order would be wrong and would not reproduce (research R4, FR-232, FR-236)
+- [x] T010 [P] Extract that reduction as a pure exported function (`bestAttempt`) in `src/state/ordering.ts` so it is unit-testable without a server and is shared by both backends, matching how this project already tests bed-order rules (`ordering.ts:6`, research R4, R6)
+- [x] T011 [P] **Defect 2 test.** In `tests/unit/ordering.test.ts`, assert `bestAttempt` picks the highest score regardless of input order, and that a tie carries the **earlier** timestamp — the FR-236 property that stops a player losing a tiebreak by taking an attempt he was entitled to. Assert that property directly, as SC-086 states it: a player is never ranked lower for having used an attempt (FR-232, FR-236, SC-086)
+- [x] T012 **Defect 3 — idempotency.** Record in `contracts/storage-api.md` (already written) and in the Phase 7 migration that `UNIQUE (draft_id, entry_id, attempt_no)` is what preserves retry idempotency. No code here; this task is the check that Phase 7 does not simply drop the old index (research R1, FR-237)
 
 **Checkpoint**: The attempt model exists and the three silent defects are closed. User story work can begin.
 
@@ -101,18 +101,18 @@ shows the highest and only the highest (quickstart Scenario 1, SC-082).
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T013 [P] [US1] In `tests/unit/run-economy.test.ts`, rewrite the official-run cases for three attempts: availability at 0, 1, 2 and 3 used; `courseFor` still refusing the official course to practice and free play until attempts are exhausted. Include the case FR-238 turns on: an attempt ending in a **wipeout** commits its score and leaves the remaining attempts available (FR-231, FR-238, FR-244, FR-068)
-- [ ] T014 [P] [US1] In `tests/unit/ordering.test.ts`, assert `computeStandings` ranks two players on their best attempts and that a lower later attempt never displaces a higher earlier one (FR-232, SC-082)
+- [x] T013 [P] [US1] In `tests/unit/run-economy.test.ts`, rewrite the official-run cases for three attempts: availability at 0, 1, 2 and 3 used; `courseFor` still refusing the official course to practice and free play until attempts are exhausted. Include the case FR-238 turns on: an attempt ending in a **wipeout** commits its score and leaves the remaining attempts available (FR-231, FR-238, FR-244, FR-068)
+- [x] T014 [P] [US1] In `tests/unit/ordering.test.ts`, assert `computeStandings` ranks two players on their best attempts and that a lower later attempt never displaces a higher earlier one (FR-232, SC-082)
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] Rewrite `availability()` in `src/state/runEconomy.ts` against `officialAttemptsUsed`: official available while used < 3 and the draft is live; `blockedReason` distinguishes "all three used" from "the deadline has passed" (FR-231, FR-240, FR-241)
-- [ ] T016 [US1] Rewrite `hasCommitted()` in `src/state/runEconomy.ts` as `isFinished()` — true when three attempts are used or the deadline has passed — and update `courseFor()` so free play reaches the official course only then (FR-068, FR-244)
-- [ ] T017 [US1] Update `src/state/localDraft.ts`'s `snapshot()` to store attempts as a list per entry and expose the best via the shared `bestAttempt` from T010, so local mode and Supabase agree by construction rather than by coincidence (research R6)
-- [ ] T018 [US1] Replace `submitCommit`'s single-commit refusal in `src/state/localDraft.ts` with the per-attempt rule: reject a duplicate `(entryId, attemptNo)`, reject `attemptNo` outside 1–3, mirroring the constraints Phase 7 adds to Postgres (research R6, R1)
-- [ ] T019 [US1] Update `endRun()` in `src/main.ts` to enqueue with the attempt number and to stop calling `markOfficialRunEnded` — that write moves earlier, to the start of the run in Phase 4 (contracts/storage-api.md, FR-234)
-- [ ] T020 [US1] Update the menu in `src/main.ts:409` so the official control reads attempts remaining (e.g. `OFFICIAL RUN (2 left)`), matching the existing practice control's idiom, and is disabled at zero. Attempts remaining and best score must both be legible without scrolling at the reference viewport (FR-239, FR-055, SC-087)
-- [ ] T021 [US1] Update the menu copy at `src/main.ts:422` — "The official run is a course you have not seen" is no longer true after attempt one and a spec that disagrees with shipped behaviour is a defect (Principle I, spec Accepted Consequences)
+- [x] T015 [US1] Rewrite `availability()` in `src/state/runEconomy.ts` against `officialAttemptsUsed`: official available while used < 3 and the draft is live; `blockedReason` distinguishes "all three used" from "the deadline has passed" (FR-231, FR-240, FR-241)
+- [x] T016 [US1] Rewrite `hasCommitted()` in `src/state/runEconomy.ts` as `isFinished()` — true when three attempts are used or the deadline has passed — and update `courseFor()` so free play reaches the official course only then (FR-068, FR-244)
+- [x] T017 [US1] Update `src/state/localDraft.ts`'s `snapshot()` to store attempts as a list per entry and expose the best via the shared `bestAttempt` from T010, so local mode and Supabase agree by construction rather than by coincidence (research R6)
+- [x] T018 [US1] Replace `submitCommit`'s single-commit refusal in `src/state/localDraft.ts` with the per-attempt rule: reject a duplicate `(entryId, attemptNo)`, reject `attemptNo` outside 1–3, mirroring the constraints Phase 7 adds to Postgres (research R6, R1)
+- [x] T019 [US1] Update `endRun()` in `src/main.ts` to enqueue with the attempt number and to stop calling `markOfficialRunEnded` — that write moves earlier, to the start of the run in Phase 4 (contracts/storage-api.md, FR-234)
+- [x] T020 [US1] Update the menu in `src/main.ts:409` so the official control reads attempts remaining (e.g. `OFFICIAL RUN (2 left)`), matching the existing practice control's idiom, and is disabled at zero. Attempts remaining and best score must both be visible without scrolling at 375 × 667 CSS px — assert it in `tests/e2e/` at that viewport, since every suite currently runs Desktop Chrome and would not catch a regression (FR-239, FR-055, SC-087)
+- [x] T021 [US1] Update the menu copy at `src/main.ts:422` — "The official run is a course you have not seen" is no longer true after attempt one and a spec that disagrees with shipped behaviour is a defect (Principle I, spec Accepted Consequences)
 
 **Checkpoint**: Best-of-three works end to end in local mode. Attempts are not yet spent on start.
 
@@ -128,16 +128,16 @@ Phase 7 lands** — see the playtest note above and T028.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T022 [P] [US2] In `tests/unit/run-economy.test.ts`, assert an attempt allocated but never committed still counts against the allowance — the abandonment case, expressed as counter-minus-rows (FR-233, data-model.md Derived values)
-- [ ] T023 [P] [US2] In `tests/contract/storage.test.ts`, assert both backends refuse a fourth `startOfficialAttempt` and that neither exposes a way to lower the counter (FR-233, FR-235, research R2)
+- [x] T022 [P] [US2] In `tests/unit/run-economy.test.ts`, assert an attempt allocated but never committed still counts against the allowance — the abandonment case, expressed as counter-minus-rows (FR-233, data-model.md Derived values)
+- [x] T023 [P] [US2] In `tests/contract/storage.test.ts`, assert both backends refuse a fourth `startOfficialAttempt` and that neither exposes a way to lower the counter (FR-233, FR-235, research R2)
 
 ### Implementation for User Story 2
 
-- [ ] T024 [US2] Add `startOfficialAttempt(entryId)` to the local backend in `src/state/localDraft.ts`: increments, returns 1–3, refuses beyond three and after the deadline (contracts/storage-api.md, FR-233, FR-241)
-- [ ] T025 [US2] Add `startOfficialAttempt(entryId, used)` to `src/state/supabase.ts` as a plain column update on `official_attempts_used`, mirroring `recordPracticeRun` at `src/state/supabase.ts:213`, and delete `markOfficialRunEnded` with its call site (research R2, FR-234)
-- [ ] T026 [US2] In `startRun()` (`src/main.ts:648`), advance the attempt counter **before** gameplay begins but do **not** await it as a gate: a failed write must not stop the run, matching how `markOfficialRunEnded` was "best effort by design" (`src/main.ts:754`). Spending at start rather than at end is the point; blocking on the network is not (FR-234, research R2)
-- [ ] T027 [US2] Show attempts remaining optimistically from local state and let the next snapshot correct it, as the practice counter already does. Do **not** add a failure screen — the counter write no longer gates the run, so the "could not start" state does not exist. Assert in `tests/e2e/` that going offline still starts a run (FR-234, research R9, quickstart Scenario 5)
-- [ ] T028 [US2] Rewrite `tests/e2e-shared/official-run-is-spent.spec.ts` as `attempts-are-spent.spec.ts`: an attempt is spent at start whatever the commit does, and a refused commit does not return it. This is the spec that held the original bug shut and it must keep holding under three attempts (FR-233, FR-234)
+- [x] T024 [US2] Add `startOfficialAttempt(entryId)` to the local backend in `src/state/localDraft.ts`: increments, returns 1–3, refuses beyond three and after the deadline (contracts/storage-api.md, FR-233, FR-241)
+- [x] T025 [US2] Add `startOfficialAttempt(entryId, used)` to `src/state/supabase.ts` as a plain column update on `official_attempts_used`, mirroring `recordPracticeRun` at `src/state/supabase.ts:213`, and delete `markOfficialRunEnded` with its call site (research R2, FR-234)
+- [x] T026 [US2] In `startRun()` (`src/main.ts:648`), advance the attempt counter **before** gameplay begins but do **not** await it as a gate: a failed write must not stop the run, matching how `markOfficialRunEnded` was "best effort by design" (`src/main.ts:754`). Spending at start rather than at end is the point; blocking on the network is not (FR-234, research R2)
+- [x] T027 [US2] Show attempts remaining optimistically from local state and let the next snapshot correct it, as the practice counter already does. Do **not** add a failure screen — the counter write no longer gates the run, so the "could not start" state does not exist. Assert in `tests/e2e/` that going offline still starts a run (FR-234, research R9, quickstart Scenario 5)
+- [x] T028 [US2] Rewrite `tests/e2e-shared/official-run-is-spent.spec.ts` as `attempts-are-spent.spec.ts`: an attempt is spent at start whatever the commit does, and a refused commit does not return it. This is the spec that held the original bug shut and it must keep holding under three attempts (FR-233, FR-234)
 
 **Checkpoint**: MVP complete. Both P1 stories work; the rule is still client-side only until Phase 7.
 
@@ -302,7 +302,19 @@ Phase 7 the limit is client-side. Stopping at Phase 5 is a valid pause, not a re
 
 ## Notes
 
-- Baseline from T001 goes here once captured.
+### Baseline (T001, captured 2026-09-23, before any change)
+
+`npm run lint` PASS · `npx tsc --noEmit` PASS · `npm test` **431 passed, 2 failed (433)**.
+
+The two failures are `tests/unit/sprite-palette.test.ts` and are **environmental, not
+code**: `git-lfs` is not installed in this container, so the sprite PNGs are unsmudged
+131-byte pointer files. CI checks out with `lfs: true` (`.github/workflows/ci.yml:18`) and
+is green. Recorded rather than glossed, so "2 failing" after this feature is not mistaken
+for a regression it caused.
+
+**After Phases 1-4: 446 passed, 2 failed (448)** — same two, +15 new tests, lint and
+typecheck clean.
+
 - **Found during task generation, out of scope, worth its own change**: there is **no
   in-app way to abandon a run**. Under the old rules bailing was free, so killing the tab
   was a fine way to do it. Under FR-233 abandoning becomes a deliberate, costly choice a

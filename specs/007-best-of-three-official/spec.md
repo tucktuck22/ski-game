@@ -302,8 +302,12 @@ states attempts used and that a player with attempts remaining is visibly not fi
 - **SC-086**: Two players whose best attempts tie are ordered by the timestamp of those
   best attempts, and a player is never disadvantaged in a tiebreak for having taken
   attempts he was entitled to.
-- **SC-087**: A player can determine how many attempts he has left, and what his best
-  score is, within five seconds of opening the game, without scrolling.
+- **SC-087**: At the smallest reference-device viewport — **375 × 667 CSS pixels**, the
+  iPhone SE 3rd-gen class named in the constitution and the narrowest of the three, so
+  passing there passes on all of them — attempts remaining and best score are both
+  visible on the first screen **without scrolling**. Timing is not restated here: the
+  constitution's time-to-interactive budget already caps it at 5 s on Fast 3G with a cold
+  cache, and duplicating a budget is how two budgets drift apart.
 
 ## Assumptions
 

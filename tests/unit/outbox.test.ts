@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   Outbox,
   backoffFor,
+  commitKey,
   type OutboxStore,
   type PendingCommit,
   type SubmitResult,
@@ -26,10 +27,49 @@ const commit = {
   id: 'c1',
   draftId: 'd1',
   entryId: 'e1',
+  attemptNo: 1,
   score: 51234,
   outcome: 'finished' as const,
   rulesVersion: '1.0.0',
 };
+
+/**
+ * DEFECT 1 (research R3). The queue key used to be `${entryId}-official` — one
+ * key per entry, which was exactly right while an entry could only ever have one
+ * official commit.
+ *
+ * Under best-of-N it is a score-eater. The store puts by keyPath, so a second
+ * attempt queued while the first is still pending OVERWRITES it, on precisely
+ * the bad connection this queue exists to survive. If the first attempt was the
+ * player's best, the feature silently destroys the thing it promises to keep.
+ *
+ * This asserts against `commitKey`, the function main.ts actually calls, so a
+ * regression to a per-entry key fails here rather than shipping.
+ */
+describe('the queue is keyed per attempt, not per entry (research R3, FR-046)', () => {
+  it('keeps two pending attempts for one entry instead of overwriting', async () => {
+    const store = memoryStore();
+    const submit = vi.fn(async (): Promise<SubmitResult> => ({ kind: 'retry' }));
+    const outbox = new Outbox(store, submit);
+
+    await outbox.enqueue({ ...commit, id: commitKey('e1', 1), attemptNo: 1, score: 6100 });
+    await outbox.enqueue({ ...commit, id: commitKey('e1', 2), attemptNo: 2, score: 2500 });
+
+    const pending = await outbox.pending();
+    expect(pending).toHaveLength(2);
+    // And specifically: the BEST one is still there. That is the score the
+    // leaderboard would otherwise have lost.
+    expect(pending.map((p) => p.score).sort((a, b) => a - b)).toEqual([2500, 6100]);
+  });
+
+  it('gives different attempts different keys and the same attempt the same key', () => {
+    expect(commitKey('e1', 1)).not.toBe(commitKey('e1', 2));
+    expect(commitKey('e1', 1)).not.toBe(commitKey('e2', 1));
+    // Stable, which is what makes an outbox retry idempotent rather than a
+    // second submission (research R1).
+    expect(commitKey('e1', 2)).toBe(commitKey('e1', 2));
+  });
+});
 
 describe('commit outbox (FR-046, FR-048)', () => {
   it('queues before the first network attempt, so a crash mid-request loses nothing', async () => {
@@ -115,7 +155,14 @@ describe('the outbox is not authoritative (FR-021)', () => {
     const [item] = await outbox.pending();
     // It records what was submitted. It does not record, and cannot answer,
     // whether the server accepted it - that answer only comes from the server.
+    //
+    // `attemptNo` joined this list for feature 007 and is deliberately allowed:
+    // it identifies WHICH attempt this queued write belongs to, which is
+    // transport data about a write already made. It is not a claim that the
+    // attempt happened - `roster_entry.official_attempts_used` in shared storage
+    // answers that, and it is what the run economy reads (FR-021, FR-235).
     expect(Object.keys(item!).sort()).toEqual([
+      'attemptNo',
       'attempts',
       'draftId',
       'entryId',
