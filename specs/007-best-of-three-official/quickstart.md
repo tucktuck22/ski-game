@@ -199,6 +199,30 @@ anything. CI checks out with `lfs: true` (`.github/workflows/ci.yml:18`).
 | 5 — Offline does not block a run      | **Automated**: `tests/e2e-shared/attempts-ux.spec.ts` aborts every roster write and requires the run to start                                                                                      |
 | 6 — Migration round-trip              | **Automated and executed** against real Postgres, and wired into CI                                                                                                                                |
 
+### CI, checked rather than assumed (T058, Definition of Done item 8)
+
+**Run 136 on `2522bf6`: SUCCESS, all four jobs** —
+<https://github.com/tucktuck22/ski-game/actions/runs/35866307466>
+
+| Job                                                                                                                    | Result  |
+| ---------------------------------------------------------------------------------------------------------------------- | ------- |
+| Lint, typecheck, unit and simulation suites                                                                            | success |
+| Storage invariants against real Postgres — including the new `A migration must not corrupt a live draft (FR-050)` step | success |
+| The built artifact loads and plays                                                                                     | success |
+| Three-engine determinism (Chromium, Firefox, WebKit)                                                                   | success |
+
+Two things worth keeping in the record:
+
+- **The sprite tests PASS in CI.** They fail in the development container because
+  `git-lfs` is not installed there, so the PNGs are unsmudged pointer files. CI checks out
+  with `lfs: true`. That confirms the baseline diagnosis rather than leaving "2 failing" to
+  be argued about later.
+- **Run 133 (`b5442a5`) FAILED, and deserved to.** That was the Phases 1-4 commit, pushed
+  while T020, T027 and T028 were ticked but their e2e work was not done — the shared suite
+  still asserted the one-run model. It was found and corrected in `7c2ab71` before the gate,
+  and CI would have caught it regardless. Recorded because a green history that hides a red
+  commit teaches nothing.
+
 ### Not verified by any of the above
 
 - **T049/T050** need a real Supabase project, which this session has no credentials for.
