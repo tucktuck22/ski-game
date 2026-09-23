@@ -1,7 +1,7 @@
 # Specification Quality Checklist: Three Attempts, Best One Counts
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-09-13
+**Created**: 2026-09-13 · **Re-validated**: 2026-09-14 (trust reversal), 2026-09-23 (`/speckit-analyze`)
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -15,7 +15,7 @@
 
 - [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
-- [x] Success criteria are measurable
+- [ ] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
 - [x] All acceptance scenarios are defined
 - [x] Edge cases are identified
@@ -31,36 +31,70 @@
 
 ## Notes
 
-Validation run 2026-09-13, single iteration. Recorded honestly per Principle VI: this is
-what the pass actually found, not a tidied-up account of it.
+### Re-validation 2026-09-23 (after `/speckit-analyze`)
 
-**One item failed and was fixed.** FR-243 read "MUST bump `rulesVersion`", naming a
-code-level identifier inside a requirement. Feature 001's FR-023 — the requirement this
-one extends — says "a rules version" in prose and never names the variable. FR-243 now
-matches that register and adds the player-facing consequence (scores under the two rule
-sets are not comparable on one board). No other requirement referenced a column, table,
-migration or product name; checked by grep over the Functional Requirements section.
+The 2026-09-14 trust reversal changed FR-234, FR-235, the Context, Assumptions and
+Accepted Consequences, and **this checklist was not re-run against any of it** — it sat
+fully checked against a spec that no longer existed. `/speckit-analyze` caught that as a
+Principle VI problem: the difference between what was verified and what ships must be
+stated, not implied. It has now been re-run against the current spec.
 
-**Two items were decided rather than marked [NEEDS CLARIFICATION].** Both are recorded in
-Assumptions with their reasoning, because both have a defensible default and neither
-changes scope:
+**One box comes UNCHECKED, and it is a real failure, not a formality.**
 
-- **Tiebreak follows the best attempt's timestamp, not the most recent** (FR-236). The
-  alternative is perverse: a player sets a winning mark on attempt one, takes attempt two
-  out of curiosity, and loses a tiebreak he had already won. Deciding it was cheaper than
-  asking.
-- **No "I'm done" declaration** (FR-240). This falls out of the tiebreak choice. Once
-  taking another attempt can never lower a player's standing, there is nothing to protect
-  him from, so no ceremony is worth building.
+- **Success criteria are measurable** — **FAILS on SC-087.** _"A player can determine how
+  many attempts he has left, and what his best score is, within five seconds of opening
+  the game, without scrolling."_ No device, viewport or measurement method is named, so
+  two people can disagree about whether it passed and both be right. Every other SC in
+  this feature is a pass/fail anyone can adjudicate; this one is not. T020 now carries
+  SC-087 so the intent is built, but **the criterion itself still needs quantifying** —
+  name the reference viewport from the constitution's reference hardware, or demote it to
+  a review checklist item. Deliberately left failing rather than quietly reworded, because
+  the organizer has not been asked which.
 
-**One question is deliberately left open and does not block planning.** The organizer has
-not been asked whether a player who loses all three attempts to genuine misfortune — a
-dead battery three times over — should have an in-product remedy. The spec routes him to
-the organizer's existing FR-006 powers and records the gap as an accepted consequence
-rather than pretending it does not exist. If it happens in play, it is a follow-up
-feature.
+**Two boxes were at risk and now pass on their merits:**
 
-**Not verified by this checklist**: nothing here has been playtested, and Principle VIII
-wants a play pass at the earliest playable point rather than at completion. Session length
-roughly triples under this feature (Accepted Consequences), and that is a feel question no
-document closes.
+- _No implementation details_ — FR-245 as first drafted said "any database constraint on
+  attempt numbering MUST be a loose sanity rail". That named the storage engine inside a
+  requirement. Reworded to "Shared storage MUST NOT impose a narrower limit than that
+  value", matching FR-021's register. The mechanism lives in research R10 and the storage
+  contract, which is where it belongs.
+- _Requirements are testable and unambiguous_ — FR-234 was rewritten on 2026-09-14 from
+  "the attempt MUST NOT start" to a best-effort write that gates nothing. The new wording
+  is testable (quickstart Scenario 5 asserts a run starts while offline) where a
+  half-reversed version would not have been.
+
+### Coverage gaps closed 2026-09-23
+
+`/speckit-analyze` found four requirements with zero tasks. Three are now cited; the
+fourth got a task of its own:
+
+| Requirement                                      | Was     | Now                                                              |
+| ------------------------------------------------ | ------- | ---------------------------------------------------------------- |
+| FR-238 (a wipeout does not end the competition)  | no task | T013                                                             |
+| SC-081 (wipe out on attempt 1, still win)        | no task | **T061**, an end-to-end demonstration against the built artifact |
+| SC-086 (never ranked lower for using an attempt) | no task | T011                                                             |
+| SC-087 (attempts and best score legible fast)    | no task | T020 — intent covered, criterion still unmeasurable, see above   |
+
+SC-081 mattered most: it is the one criterion that proves the feature does what it claims,
+and nothing pointed at it.
+
+### Earlier sessions
+
+**2026-09-14 (trust reversal)** — the organizer ruled the attempt count honour-system.
+FR-234 and FR-235 were rewritten, the Context's "closes the hole" claim was corrected to
+what trust actually buys, and research R2 was reversed. Not re-validated at the time; see
+above.
+
+**2026-09-13 (original)** — single iteration. One item failed and was fixed: FR-243 read
+"MUST bump `rulesVersion`", naming a code identifier inside a requirement, where FR-023 —
+the requirement it extends — says "a rules version" in prose. Two items were decided
+rather than marked [NEEDS CLARIFICATION]: the tiebreak follows the best attempt's
+timestamp (FR-236), and no "I'm done" declaration is needed (FR-240), the second falling
+out of the first.
+
+### Still not verified by anything here
+
+Nothing in this feature has been playtested. Session length roughly triples, and
+Principle VIII wants that judged by a person at the first playable point — Phase 5, T030.
+The attempt count and the crashed-tab cost were settled by the organizer in advance rather
+than by play, and the spec records them as acceptance rather than as findings.

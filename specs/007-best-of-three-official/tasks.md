@@ -79,13 +79,13 @@ defects are silent — none would fail a build — so they are fixed deliberatel
 rather than discovered in play.
 
 - [ ] T004 Extend `EntryView` in `src/state/ordering.ts`: replace `officialStatus: 'unused' | 'committed'` with `officialAttemptsUsed: number` (0–3), keeping `score` and `commitAt` as the **best** attempt's values so `computeStandings` needs no change (FR-231, FR-235, research R5)
-- [ ] T005 Add `OFFICIAL_ATTEMPTS = 3` and an `attemptsRemaining()` helper to `src/state/runEconomy.ts` alongside the existing `PRACTICE_RUNS`, so both allowances read from one place (FR-231)
+- [ ] T005 **D1 — the allowance is data, not a constant.** Add `officialAttempts: 3` to `data/tuning.json`, validate it in `parseTuning` (`src/data/load.ts`) as a positive integer like every other key, and read it in `src/state/runEconomy.ts` via an `attemptsRemaining()` helper. Principle III is a MUST and T030/T031 already anticipate play moving this number (FR-231, FR-245, research R10)
 - [ ] T006 Add `attemptNo: number` to `PendingCommit` in `src/state/outbox.ts` (FR-231, contracts/storage-api.md)
 - [ ] T007 **Defect 1 — outbox key collision.** Change the enqueue key at `src/main.ts:735` from `` `${me.id}-official` `` to `` `${me.id}-official-${attemptNo}` ``. The IndexedDB store uses `keyPath: 'id'` and `put()`, so today a second attempt queued while the first is still pending overwrites it — destroying a score that may be the player's best, on exactly the wifi the outbox exists for (research R3, FR-046)
 - [ ] T008 [P] **Defect 1 test.** In `tests/unit/outbox.test.ts`, queue two attempts for one entry without draining and assert both survive. Assert it against the real key-generation path, not a hand-written key, or the test passes while the bug ships (research R3)
 - [ ] T009 **Defect 2 — snapshot keeps the wrong row.** Replace the score map at `src/state/supabase.ts:137` with a reduction to the best attempt: highest score, ties to the earliest `commit_at`. `new Map(pairs)` keeps the **last** value per key, and with no `ORDER BY` the row returned last is unspecified — so the bed order would be wrong and would not reproduce (research R4, FR-232, FR-236)
 - [ ] T010 [P] Extract that reduction as a pure exported function (`bestAttempt`) in `src/state/ordering.ts` so it is unit-testable without a server and is shared by both backends, matching how this project already tests bed-order rules (`ordering.ts:6`, research R4, R6)
-- [ ] T011 [P] **Defect 2 test.** In `tests/unit/ordering.test.ts`, assert `bestAttempt` picks the highest score regardless of input order, and that a tie carries the **earlier** timestamp — the FR-236 property that stops a player losing a tiebreak by taking an attempt he was entitled to (FR-232, FR-236)
+- [ ] T011 [P] **Defect 2 test.** In `tests/unit/ordering.test.ts`, assert `bestAttempt` picks the highest score regardless of input order, and that a tie carries the **earlier** timestamp — the FR-236 property that stops a player losing a tiebreak by taking an attempt he was entitled to. Assert that property directly, as SC-086 states it: a player is never ranked lower for having used an attempt (FR-232, FR-236, SC-086)
 - [ ] T012 **Defect 3 — idempotency.** Record in `contracts/storage-api.md` (already written) and in the Phase 7 migration that `UNIQUE (draft_id, entry_id, attempt_no)` is what preserves retry idempotency. No code here; this task is the check that Phase 7 does not simply drop the old index (research R1, FR-237)
 
 **Checkpoint**: The attempt model exists and the three silent defects are closed. User story work can begin.
@@ -101,7 +101,7 @@ shows the highest and only the highest (quickstart Scenario 1, SC-082).
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T013 [P] [US1] In `tests/unit/run-economy.test.ts`, rewrite the official-run cases for three attempts: availability at 0, 1, 2 and 3 used; `courseFor` still refusing the official course to practice and free play until attempts are exhausted (FR-231, FR-244, FR-068)
+- [ ] T013 [P] [US1] In `tests/unit/run-economy.test.ts`, rewrite the official-run cases for three attempts: availability at 0, 1, 2 and 3 used; `courseFor` still refusing the official course to practice and free play until attempts are exhausted. Include the case FR-238 turns on: an attempt ending in a **wipeout** commits its score and leaves the remaining attempts available (FR-231, FR-238, FR-244, FR-068)
 - [ ] T014 [P] [US1] In `tests/unit/ordering.test.ts`, assert `computeStandings` ranks two players on their best attempts and that a lower later attempt never displaces a higher earlier one (FR-232, SC-082)
 
 ### Implementation for User Story 1
@@ -111,7 +111,7 @@ shows the highest and only the highest (quickstart Scenario 1, SC-082).
 - [ ] T017 [US1] Update `src/state/localDraft.ts`'s `snapshot()` to store attempts as a list per entry and expose the best via the shared `bestAttempt` from T010, so local mode and Supabase agree by construction rather than by coincidence (research R6)
 - [ ] T018 [US1] Replace `submitCommit`'s single-commit refusal in `src/state/localDraft.ts` with the per-attempt rule: reject a duplicate `(entryId, attemptNo)`, reject `attemptNo` outside 1–3, mirroring the constraints Phase 7 adds to Postgres (research R6, R1)
 - [ ] T019 [US1] Update `endRun()` in `src/main.ts` to enqueue with the attempt number and to stop calling `markOfficialRunEnded` — that write moves earlier, to the start of the run in Phase 4 (contracts/storage-api.md, FR-234)
-- [ ] T020 [US1] Update the menu in `src/main.ts:409` so the official control reads attempts remaining (e.g. `OFFICIAL RUN (2 left)`), matching the existing practice control's idiom, and is disabled at zero (FR-239, FR-055)
+- [ ] T020 [US1] Update the menu in `src/main.ts:409` so the official control reads attempts remaining (e.g. `OFFICIAL RUN (2 left)`), matching the existing practice control's idiom, and is disabled at zero. Attempts remaining and best score must both be legible without scrolling at the reference viewport (FR-239, FR-055, SC-087)
 - [ ] T021 [US1] Update the menu copy at `src/main.ts:422` — "The official run is a course you have not seen" is no longer true after attempt one and a spec that disagrees with shipped behaviour is a defect (Principle I, spec Accepted Consequences)
 
 **Checkpoint**: Best-of-three works end to end in local mode. Attempts are not yet spent on start.
@@ -152,7 +152,7 @@ into constraints.
 
 - [ ] T029 Publish a playable single-file build — `npm run build:artifact` — and hand over the link, naming the commit it was built from (Principle VIII, Definition of Done item 6)
 - [ ] T030 Ask the player two questions and record both **in his own words** in `spec.md`: (1) does the session outstay its welcome now that it roughly triples, and if so is the answer fewer attempts, fewer practice runs, or a shorter official course? (2) is attempt 1 still a cold read worth having now that 2 and 3 are informed by it? The first is the open gate; the second is free to ask while someone is holding the phone (Principle VIII, quickstart Playtest)
-- [ ] T031 If the answers move the attempt count or the practice allowance, amend `spec.md` FR-231/FR-244 **before** Phase 7 writes `CHECK (attempt_no between 1 and 3)` against them (Principle I)
+- [ ] T031 If the answers move the attempt count or the practice allowance, change `officialAttempts` in `data/tuning.json` and amend `spec.md` FR-231/FR-244 to match. No migration is needed — the allowance is data, and the schema carries only a sanity rail (FR-245, research R10, Principle I)
 
 **Checkpoint**: the last tunable nobody can settle from a desk is settled.
 
@@ -186,7 +186,7 @@ attempts used and only a finished player reads as final (SC-085).
 **Purpose**: Until this phase the three-attempt limit is client-side, which FR-235 does
 not accept. This is what makes the feature's central fairness claim true.
 
-- [ ] T037 Write `supabase/migrations/0005_best_of_three.sql` per [research R7](./research.md#r7--migration-strategy): add `official_attempts_used` (0–3) backfilled from `official_status`; add `attempt_no` to `committed_score` backfilled to 1; drop `committed_score_one_per_entry`; create `UNIQUE (draft_id, entry_id, attempt_no)` and `CHECK (attempt_no between 1 and 3)` (FR-231, FR-237)
+- [ ] T037 Write `supabase/migrations/0005_best_of_three.sql` per [research R7](./research.md#r7--migration-strategy): add `official_attempts_used` (`CHECK >= 0`) backfilled from `official_status`; add `attempt_no` to `committed_score` backfilled to 1; drop `committed_score_one_per_entry`; create `UNIQUE (draft_id, entry_id, attempt_no)` and `CHECK (attempt_no between 1 and 9)`. The CHECK is a **sanity rail, not the allowance** — a schema that could veto the tuning value would make it half-obeyed (FR-231, FR-237, FR-245, research R10)
 - [ ] T038 Add `official_attempts_used` to the **column-level** UPDATE grant on `roster_entry` in that migration, alongside `practice_runs_used`. `0002_policies.sql` grants specific columns, not the table, so a new column is unwritable until it is named — the client would silently fail to spend attempts (FR-235, research R2)
 - [ ] T039 Confirm that grant stays **column-scoped**: `name`, `origin`, `removed_at` and `removed_score` remain revoked, so widening it for the counter does not hand players organizer territory. There is deliberately **no** `security definer` function and **no** revoke of the counter — the organizer ruled the count honour-system on 2026-09-14 (FR-006, research R2)
 - [ ] T040 Verify the migration is safe run **standalone** against a project that already has data, not only as part of a fresh `setup.sql` — the README documents organizers pasting single migrations for exactly this reason (Principle VII, research R7)
@@ -228,6 +228,7 @@ reason at the top of this file.
 - [ ] T058 Confirm CI is green on the head commit — **checked, not assumed**. Citing a check that did not run is a defect of the same severity as the bug it conceals (Definition of Done item 8)
 - [ ] T059 [P] Re-run `npm run test:build` and confirm the journey works against the built artifact at `/ski-game/`, naming the command and environment (Principle VI, Definition of Done item 7)
 - [ ] T060 Record in `spec.md` what was verified and what was not, per Principle VI — in particular whether Playtest B's answer changed anything
+- [ ] T061 **The feature's acceptance demonstration (SC-081).** Drive one player end to end through: wipe out on attempt 1 for a near-zero score, take attempts 2 and 3, finish top of the leaderboard — against the built artifact at `/ski-game/`, not a unit test. SC-081 says "demonstrated end to end, not argued", and it is the single criterion that proves the feature does what it claims: a bad first run no longer ends your draft (SC-081, FR-238, Principle VI)
 
 ---
 

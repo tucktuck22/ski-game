@@ -11,14 +11,14 @@ values while still bound by rules.
 
 ## Invariants enforced server-side
 
-| Invariant                                        | Enforcement                                                                      | Requirement    |
-| ------------------------------------------------ | -------------------------------------------------------------------------------- | -------------- |
-| ~~One committed score per entry, forever~~       | **SUPERSEDED** by the two rows below                                             | ~~FR-017~~     |
-| At most three scored attempts per entry, forever | `UNIQUE (draft_id, entry_id, attempt_no)` + `CHECK (attempt_no between 1 and 3)` | FR-231, FR-237 |
-| A committed attempt is never amended or erased   | No UPDATE and no DELETE grant to any client role, unchanged from feature 001     | FR-237         |
-| An attempt is spent at start, not at end         | The client advances the counter when the run begins, best-effort                 | FR-234         |
-| Commit timestamps not client-set                 | `commit_at` default `now()`, excluded from the insert grant — unchanged          | FR-037, FR-236 |
-| No commit after the deadline                     | The existing insert trigger, unchanged                                           | FR-241         |
+| Invariant                                            | Enforcement                                                                                                                                                          | Requirement            |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| ~~One committed score per entry, forever~~           | **SUPERSEDED** by the two rows below                                                                                                                                 | ~~FR-017~~             |
+| At most `officialAttempts` scored attempts per entry | `UNIQUE (draft_id, entry_id, attempt_no)` for idempotency; the allowance itself is the tuning value, with `CHECK (attempt_no between 1 and 9)` as a sanity rail only | FR-231, FR-237, FR-245 |
+| A committed attempt is never amended or erased       | No UPDATE and no DELETE grant to any client role, unchanged from feature 001                                                                                         | FR-237                 |
+| An attempt is spent at start, not at end             | The client advances the counter when the run begins, best-effort                                                                                                     | FR-234                 |
+| Commit timestamps not client-set                     | `commit_at` default `now()`, excluded from the insert grant — unchanged                                                                                              | FR-037, FR-236         |
+| No commit after the deadline                         | The existing insert trigger, unchanged                                                                                                                               | FR-241                 |
 
 The first row is the change this feature is really making. Feature 001's contract called
 `UNIQUE (draft_id, entry_id)` "the one-run rule"; it is now the three-attempt rule, and
@@ -55,16 +55,21 @@ purpose. Accepted per the organizer's ruling and consistent with
 the same player report any score he likes.
 
 What does **not** fail open is the number of attempts that can carry a score: three, by
-`UNIQUE (draft_id, entry_id, attempt_no)` and `CHECK (attempt_no between 1 and 3)`. That
-is [R1](../research.md#r1--how-three-attempts-are-stored)'s idempotency constraint doing
-a second job, not a trust boundary.
+`UNIQUE (draft_id, entry_id, attempt_no)`, whichever allowance `officialAttempts` names.
+That is [R1](../research.md#r1--how-three-attempts-are-stored)'s idempotency constraint,
+not a trust boundary — and deliberately not the cap either, since a schema that could veto
+the tuning value would make it half-obeyed
+([R10](../research.md#r10--the-attempt-count-is-a-tuning-value-and-what-that-costs-the-schema)).
 
 ## Commit durability
 
 Unchanged from feature 001 except for the queue key.
 
-1. Attempt allocated and spent **before** the run starts. This is new, and it is the
-   only network round-trip that gates gameplay.
+1. The attempt is spent **before** the run starts — the counter advances at the moment
+   gameplay begins rather than when it ends. The write is **best-effort and gates
+   nothing**: if it cannot get out, the run starts anyway and the count reconciles from
+   shared storage on the next load. (An earlier revision had this gate gameplay; see
+   [Why `startOfficialAttempt` fails open](#why-startofficialattempt-fails-open).)
 2. Run ends. Score computed locally from the simulation's terminal state.
 3. Write to the IndexedDB outbox first, then attempt the server.
 4. **The queue key is `(entryId, attemptNo)`, not `entryId`.** Feature 001's fixed

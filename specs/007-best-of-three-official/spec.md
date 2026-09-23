@@ -213,8 +213,9 @@ states attempts used and that a player with attempts remaining is visibly not fi
 
 ### Functional Requirements
 
-- **FR-231**: Each roster member MUST be granted exactly three official attempts on the
-  official course, replacing the single official run of FR-017/FR-018.
+- **FR-231**: Each roster member MUST be granted a fixed number of official attempts on
+  the official course — **three** at ship — replacing the single official run of
+  FR-017/FR-018. The number is a tuning value, not a constant (FR-245).
 - **FR-232**: A player's leaderboard score MUST be the highest score among his completed
   official attempts. Lower attempts MUST NOT be displayed as his score and MUST NOT
   affect his rank.
@@ -266,6 +267,11 @@ states attempts used and that a player with attempts remaining is visibly not fi
   FR-066, FR-067), and the official course MUST remain unreachable in practice and free
   play until the player's official attempts are exhausted or the deadline has passed
   (FR-068, restated at attempt granularity).
+- **FR-245**: The number of official attempts MUST be read from a versioned data file,
+  not embedded in code, so that the allowance can be re-tuned from play without a code or
+  schema change (Principle III). Shared storage MUST NOT impose a narrower limit than that
+  value, so a re-tuned allowance is honoured end to end rather than half-obeyed. Changing the value is a
+  rules change under FR-243.
 
 ### Key Entities
 

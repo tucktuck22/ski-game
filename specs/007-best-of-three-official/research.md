@@ -1,16 +1,18 @@
 # Research: Three Attempts, Best One Counts
 
-**Phase 0** for [plan.md](./plan.md). Nine decisions. Three of them (R1, R3, R4) are
+**Phase 0** for [plan.md](./plan.md). Ten decisions. Three of them (R1, R3, R4) are
 latent defects in code that ships today and would become live bugs under a naive
-implementation of this feature.
+implementation of this feature. R2 was reversed by the organizer on 2026-09-14 and R10
+was added on 2026-09-23 after `/speckit-analyze`; both record what changed and why.
 
 ---
 
 ## R1 — How three attempts are stored
 
 **Decision**: Append one immutable row per completed attempt, numbered, with
-`UNIQUE (draft_id, entry_id, attempt_no)` and `CHECK (attempt_no between 1 and 3)`.
-The leaderboard score is derived by reduction, never stored.
+`UNIQUE (draft_id, entry_id, attempt_no)`. The leaderboard score is derived by reduction,
+never stored. _(The companion `CHECK` was `between 1 and 3` when this was written; R10
+loosened it to a sanity rail once the allowance became a tuning value.)_
 
 **Rationale**: this satisfies three requirements at once that pull in different
 directions.
@@ -18,10 +20,11 @@ directions.
 - **FR-237 (immutability)** holds trivially: nothing is ever updated or deleted, so
   `0002_policies.sql`'s deliberate absence of UPDATE and DELETE grants survives intact.
   That absence is documented in the policy file as "this absence is the feature".
-- **The three-attempt cap stays in the schema**, where the one-run rule lives today.
-  `0001_init.sql` calls its unique index "THE ONE-RUN RULE... a uniqueness constraint no
-  client bug and no curious player can route around". A `CHECK` on `attempt_no` is the
-  same kind of object doing the same job.
+- **Attempts are individually addressable**, which is what lets the schema keep one row
+  per attempt without them colliding. _(Revised by [R10](#r10--the-attempt-count-is-a-tuning-value-and-what-that-costs-the-schema):
+  this bullet originally claimed the three-attempt **cap** lives in the schema. Once the
+  allowance became a tuning value, the cap moved to the client and the `CHECK` became a
+  loose sanity rail. The `UNIQUE` index below is unaffected and is the load-bearing half.)_
 - **Insert idempotency is preserved**, which is the part that is easy to miss. See below.
 
 **The idempotency trap**: today `UNIQUE (draft_id, entry_id)` means a second insert for
@@ -84,9 +87,8 @@ What it cost was real, and all of it now goes away:
   along with the test Principle VI would have required for it.
 - **The migration loses a function and a revoke**, and `0005` becomes ordinary DDL.
 
-**What is still enforced, and why it is not a cheater defense**: at most three _scored_
-attempts, by `UNIQUE (draft_id, entry_id, attempt_no)` and
-`CHECK (attempt_no between 1 and 3)`. That constraint stays for [R1](#r1--how-three-attempts-are-stored)'s
+**What is still enforced, and why it is not a cheater defense**: one row per
+`(entry, attempt_no)`, by `UNIQUE (draft_id, entry_id, attempt_no)`. That constraint stays for [R1](#r1--how-three-attempts-are-stored)'s
 reason, which is **idempotency, not trust** — it is what stops the outbox posting a
 phantom attempt when a commit succeeds and its response is lost. That failure hits an
 honest player on bad wifi, and no amount of good faith prevents it. The cap on scored
@@ -213,7 +215,7 @@ and safe to run on its own against an existing project. Appended to
    status so an existing row converts correctly.
 2. Add `attempt_no` to `committed_score`, backfilling existing rows to 1.
 3. Drop `committed_score_one_per_entry`; create `UNIQUE (draft_id, entry_id, attempt_no)`
-   and the `CHECK (attempt_no between 1 and 3)`.
+   and a loose `CHECK (attempt_no between 1 and 9)` as a sanity rail (R10).
 4. Extend the existing column-level UPDATE grant on `roster_entry` to include
    `official_attempts_used`, alongside `practice_runs_used` — the counter is written by
    the client, per R2.
@@ -277,3 +279,60 @@ The leaderboard already carries live run state (`PRACTISING (n/3)`,
 `READY — NOT YET OFFICIAL` in `src/ui/leaderboard.ts:59`), so attempt state extends an
 existing idiom rather than adding one. FR-055 applies: attempts remaining must not be
 carried by colour alone.
+
+---
+
+## R10 — The attempt count is a tuning value, and what that costs the schema
+
+**Decision**: `officialAttempts` lives in `data/tuning.json` (opening value **3**), is
+validated by `parseTuning` in `src/data/load.ts` like every other key, and is the single
+authority on the allowance. The database keeps `UNIQUE (draft_id, entry_id, attempt_no)`
+unchanged, but its companion `CHECK` becomes a **loose sanity rail** —
+`attempt_no between 1 and 9` — rather than the rule itself.
+
+**Added 2026-09-23** after `/speckit-analyze` found the original plan in breach of
+Principle III, which is a MUST: _"All tuning values MUST live in versioned data files.
+Magic numbers governing feel MUST NOT be embedded in code."_ The plan had marked III as
+PASS on the reasoning that the feel change is "structural", but T030 and T031 explicitly
+anticipate the playtest moving the number. **A value you have already planned to re-tune
+after play is a tuning value**, and the PASS was too generous.
+
+**Why the `CHECK` has to loosen, and why that is acceptable now**: if the allowance is
+data and the constraint says `between 1 and 3`, then editing `tuning.json` to 2 or 5
+produces a value that is half-obeyed — the client offers five attempts and the database
+refuses the fourth, with a constraint violation the player reads as a bug. A tuning value
+the schema can veto is not a tuning value.
+
+That would have been a genuine dilemma a week ago, when [R2](#r2--where-starting-spends-it-is-enforced)
+wanted the count server-enforced. The organizer's 2026-09-14 trust ruling already settled
+it: the attempt count is honour-system, so **the cap belongs on the client, read from
+data**. The rail at 9 exists only to catch a corrupt or absurd value, not to enforce the
+rule.
+
+**What does not move**: `UNIQUE (draft_id, entry_id, attempt_no)` is untouched. It is
+[R1](#r1--how-three-attempts-are-stored)'s idempotency constraint — the thing that stops a
+retried commit posting a phantom attempt — and it works at any allowance. The two
+constraints were doing two jobs; this separates them cleanly, which is arguably how they
+should have been described in R1 in the first place.
+
+**Consequence for FR-243**: changing `officialAttempts` is a rules change and bumps the
+rules version, which `data/tuning.json`'s own `$comment` already demands of every value in
+the file (_"Changing a value outside its documented tolerance is a feel change: re-run the
+acceptance scenarios and bump rulesVersion"_). It needs **no migration**, which is the
+practical payoff — the playtest can move the number without touching SQL.
+
+**Known asymmetry, deliberately not fixed here**: `PRACTICE_RUNS = 3` remains a constant
+in `src/state/runEconomy.ts`, and `roster_entry.practice_runs_used` carries a matching
+`CHECK (between 0 and 3)`. It predates this feature and FR-244 holds the practice
+allowance unchanged, so moving it would widen this diff into feature 001's territory. The
+result is two sibling allowances stored two different ways, which is worth a follow-up
+change of its own rather than a silent expansion of this one.
+
+**Alternatives considered**:
+
+- _Leave the count in code and record a Principle III deviation._ Rejected: the
+  constitution's open-deviations list already carries five entries, and this one has a
+  cheap fix. Adding a sixth to avoid a one-line data change is how that list got long.
+- _Keep `CHECK (between 1 and 3)` and require a migration to re-tune._ Rejected: it makes
+  the playtest's most likely outcome — "try two" — a schema change the organizer must
+  paste by hand, which is exactly the friction Principle III exists to remove.

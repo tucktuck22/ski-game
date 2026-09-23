@@ -1,6 +1,6 @@
 # Implementation Plan: Three Attempts, Best One Counts
 
-**Branch**: `claude/blissful-volta-462rjk` | **Date**: 2026-09-13 | **Spec**: [spec.md](./spec.md)
+**Branch**: `claude/blissful-volta-462rjk` | **Date**: 2026-09-13, revised 2026-09-14 and 2026-09-23 | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `/specs/007-best-of-three-official/spec.md`
 
@@ -59,16 +59,16 @@ the whole problem.
 
 _GATE: evaluated before Phase 0, re-evaluated after Phase 1._
 
-| Principle                                        | Status  | Evidence / obligation this plan accepts                                                                                                                                                                                                                                                               |
-| ------------------------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| I. Spec-Driven Delivery (NON-NEGOTIABLE)         | PASS    | spec.md approved with FR-231..FR-244, SC-081..SC-087. Every task in `/speckit-tasks` must cite one. FR-019 is amended in the same change set by FR-233, and ADR-0002 gets its reversal recorded, satisfying "behaviour changes MUST amend the governing spec".                                        |
-| II. Stability Before Content                     | PASS\*  | Schema change ships with a migration and a round-trip test (see R7, and the migration round-trip task T039 that feature 001 left open is directly in scope here). No simulation change, so determinism is untouched. \*The obligation is real work, not a free pass — see Phase 2 notes.              |
-| III. Fun Is a Testable Requirement               | PASS    | No tuning values move; nothing enters `data/*.json`. The feel change is structural (how many attempts), and its acceptance criteria are SC-081..SC-087.                                                                                                                                               |
-| IV. One Coherent 1980s Graphic Novel Voice       | PASS    | New UI is text in existing panels — attempt counters and menu copy. No new asset, so no style review needed. Legibility clause applies: attempts remaining must not be conveyed by colour alone (FR-055).                                                                                             |
-| V. Fair and Verifiable Competition               | PASS\*  | \*Already knowingly deviated via ADR-0004/ADR-0005; this feature neither worsens nor repairs it. It does move one rule from honour-system to server-enforced (R2), which is a step toward V rather than away. Recorded below.                                                                         |
-| VI. The Shipped Artifact Is the Unit of Truth    | PASS    | The rule is proven in the real-Postgres CI job against `supabase/setup.sql` pasted as an organizer would, and the player-facing half in `test:build` against the built artifact at `/ski-game/`. Both gates already exist; this feature extends them rather than inventing them.                      |
-| VII. Operator Instructions Are Deliverables      | PASS\*  | `0005` must be appended to `supabase/setup.sql` and exercised by the existing real-Postgres job. \*One pre-existing violation found in passing and NOT fixed here — see Complexity Tracking.                                                                                                          |
-| VIII. The Player Judges Fun, and Judges It Early | **GAP** | This changes a rule the player meets as difficulty, so a play pass is required at the FIRST playable point, not at completion. Session length roughly triples (spec Accepted Consequences). The plan schedules this explicitly; see Phase 2 notes. Not yet satisfied, and stated rather than implied. |
+| Principle                                        | Status  | Evidence / obligation this plan accepts                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| I. Spec-Driven Delivery (NON-NEGOTIABLE)         | PASS    | spec.md approved with FR-231..FR-244, SC-081..SC-087. Every task in `/speckit-tasks` must cite one. FR-019 is amended in the same change set by FR-233, and ADR-0002 gets its reversal recorded, satisfying "behaviour changes MUST amend the governing spec".                                                                                                                                                           |
+| II. Stability Before Content                     | PASS\*  | Schema change ships with a migration and a round-trip test (see R7, and the migration round-trip task feature 001 numbered T039 (this feature's own T044 — the ids collide across features) is directly in scope here). No simulation change, so determinism is untouched. \*The obligation is real work, not a free pass — see Phase 2 notes.                                                                           |
+| III. Fun Is a Testable Requirement               | PASS    | The attempt allowance lives in `data/tuning.json` as `officialAttempts`, not as a constant (FR-245, R10). **This was originally marked PASS on the reasoning that the feel change is "structural"; `/speckit-analyze` on 2026-09-23 found that too generous** — T030/T031 already planned to re-tune the number from play, and a value you plan to re-tune is a tuning value. The PASS is now earned rather than argued. |
+| IV. One Coherent 1980s Graphic Novel Voice       | PASS    | New UI is text in existing panels — attempt counters and menu copy. No new asset, so no style review needed. Legibility clause applies: attempts remaining must not be conveyed by colour alone (FR-055).                                                                                                                                                                                                                |
+| V. Fair and Verifiable Competition               | PASS\*  | \*Already knowingly deviated via ADR-0004/ADR-0005; this feature neither worsens nor repairs it. It does move one rule from honour-system to server-enforced (R2), which is a step toward V rather than away. Recorded below.                                                                                                                                                                                            |
+| VI. The Shipped Artifact Is the Unit of Truth    | PASS    | The rule is proven in the real-Postgres CI job against `supabase/setup.sql` pasted as an organizer would, and the player-facing half in `test:build` against the built artifact at `/ski-game/`. Both gates already exist; this feature extends them rather than inventing them.                                                                                                                                         |
+| VII. Operator Instructions Are Deliverables      | PASS\*  | `0005` must be appended to `supabase/setup.sql` and exercised by the existing real-Postgres job. \*One pre-existing violation found in passing and NOT fixed here — see Complexity Tracking.                                                                                                                                                                                                                             |
+| VIII. The Player Judges Fun, and Judges It Early | **GAP** | This changes a rule the player meets as difficulty, so a play pass is required at the FIRST playable point, not at completion. Session length roughly triples (spec Accepted Consequences). The plan schedules this explicitly; see Phase 2 notes. Not yet satisfied, and stated rather than implied.                                                                                                                    |
 
 **No gate blocks Phase 0.** Principle VIII's obligation is a scheduling commitment
 carried into `/speckit-tasks`, not a design violation.
@@ -106,6 +106,9 @@ specs/007-best-of-three-official/
 ```text
 supabase/
 ├── migrations/0005_best_of_three.sql   NEW — schema and the counter's update grant
+
+data/tuning.json         officialAttempts: 3 — the allowance, as data (FR-245, R10)
+src/data/load.ts         parseTuning validates it like every other key
 ├── setup.sql                            APPEND 0005 (hand-maintained concatenation)
 └── tests/invariants.sql                 EXTEND — per-attempt invariants, in the
                                          deliberate-violation style already used
@@ -168,7 +171,7 @@ Design is complete. Nothing in Phase 1 changed a gate's verdict, and two got sha
 
 - **Principle II** gained a concrete obligation rather than a promise. The migration
   round-trip is now a named scenario (quickstart Scenario 6) against a database holding
-  a pre-feature score, which is feature 001's still-unchecked T039. "Ships with a
+  a pre-feature score, which is feature 001's still-unchecked T039 (this feature's T044). "Ships with a
   migration and a round-trip test" is now something a reviewer can check rather than
   take on trust.
 - **Principle VI** briefly gained a failure state and then lost it again. R2's original
@@ -203,7 +206,8 @@ implied.
   after the client can allocate and spend attempts against local mode — before the
   migration is written. `/speckit-tasks` must order it there and name the published
   build, per Definition of Done item 6.
-- **The migration round-trip test** is feature 001's T039, still unchecked. This feature
+- **The migration round-trip test** is feature 001's T039 — this feature's T044, ids that
+  unhelpfully collide — still unchecked. This feature
   is the first schema change since it was written down, so it stops being deferrable.
 - **`rulesVersion` 2.0.0 → 3.0.0** invalidates cross-version comparison by design
   (FR-243). The draft is not live (spec Assumptions), so no reset is needed, but the
