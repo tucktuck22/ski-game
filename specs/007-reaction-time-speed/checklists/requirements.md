@@ -36,7 +36,7 @@ for the maintainer. Q1: the reaction budget (FR-231). Q2: whether a reset is
 acceptable now (FR-239).
 
 The spec names project data (`rulesVersion`, drag, the tuning file) where earlier
-specs in this repository do the same. The constraint "change drag only, not the
+specs in this repository do the same. The constraint "change the course, not the
 physics" is the user's own requirement and cannot be stated without naming what it
 constrains. The spec does not name languages, frameworks or code structure.
 
