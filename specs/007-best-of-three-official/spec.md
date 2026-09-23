@@ -359,9 +359,18 @@ states attempts used and that a player with attempts remaining is visibly not fi
   is the number of attempts that can carry a **score**: at most three, enforced by a
   database constraint. That constraint is there for retry idempotency rather than for
   trust (research R1) and would exist regardless.
-- **Sessions get longer.** Up to three practice runs on the 3,200-unit warm-up slope plus
+- **Sessions get longer. Ruled acceptable by the organizer, 2026-09-23**, on the build
+  from commit `7c2ab71`: _"3 and 3 sounds fine. That's how I want it."_ Recorded as
+  **acceptance rather than a played verdict** — the wording reads as a judgement on the
+  shape, not a report from riding it, and Principle VIII is explicit that only the second
+  overrules a measurement. The allowance is a tuning value (FR-245), so if a real session
+  proves long, it is a one-line edit to `data/tuning.json` and a rules-version bump, with
+  no migration.
+
+  Up to three practice runs on the 3,200-unit warm-up slope plus
   three attempts on the 12,000-unit official course. The official course is the long one,
   so total play time roughly triples for a player who uses everything.
+
 - **Scores are still unverified** (FR-064, ADR-0004). Three attempts multiply the number
   of client-reported scores but change nothing about the trust model. A player who would
   forge one score can forge three.

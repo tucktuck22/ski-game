@@ -378,7 +378,7 @@ function render(): void {
       </div>
       ${me ? renderPlayer(me) : renderRoster()}
     </div>
-    ${renderLeaderboard(snapshot.entries, draftIsFinal())}
+    ${renderLeaderboard(snapshot.entries, draftIsFinal(), data.tuning.officialAttempts)}
     ${isOrganizer ? renderOrganizer(snapshot.entries, snapshot.draft.deadline, organizerError) : ''}`;
   wire();
 }

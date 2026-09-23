@@ -8,6 +8,7 @@ const sql = (f: string): string =>
 
 const init = sql('0001_init.sql');
 const policies = sql('0002_policies.sql');
+const attempts = sql('0005_best_of_three.sql');
 
 /**
  * A FAST PRE-CHECK, not the proof.
@@ -25,10 +26,56 @@ const policies = sql('0002_policies.sql');
  * exist yet, which made setup.sql fail outright.
  */
 describe('storage invariants are database constraints, not client code', () => {
-  it('one committed score per entry, forever (FR-017, FR-018)', () => {
+  /**
+   * Feature 007 replaced the one-per-ENTRY index with one-per-ATTEMPT. The old
+   * index was carrying two rules and only one was written down: the stated
+   * one-run rule, and — unstated — the idempotency the outbox silently depends
+   * on. A commit that succeeds but loses its response gets retried, and the
+   * collision is what makes that retry a no-op rather than a phantom attempt.
+   */
+  it('one committed score per ATTEMPT, forever (FR-231, FR-237, research R1)', () => {
     expect(init).toMatch(
       /create unique index committed_score_one_per_entry\s+on committed_score \(draft_id, entry_id\)/,
     );
+    // ...and 0005 replaces it rather than merely dropping it. Dropping without
+    // replacing is the regression that would let a retry double-post.
+    expect(attempts).toMatch(/drop index if exists committed_score_one_per_entry/);
+    expect(attempts).toMatch(
+      /create unique index committed_score_one_per_attempt\s+on committed_score \(draft_id, entry_id, attempt_no\)/,
+    );
+  });
+
+  /**
+   * FR-245. The allowance is a tuning value, so the schema must NOT pin it at
+   * three: a constraint that could veto data/tuning.json would make re-tuning
+   * half-obeyed, surfacing to the player as a constraint violation he reads as a
+   * bug. The CHECK is a sanity rail and this asserts it stays one.
+   */
+  it('does not pin the attempt allowance in the schema (FR-245, research R10)', () => {
+    expect(attempts).toMatch(/check \(attempt_no between 1 and 9\)/);
+    expect(attempts).not.toMatch(/check \(attempt_no between 1 and 3\)/);
+  });
+
+  /**
+   * 0002_policies.sql grants NAMED COLUMNS rather than the table, so a new
+   * column is unwritable until it is listed — and the failure is silent: the
+   * PATCH is refused with nobody watching and every attempt looks free.
+   */
+  it('puts the attempt counter in the column-level update grant (FR-235)', () => {
+    expect(attempts).toMatch(
+      /grant update \(official_attempts_used\) on roster_entry to anon, authenticated/,
+    );
+  });
+
+  /**
+   * research R2, reversed by the organizer on 2026-09-14. The count is
+   * honour-system by choice, consistent with ADR-0004 already accepting whatever
+   * score the client reports. This guards against someone "hardening" it back
+   * and reintroducing a network round-trip that gates gameplay.
+   */
+  it('leaves the attempt counter client-written, by decision (research R2)', () => {
+    expect(attempts).not.toMatch(/security definer/i);
+    expect(attempts).not.toMatch(/revoke update \(official_attempts_used\)/);
   });
 
   it('grants no UPDATE or DELETE on committed_score to any client role', () => {

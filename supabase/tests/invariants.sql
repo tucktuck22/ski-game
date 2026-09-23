@@ -314,5 +314,101 @@ begin
   raise notice 'PASS FR-229: reset carries a physics change into a live draft';
 end $$;
 
+
+-- ---------------------------------------------------------------------------
+-- Feature 007: three attempts, best one counts.
+-- ---------------------------------------------------------------------------
+
+do $$
+declare
+  d   uuid := gen_random_uuid();
+  ent uuid;
+begin
+  insert into draft (id, deadline, course_seed, rules_version, organizer_secret)
+  values (d, now() + interval '7 days', 19860214, '3.0.0', 'attempts-secret');
+  insert into roster_entry (draft_id, name, origin)
+  values (d, 'Attempts Dave', 'organizer') returning id into ent;
+
+  -- FR-231/FR-237: three attempts are three ROWS, not one row updated.
+  insert into committed_score (draft_id, entry_id, attempt_no, score, outcome, rules_version)
+  values (d, ent, 1, 300, 'wiped_out', '3.0.0'),
+         (d, ent, 2, 4000, 'finished', '3.0.0'),
+         (d, ent, 3, 6100, 'finished', '3.0.0');
+  raise notice 'PASS FR-231: three attempts coexist for one entry';
+
+  -- R1, AND THIS IS THE ONE THAT IS EASY TO LOSE. The old
+  -- UNIQUE (draft_id, entry_id) was silently providing idempotency for the
+  -- outbox: a commit that succeeded but whose response was lost gets retried,
+  -- and the collision is what makes the retry a no-op instead of a phantom
+  -- attempt. Keying on the attempt must keep that collision.
+  begin
+    insert into committed_score (draft_id, entry_id, attempt_no, score, outcome, rules_version)
+    values (d, ent, 2, 4000, 'finished', '3.0.0');
+    raise exception 'R1 VIOLATED: the same attempt was recorded twice - an outbox retry would post a phantom attempt';
+  exception when unique_violation then
+    raise notice 'PASS R1: re-submitting the same attempt is refused, so a retry stays idempotent';
+  end;
+
+  -- FR-245: the CHECK is a SANITY RAIL, not the allowance. A fourth attempt
+  -- must be accepted by the schema, because the allowance is a tuning value the
+  -- client enforces - if the database vetoed it, re-tuning officialAttempts
+  -- upward would surface to the player as a constraint violation.
+  insert into committed_score (draft_id, entry_id, attempt_no, score, outcome, rules_version)
+  values (d, ent, 4, 100, 'finished', '3.0.0');
+  raise notice 'PASS FR-245: the schema does not pin the allowance at three';
+
+  -- But it does refuse nonsense, which is what a rail is for.
+  begin
+    insert into committed_score (draft_id, entry_id, attempt_no, score, outcome, rules_version)
+    values (d, ent, 0, 100, 'finished', '3.0.0');
+    raise exception 'FR-245 VIOLATED: attempt_no 0 was accepted';
+  exception when check_violation then
+    raise notice 'PASS FR-245: attempt_no 0 is refused by the sanity rail';
+  end;
+
+  -- FR-237: a committed attempt is never amended or erased from outside.
+  begin
+    set local role anon;
+    update committed_score set score = 99999 where draft_id = d and entry_id = ent;
+    raise exception 'FR-237 VIOLATED: a player updated a committed attempt';
+  exception when insufficient_privilege then
+    raise notice 'PASS FR-237: a committed attempt is immutable to players';
+  end;
+  reset role;
+end $$;
+
+-- FR-235 / FR-006: the attempt counter is player-writable BY DESIGN (the
+-- organizer ruled the count honour-system), but widening that grant must not
+-- have handed players organizer territory along with it.
+do $$
+declare
+  d   uuid := gen_random_uuid();
+  ent uuid;
+begin
+  insert into draft (id, deadline, course_seed, rules_version, organizer_secret)
+  values (d, now() + interval '7 days', 19860214, '3.0.0', 'grant-secret');
+  insert into roster_entry (draft_id, name, origin)
+  values (d, 'Grant Dave', 'organizer') returning id into ent;
+
+  set local role anon;
+  update roster_entry set official_attempts_used = 1 where id = ent;
+  raise notice 'PASS FR-235: a player can spend his own attempt';
+
+  begin
+    update roster_entry set name = 'Someone Else' where id = ent;
+    raise exception 'FR-006 VIOLATED: a player renamed a roster entry';
+  exception when insufficient_privilege then
+    raise notice 'PASS FR-006: the widened grant is still column-scoped - name is refused';
+  end;
+
+  begin
+    update roster_entry set removed_at = now() where id = ent;
+    raise exception 'FR-006 VIOLATED: a player removed a roster entry';
+  exception when insufficient_privilege then
+    raise notice 'PASS FR-006: removal is still organizer territory';
+  end;
+  reset role;
+end $$;
+
 reset role;
 \echo 'ALL STORAGE INVARIANTS HELD'

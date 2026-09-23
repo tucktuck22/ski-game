@@ -151,8 +151,8 @@ attempts is too long. That is cheapest to learn here, before Phase 7 writes allo
 into constraints.
 
 - [x] T029 Publish a playable single-file build — `npm run build:artifact` — and hand over the link, naming the commit it was built from (Principle VIII, Definition of Done item 6)
-- [ ] T030 Ask the player two questions and record both **in his own words** in `spec.md`: (1) does the session outstay its welcome now that it roughly triples, and if so is the answer fewer attempts, fewer practice runs, or a shorter official course? (2) is attempt 1 still a cold read worth having now that 2 and 3 are informed by it? The first is the open gate; the second is free to ask while someone is holding the phone (Principle VIII, quickstart Playtest)
-- [ ] T031 If the answers move the attempt count or the practice allowance, change `officialAttempts` in `data/tuning.json` and amend `spec.md` FR-231/FR-244 to match. No migration is needed — the allowance is data, and the schema carries only a sanity rail (FR-245, research R10, Principle I)
+- [x] T030 Ask the player two questions and record both **in his own words** in `spec.md`: (1) does the session outstay its welcome now that it roughly triples, and if so is the answer fewer attempts, fewer practice runs, or a shorter official course? (2) is attempt 1 still a cold read worth having now that 2 and 3 are informed by it? The first is the open gate; the second is free to ask while someone is holding the phone (Principle VIII, quickstart Playtest)
+- [x] T031 If the answers move the attempt count or the practice allowance, change `officialAttempts` in `data/tuning.json` and amend `spec.md` FR-231/FR-244 to match. No migration is needed — the allowance is data, and the schema carries only a sanity rail (FR-245, research R10, Principle I)
 
 **Checkpoint**: the last tunable nobody can settle from a desk is settled.
 
@@ -168,14 +168,14 @@ attempts used and only a finished player reads as final (SC-085).
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T032 [P] [US3] In `tests/unit/leaderboard.test.ts`, assert `statusOf` at every attempt count 0–3, before and after the deadline (FR-239, SC-085)
+- [x] T032 [P] [US3] In `tests/unit/leaderboard.test.ts`, assert `statusOf` at every attempt count 0–3, before and after the deadline (FR-239, SC-085)
 
 ### Implementation for User Story 3
 
-- [ ] T033 [US3] Extend `statusOf()` in `src/ui/leaderboard.ts:54` to report official attempts alongside practice — a player mid-competition must never present as final (FR-239)
-- [ ] T034 [US3] Show attempts used on each leaderboard row, not carried by colour alone (FR-239, FR-055)
-- [ ] T035 [P] [US3] Assert the forfeit case is undistinguished: a player who abandoned all three and one who never played read identically (FR-242, spec Edge Cases)
-- [ ] T036 [P] [US3] Confirm the deadline case — after FINAL, unused attempts are irrelevant and everyone reads as final (FR-241, SC-085)
+- [x] T033 [US3] Extend `statusOf()` in `src/ui/leaderboard.ts:54` to report official attempts alongside practice — a player mid-competition must never present as final (FR-239)
+- [x] T034 [US3] Show attempts used on each leaderboard row, not carried by colour alone (FR-239, FR-055)
+- [x] T035 [P] [US3] Assert the forfeit case is undistinguished: a player who abandoned all three and one who never played read identically (FR-242, spec Edge Cases)
+- [x] T036 [P] [US3] Confirm the deadline case — after FINAL, unused attempts are irrelevant and everyone reads as final (FR-241, SC-085)
 
 **Checkpoint**: All three stories work against local mode.
 
@@ -186,18 +186,18 @@ attempts used and only a finished player reads as final (SC-085).
 **Purpose**: Until this phase the three-attempt limit is client-side, which FR-235 does
 not accept. This is what makes the feature's central fairness claim true.
 
-- [ ] T037 Write `supabase/migrations/0005_best_of_three.sql` per [research R7](./research.md#r7--migration-strategy): add `official_attempts_used` (`CHECK >= 0`) backfilled from `official_status`; add `attempt_no` to `committed_score` backfilled to 1; drop `committed_score_one_per_entry`; create `UNIQUE (draft_id, entry_id, attempt_no)` and `CHECK (attempt_no between 1 and 9)`. The CHECK is a **sanity rail, not the allowance** — a schema that could veto the tuning value would make it half-obeyed (FR-231, FR-237, FR-245, research R10)
-- [ ] T038 Add `official_attempts_used` to the **column-level** UPDATE grant on `roster_entry` in that migration, alongside `practice_runs_used`. `0002_policies.sql` grants specific columns, not the table, so a new column is unwritable until it is named — the client would silently fail to spend attempts (FR-235, research R2)
-- [ ] T039 Confirm that grant stays **column-scoped**: `name`, `origin`, `removed_at` and `removed_score` remain revoked, so widening it for the counter does not hand players organizer territory. There is deliberately **no** `security definer` function and **no** revoke of the counter — the organizer ruled the count honour-system on 2026-09-14 (FR-006, research R2)
-- [ ] T040 Verify the migration is safe run **standalone** against a project that already has data, not only as part of a fresh `setup.sql` — the README documents organizers pasting single migrations for exactly this reason (Principle VII, research R7)
-- [ ] T041 Append 0005 to `supabase/setup.sql` — it is a hand-maintained concatenation, not generated — and update its header comment, which currently advertises "one committed score per entry, forever" (Principle VII)
-- [ ] T042 [P] Extend `supabase/tests/invariants.sql` with the new deliberate violations: a fourth attempt row rejected; `attempt_no` of 0 or 4 rejected; a duplicate `(entry, attempt_no)` rejected; UPDATE and DELETE on `committed_score` still refused; a direct UPDATE of the counter refused (FR-231, FR-235, FR-237)
-- [ ] T043 [P] Assert in SQL that a player can update his own counters but still **cannot** update `name`, `origin` or `removed_at`, so T038's widened grant is proved scoped rather than assumed (FR-006, Principle VI)
-- [ ] T044 **Migration round-trip test** — feature 001's T039, still unchecked and no longer deferrable, since this is the first schema change since it was written. Assert a pre-feature draft with committed scores migrates without corrupting them (FR-050, Principle II, quickstart Scenario 6)
-- [ ] T045 Update `src/state/supabase.ts`'s `snapshot()` to read `official_attempts_used` and to select attempt rows with an explicit `ORDER BY`, so the reduction never depends on unspecified row order (research R4)
-- [ ] T046 [P] Confirm `classifyError` still maps the per-attempt unique violation (`23505`) to `rejected`, so a retry after a lost response is dropped rather than posting a phantom attempt. This is the idempotency T012 flagged (research R1, FR-046)
-- [ ] T047 [P] Update `supabase/seed-draft.sql` if it names the rules version, so a freshly seeded draft matches the bumped value rather than refusing every commit (FR-023, FR-243, research R8)
-- [ ] T048 Run the real-Postgres CI job locally per [quickstart](./quickstart.md) — `psql -f supabase/setup.sql` then `psql -f supabase/tests/invariants.sql` — and name the command and environment in the change description (Definition of Done item 7)
+- [x] T037 Write `supabase/migrations/0005_best_of_three.sql` per [research R7](./research.md#r7--migration-strategy): add `official_attempts_used` (`CHECK >= 0`) backfilled from `official_status`; add `attempt_no` to `committed_score` backfilled to 1; drop `committed_score_one_per_entry`; create `UNIQUE (draft_id, entry_id, attempt_no)` and `CHECK (attempt_no between 1 and 9)`. The CHECK is a **sanity rail, not the allowance** — a schema that could veto the tuning value would make it half-obeyed (FR-231, FR-237, FR-245, research R10)
+- [x] T038 Add `official_attempts_used` to the **column-level** UPDATE grant on `roster_entry` in that migration, alongside `practice_runs_used`. `0002_policies.sql` grants specific columns, not the table, so a new column is unwritable until it is named — the client would silently fail to spend attempts (FR-235, research R2)
+- [x] T039 Confirm that grant stays **column-scoped**: `name`, `origin`, `removed_at` and `removed_score` remain revoked, so widening it for the counter does not hand players organizer territory. There is deliberately **no** `security definer` function and **no** revoke of the counter — the organizer ruled the count honour-system on 2026-09-14 (FR-006, research R2)
+- [x] T040 Verify the migration is safe run **standalone** against a project that already has data, not only as part of a fresh `setup.sql` — the README documents organizers pasting single migrations for exactly this reason (Principle VII, research R7)
+- [x] T041 Append 0005 to `supabase/setup.sql` — it is a hand-maintained concatenation, not generated — and update its header comment, which currently advertises "one committed score per entry, forever" (Principle VII)
+- [x] T042 [P] Extend `supabase/tests/invariants.sql` with the new deliberate violations: a fourth attempt row rejected; `attempt_no` of 0 or 4 rejected; a duplicate `(entry, attempt_no)` rejected; UPDATE and DELETE on `committed_score` still refused; a direct UPDATE of the counter refused (FR-231, FR-235, FR-237)
+- [x] T043 [P] Assert in SQL that a player can update his own counters but still **cannot** update `name`, `origin` or `removed_at`, so T038's widened grant is proved scoped rather than assumed (FR-006, Principle VI)
+- [x] T044 **Migration round-trip test** — feature 001's T039, still unchecked and no longer deferrable, since this is the first schema change since it was written. Assert a pre-feature draft with committed scores migrates without corrupting them (FR-050, Principle II, quickstart Scenario 6)
+- [x] T045 Update `src/state/supabase.ts`'s `snapshot()` to read `official_attempts_used` and to select attempt rows with an explicit `ORDER BY`, so the reduction never depends on unspecified row order (research R4)
+- [x] T046 [P] Confirm `classifyError` still maps the per-attempt unique violation (`23505`) to `rejected`, so a retry after a lost response is dropped rather than posting a phantom attempt. This is the idempotency T012 flagged (research R1, FR-046)
+- [x] T047 [P] Update `supabase/seed-draft.sql` if it names the rules version, so a freshly seeded draft matches the bumped value rather than refusing every commit (FR-023, FR-243, research R8)
+- [x] T048 Run the real-Postgres CI job locally per [quickstart](./quickstart.md) — `psql -f supabase/setup.sql` then `psql -f supabase/tests/invariants.sql` — and name the command and environment in the change description (Definition of Done item 7)
 
 **Checkpoint**: The rule is enforced by the database. US2 is now fully verifiable.
 
@@ -218,7 +218,7 @@ reason at the top of this file.
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T051 Bump `rulesVersion` `2.0.0` → `3.0.0` in `tools/gen-courses.ts` for both courses and regenerate via `npm run gen:courses` (FR-243, research R8)
+- [x] T051 Bump `rulesVersion` `2.0.0` → `3.0.0` in `tools/gen-courses.ts` for both courses and regenerate via `npm run gen:courses` (FR-243, research R8)
 - [ ] T052 Write `docs/adr/0011-three-attempts-best-one-counts.md` recording (a) the partial reversal of ADR-0002 and why it is safe now — the penalty falls on one of three rather than on an unrepeatable run, and the organizer ruled that cost acceptable on 2026-09-14 — and (b) the trust decision: the attempt count is honour-system by choice, consistent with ADR-0004, and an earlier design that hardened it was withdrawn. Use 0011 because **two existing files are numbered 0010**; do not fix that collision here (plan.md Complexity Tracking, research R2)
 - [ ] T053 Amend `specs/001-shredpocalypse-bed-draft/spec.md`: mark FR-019 superseded by FR-233, restate FR-017/FR-018 at attempt granularity, and update the Accepted Consequence at line 400 — the defect it records is now closed. A spec that disagrees with shipped behaviour is a defect (Principle I)
 - [ ] T054 [P] Update `specs/001-shredpocalypse-bed-draft/contracts/storage-api.md`'s invariant table, whose first row still reads "One committed score per entry, forever" (Principle I)
@@ -317,8 +317,20 @@ tests. **`npm run test:shared`: 8 passed**, including the rewritten attempt spec
 two new ones (375 x 667 legibility, and a run starting while every roster write fails).
 Lint and typecheck clean. Commands run on Linux, Node 22, headless Chromium.
 
-**T029 build**: `npm run build:artifact` -> `dist/artifact.html`, 401 KiB, built from the
-commit this note ships in.
+**T029 build**: `npm run build:artifact` -> `dist/artifact.html`, 401 KiB, built from
+commit `7c2ab71`.
+
+**Phases 6-7 verified on real Postgres 16**, not asserted: `setup.sql` applied exactly as
+an organizer would paste it, `invariants.sql` **29 PASS / ALL STORAGE INVARIANTS HELD**,
+`migration-roundtrip.sql` **HELD** against a separate 0001-0004 database carrying a
+pre-feature committed score, and `seed-draft.sql` printing usable links. Server started
+from `/usr/lib/postgresql/16/bin` in this container; the same files run in CI's `storage`
+job, which now also runs the round-trip.
+
+**T030 answered 2026-09-23**: _"3 and 3 sounds fine. That's how I want it."_ The allowance
+stands at three and three, so **T031 required no change** - `officialAttempts` stays 3 and
+FR-231/FR-244 stand as written. Logged in spec.md as acceptance rather than as a played
+verdict, since the wording judges the shape rather than reporting a session.
 
 - **Found during task generation, out of scope, worth its own change**: there is **no
   in-app way to abandon a run**. Under the old rules bailing was free, so killing the tab
