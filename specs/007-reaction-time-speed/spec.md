@@ -172,7 +172,8 @@ the rotations available off each booter, and which shelves each robot pilot reac
   course already uses (0.25), because that is the speed anchor feature 006 set and
   what the stall rule protects.
 - **Standing players.** A player who is not tucked is slower (about 3.3 horizontally
-  at the steepest box), but because the frame hides the box until late, still has only about 650 ms to decide, short of the budget. That is the hidden-box problem, not
+  at the steepest box), but because the frame hides the box until late, still has
+  only about 650 ms to decide, short of the budget. That is the hidden-box problem, not
   speed, and the camera change (FR-242) fixes it for them too. The eased approaches
   only slow them further.
 - **Ropes and upper-track hazards.** Not reported as a problem. Ropes are ducked by
