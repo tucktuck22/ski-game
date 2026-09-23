@@ -171,8 +171,11 @@ the rotations available off each booter, and which shelves each robot pilot reac
 - **The gradient floor.** No eased section may go below the gentlest gradient the
   course already uses (0.25), because that is the speed anchor feature 006 set and
   what the stall rule protects.
-- **Standing players.** A player who is not tucked already reaches every box well
-  inside the budget (3.79 at the steepest). They are unaffected.
+- **Standing players.** A player who is not tucked is slower (about 3.3 horizontally
+  at the steepest box), but still meets that box only about 650 ms after it clears
+  the frame's bottom edge, short of the budget. That is the hidden-box problem, not
+  speed, and the camera change (FR-242) fixes it for them too. The eased approaches
+  only slow them further.
 - **Ropes and upper-track hazards.** Not reported as a problem. Ropes are ducked by
   staying crouched, which a tucked player already is. They must not get _worse_
   (FR-237), and the camera change should make ropes on steep ground visible sooner
@@ -203,8 +206,8 @@ the rotations available off each booter, and which shelves each robot pilot reac
   measured by simulating the actual ride, not by the local gradient's terminal speed,
   because speed lags behind the slope.
 - **FR-232**: The gain MUST come from two places only: the camera's vertical framing
-  (FR-242) and the course's shape. The tuning file MUST NOT change: gravity, friction, drag, the speed limits and every launch value stay
-  as they are. So the speed model, the speed anchor and what a tuck is worth all stay
+  (FR-242) and the course's shape. The tuning file MUST NOT change: gravity,
+  friction, drag, the speed limits and every launch value stay as they are. So the speed model, the speed anchor and what a tuck is worth all stay
   as they are.
 - **FR-233**: Terrain MUST change only on the approach to a box that fails FR-231
   today, and only as far upstream as that box needs. Boxes already inside the budget
@@ -215,7 +218,7 @@ the rotations available off each booter, and which shelves each robot pilot reac
   Each booter MUST offer the same number of rotations as under rules `2.0.0`, and
   every upper shelf MUST remain enterable with speed and avoidable without.
 - **FR-236**: After clearing a box, a player MUST be back on the snow before the next
-  box on the course needs a decision.
+  box on the course enters view.
 - **FR-237**: Other hazards on the official course (ropes, and rocks and ice on the
   shelves) MUST NOT give a player less reaction time than they do today.
 - **FR-238**: Scoring MUST NOT change. The official course MUST remain finishable by
@@ -263,8 +266,6 @@ the rotations available off each booter, and which shelves each robot pilot reac
 
 - **SC-081**: The shortest time any box gives a tucked player to decide rises from
   398 ms to at least 680 ms.
-- **SC-086**: On every stretch of either course steeper than 0.41, a hazard enters the
-  frame when it comes within 213 units horizontally, rather than later.
 - **SC-082**: The maintainer, riding the official course on the play-pass build,
   clears every box on their first run of that build without releasing early from
   memory, and says so in their own words.
@@ -275,6 +276,8 @@ the rotations available off each booter, and which shelves each robot pilot reac
 - **SC-085**: The maintainer judges that the steeps still feel fast, and that the
   easing before a box reads as part of the mountain rather than as a speed bump. This
   is a play-pass question and cannot be measured.
+- **SC-086**: On every stretch of either course steeper than 0.41, a hazard enters the
+  frame when it comes within 213 units horizontally, rather than later.
 
 ## Assumptions
 

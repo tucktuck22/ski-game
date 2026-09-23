@@ -62,3 +62,11 @@ the approaches (option A), which adds FR-242 to FR-244 and SC-086. The earlier "
 figure used speed along the slope rather than horizontal speed. The real reduction
 needed at the box is about 8%, and the Clarifications entry now says so rather than
 leaving the superseded number standing.
+
+**Validation run 4 — 2026-09-23 (`/speckit-clarify`, second pass). All items pass; no
+question asked.** Three consistency fixes, made without asking the maintainer. The
+"standing players are unaffected" edge case predated the corrected measurement and
+was wrong: a standing player at the steepest box also gets about 650 ms, because the
+frame hides the box. It now says so and points at FR-242. FR-236's "needs a
+decision" now reads "enters view", which can be measured. SC-086 is moved to the end
+so the success criteria are in numeric order.
