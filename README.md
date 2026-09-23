@@ -8,18 +8,27 @@ glory.
 
 ## Status
 
-**Planned, not yet built.** The project constitution is at v1.1.0. No game code
-exists yet, but the platform baseline is now fixed: the evergreen mobile web, no
-game engine, with a 2022-era mid-range phone as reference hardware and binding
-performance budgets.
+**Built, shipped, and played.** The project constitution is at v1.3.0. The platform
+baseline is the evergreen mobile web, no game engine, with a 2022-era mid-range phone
+as reference hardware and binding performance budgets.
 
-The first feature is specified and planned: **Shredpocalypse '86**, a web-based 2D
-side-on skiing platformer whose final leaderboard is the bed-selection draft order
-for an eight-person ski trip. See
-[`specs/001-shredpocalypse-bed-draft/`](specs/001-shredpocalypse-bed-draft/) for the
-spec, research, data model, contracts, and validation guide.
+**Shredpocalypse '86** is a web-based 2D side-on skiing platformer whose final
+leaderboard is the bed-selection draft order for an eight-person ski trip. Six
+features are specified, and the game has been in players' hands since feature 001:
 
-The next step is `/speckit-tasks`.
+| #                                            | What it added                                                   |
+| -------------------------------------------- | --------------------------------------------------------------- |
+| [001](specs/001-shredpocalypse-bed-draft/)   | The game, the draft, the leaderboard, and the one official run  |
+| [002](specs/002-alpine-two-track-restyle/)   | The two-track mountain and the 1986 restyle                     |
+| [003](specs/003-recorded-music-tracks/)      | Two recorded music tracks and the gesture gate that starts them |
+| [004](specs/004-skier-sprite-animation/)     | A drawn skier whose pose says what he is doing                  |
+| [005](specs/005-tutorial-and-boundary-rope/) | A coached first run, and a boundary rope you can pick out       |
+| [006](specs/006-slope-driven-speed/)         | The mountain sets your speed: gravity against friction and drag |
+
+_Status corrected 2026-09-12 under feature 005's FR-212. It read "Planned, not yet
+built" with "no game code exists yet" long after the game had shipped and been
+played, which is precisely what Principle VI calls a defect: a document describing a
+product that does not exist._
 
 ## What this project is
 
@@ -33,17 +42,20 @@ on trust below.
 ## Governing principles
 
 Development is governed by [the project constitution](.specify/memory/constitution.md).
-All five principles are binding; the first is non-negotiable.
+All eight principles are binding; four are non-negotiable.
 
-| #   | Principle                                 | In short                                                                                                 |
-| --- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| I   | Spec-Driven Delivery **(NON-NEGOTIABLE)** | No production code merges without an approved spec. Every task traces to a numbered requirement.         |
-| II  | Stability Before Content                  | Deterministic simulation, no crashes on any input, frame budget held, saves never corrupted.             |
-| III | Fun Is a Testable Requirement             | Every mechanic defines measurable feel criteria. Tuning lives in data files, never in code.              |
-| IV  | One Coherent 1980s Graphic Novel Voice    | A style bible is the single source of truth. Legibility outranks style.                                  |
-| V   | Fair and Verifiable Competition           | Every scored run is reproducible. Public leaderboards are replay-verified and never trust client scores. |
+| #    | Principle                                                              | In short                                                                                                                      |
+| ---- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| I    | Spec-Driven Delivery **(NON-NEGOTIABLE)**                              | No production code merges without an approved spec. Every task traces to a numbered requirement.                              |
+| II   | Stability Before Content                                               | Deterministic simulation, no crashes on any input, frame budget held, saves never corrupted.                                  |
+| III  | Fun Is a Testable Requirement                                          | Every mechanic defines measurable feel criteria. Tuning lives in data files, never in code.                                   |
+| IV   | One Coherent 1980s Graphic Novel Voice                                 | A style bible is the single source of truth. Legibility outranks style.                                                       |
+| V    | Fair and Verifiable Competition                                        | Every scored run is reproducible. Public leaderboards are replay-verified and never trust client scores.                      |
+| VI   | The Shipped Artifact Is the Unit of Truth **(NON-NEGOTIABLE)**         | A change is proven against the built artifact at its production base path, not against a convenient approximation.            |
+| VII  | Operator Instructions Are Deliverables Under Test **(NON-NEGOTIABLE)** | Anything a human is told to run carries the same burden of proof as code, and is run by CI.                                   |
+| VIII | The Player Judges Fun, and Judges It Early **(NON-NEGOTIABLE)**        | A change to how the game feels reaches the player as a playable build before it is settled, at the earliest point it can run. |
 
-The constitution is at **v1.1.0**; see its Sync Impact Report for what changed.
+The constitution is at **v1.3.0**; see its Sync Impact Report for what changed. _(This table listed five principles and v1.1.0 until 2026-09-12; the constitution has carried eight since v1.3.0. Corrected under FR-212, closing the outstanding `TODO(README_PRINCIPLE_TABLE)`.)_
 
 ### A note on trust
 

@@ -31,9 +31,16 @@ An official run whose session ends before it reaches a finish or a wipeout is
 discarded in full. Nothing commits. The official run remains unused and may be
 restarted without limit until the deadline.
 
-We will not block restarts. We will **count** them: every abandonment increments a
-counter displayed on the leaderboard next to that player's name, visible to
-everyone holding the link.
+We will not block restarts. ~~We will **count** them: every abandonment increments
+a counter displayed on the leaderboard next to that player's name, visible to
+everyone holding the link.~~ **The counter is gone — corrected 2026-09-12 under
+feature 005's FR-210.** FR-065 was withdrawn on 2026-09-08 and the column removed
+in `7b2cc8b`. It had never worked: the detection and the storage writer were built
+and unit-tested, nothing ever called either, and the leaderboard's Bails column
+showed a permanent zero from the first deployment to its removal.
+
+So restarts are neither blocked nor counted. Nothing about this decision is
+enforced by the product at all.
 
 The same rule applies symmetrically to practice — an abandoned practice run does
 not consume one of the three.
@@ -45,13 +52,18 @@ that died on a chairlift, which is the failure mode most likely to actually occu
 among eight people playing on mobile in a ski town.
 
 The one-run rule becomes social rather than enforced, and everyone will work that
-out. A player who wants to reroll can, as many times as he likes. The deterrent is
-that his friends can see the count.
+out. A player who wants to reroll can, as many times as he likes. ~~The deterrent is
+that his friends can see the count.~~ **There is no deterrent.** This record rested
+its case on a counter that never counted anything, which made the decision look
+better supported than it was — the reason FR-210 required the correction rather
+than leaving it. What remains is [ADR-0005](0005-trust-the-players.md)'s argument
+on its own: eight friends who booked a cabin together, and the organizer's judgement
+that policing this is not worth the machinery.
 
 "A face-plant on your official run is your score" now holds only for players who
 let the face-plant land. Someone with quick enough reflexes can bail before impact
-and lose nothing but a tick on a counter. The wipeout rule keeps its narrative
-force and loses most of its teeth.
+and lose nothing at all — ~~a tick on a counter~~ not even that. The wipeout rule
+keeps its narrative force and loses most of its teeth.
 
 This decision compounds with [ADR-0004](0004-accept-client-reported-scores.md) and
 especially with [ADR-0003](0003-practice-uses-a-separate-warm-up-course.md); see

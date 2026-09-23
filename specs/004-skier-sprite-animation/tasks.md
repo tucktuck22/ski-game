@@ -142,7 +142,7 @@ drift (T005) is the other, and is its own task.
 
 - [x] T006 Sample the skin colour from the shipped sheet's own `PLTE` chunk (never invented, never eyedropped from a screenshot) and add it as the ninth token in `src/render/palette.ts` (FR-179, research R5)
 - [x] T007 Add the ninth row to the palette table in `assets/style-bible.md` section 1, plus a new `P-*` rule assigning the token its role and forbidding it as a ground, text, terrain-edge or hazard colour (FR-179, FR-181)
-- [x] T008 Write `docs/adr/0010-a-ninth-colour.md` explaining why "eight colours. Nothing outside this set" stopped being true, following the form of `docs/adr/0009-recorded-music.md` (FR-180)
+- [x] T008 Write `docs/adr/0011-a-ninth-colour.md` explaining why "eight colours. Nothing outside this set" stopped being true, following the form of `docs/adr/0009-recorded-music.md` (FR-180)
 - [x] T009 Update `tests/unit/palette.test.ts`: the exhaustive token assertion goes from eight to nine, and a new case asserts the skin token separates from `orange` under protanopia, deuteranopia and tritanopia at the threshold already applied to the magenta/orange pair (FR-182). **If this fails, the art changes — not the threshold** (research R5)
 
 ### The palette gate — generalises to every future sprite

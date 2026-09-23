@@ -176,7 +176,7 @@ function drawRidge(
   ctx.stroke();
 }
 
-/** One conifer: three tiers of bough over a stub of trunk. */
+/** One conifer: three tiers of branches over a stub of trunk. */
 function pine(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -672,19 +672,34 @@ function drawKickers(
 }
 
 /**
- * An overhanging bough: a tapered limb with needle clusters hanging off it.
+ * A ski boundary rope: a twisted cord carrying pennants that hang to the floor
+ * of the collision slab.
  *
- * The silhouette has one job — say "the gap is UNDER here" — so the shape is
- * built around the collision box rather than decorated near it. The limb runs
- * along the top of the box, the needles hang to its floor, and the orange
- * hazard edge (P-4) is drawn on that floor, which is the exact line the player
- * has to get his head below. Anything drawn above the limb is scenery.
+ * It replaces the overhanging limb the `low` obstacle was drawn as until feature
+ * 005, and the reason is rule L-0 rather than taste. TR-1 fills the frame with
+ * five ranks of pine, so the old limb was a tree in
+ * a forest of trees — same vocabulary, same greens and darks, same scale — and
+ * a player could not pick out the one that kills him until he was on it. The
+ * rope separates on three axes at once: no forest contains a rope (vocabulary),
+ * `magenta` and `cyan` are the PLAYER's colours here and not the backdrop's
+ * (palette), and a horizontal line with regular vertical teeth is a shape the
+ * pine ranks never make (geometry). P-5 holds without leaning on any one of
+ * them.
  *
- * The limb is fed in from off-frame rather than grown from a visible trunk: at
- * 320x180 a whole tree pushes the bough itself below the size at which the gap
- * under it can be judged, and L-0 says the gap wins.
+ * THE CONTRACT IS CLAUSE 1 AND IT IS STRUCTURAL. The lowest mark this routine
+ * emits is the orange edge at `bottom`, flat across the full span, and `bottom`
+ * IS the collision floor `step.ts` reads. The pennant tips come down to meet it.
+ * So "the shape the player sees is the shape he has to get under" (TR-2) is
+ * true by construction rather than by care.
+ *
+ * WHY THE SAG LIVES IN THE CORD BAND ONLY. The supplied reference sags between
+ * high points, and a sag that carried the pennant tips down with it would make
+ * the lowest visible mark vary across the span — so a player would judge his
+ * duck against a silhouette that dips lower in the middle than the thing that
+ * actually kills him. That is precisely the misread this object exists to
+ * remove, so the cord sags within its own band and the teeth stay flat.
  */
-function drawBough(
+export function drawBoundaryRope(
   ctx: CanvasRenderingContext2D,
   x: number,
   width: number,
@@ -692,84 +707,81 @@ function drawBough(
   thickness: number,
 ): void {
   const top = bottom - thickness;
-  // The limb sags as it reaches out, which is what tells the eye it is a branch
-  // under load and not a girder.
-  const bx = x - 9;
-  const by = top - 4;
-  const ex = x + width + 7;
-  const ey = top + 5;
-  const spineX = (t: number): number => bx + (ex - bx) * t;
-  const spineY = (t: number): number => by + (ey - by) * t + Math.sin(t * 2.1) * 2.2;
-  const halfW = (t: number): number => 3.4 * (1 - t) + 0.7;
+  // The cord takes the top fifth of the slab and the pennants take the rest.
+  // Proportional rather than a flat 4 units so the object still fits if
+  // `branchThickness` is ever re-tuned — FR-196 freezes it at 18 for this
+  // feature, but a drawing that only works at one thickness is a trap for the
+  // next one.
+  const cordBand = thickness * 0.22;
+  const corePen = Math.max(1, cordBand * 0.5);
+  // The cord's centre sits half a pen below the ceiling, so the TOP EDGE of the
+  // stroke lands exactly on `top`. A stroke is centred on its path, so placing
+  // the path on the ceiling would put half the pen above it — the same
+  // off-by-half-a-pen that clause 2 exists to catch, in the other direction.
+  const cordTop = top + corePen / 2;
+  // Sag is bounded by what is left of the band after the pen, so the cord's
+  // lower edge cannot reach past its own band and into the pennants.
+  const sag = Math.max(0, Math.min(cordBand * 0.3, cordBand - corePen));
+  /** Centre of the cord at t across the span, sagging inside its own band. */
+  const cordY = (t: number): number => cordTop + Math.sin(t * Math.PI) * sag;
 
-  ctx.fillStyle = css('ink');
+  // Purple core first, magenta twist over it: the barber stripe of the
+  // reference sheet, drawn as alternating segments rather than as a texture,
+  // because at this scale a texture is noise.
+  const SEGS = 24;
+  ctx.lineCap = 'butt';
+  ctx.lineWidth = corePen;
+  ctx.strokeStyle = css('purple');
   ctx.beginPath();
-  for (let i = 0; i <= 16; i++) {
-    const t = i / 16;
-    const px = spineX(t);
-    const py = spineY(t) - halfW(t);
+  for (let i = 0; i <= SEGS; i++) {
+    const t = i / SEGS;
+    const px = x + width * t;
+    const py = cordY(t);
     if (i === 0) ctx.moveTo(px, py);
     else ctx.lineTo(px, py);
   }
-  for (let i = 16; i >= 0; i--) {
-    const t = i / 16;
-    ctx.lineTo(spineX(t), spineY(t) + halfW(t));
-  }
-  ctx.closePath();
-  ctx.fill();
+  ctx.stroke();
 
-  // Needle clusters, as filled wedges rather than drawn hairs. At 320x180 a fan
-  // of separate strokes reads as a comb or a truss — the first cut of this drew
-  // a scaffold hanging over the piste — where overlapping solid wedges read as
-  // foliage and give the jagged underside a snow-laden bough actually has. The
-  // deepest of them reach the collision floor, so what the player sees as the
-  // bottom of the tree IS the bottom of the tree.
-  ctx.fillStyle = css('ink');
-  for (let i = 0; i <= 11; i++) {
-    const t = i / 11;
-    const sx = spineX(t);
-    const sy = spineY(t);
-    const wob = hash(Math.round(x) * 31 + i);
-    const depth = (bottom - sy) * (0.72 + wob * 0.28);
-    const spread = 3.4 + wob * 1.8;
+  ctx.strokeStyle = css('magenta');
+  ctx.lineWidth = Math.max(1, cordBand * 0.34);
+  for (let i = 0; i < SEGS; i += 2) {
+    const t0 = i / SEGS;
+    const t1 = (i + 1) / SEGS;
     ctx.beginPath();
-    ctx.moveTo(sx - spread, sy - 1);
-    ctx.lineTo(sx + spread, sy - 1);
-    ctx.lineTo(sx - 1.2, sy + depth);
+    ctx.moveTo(x + width * t0, cordY(t0));
+    ctx.lineTo(x + width * t1, cordY(t1));
+    ctx.stroke();
+  }
+
+  // Pennants: regular teeth, point-down, every one reaching the slab floor.
+  // Regular rather than wobbled on purpose — the repetition is half of what
+  // makes the silhouette unmistakable against the pines, which are irregular
+  // by construction.
+  const count = Math.max(2, Math.round(width / 9));
+  const step = width / count;
+  const half = step * 0.36;
+  const FLAGS: PaletteToken[] = ['magenta', 'cyan', 'blue'];
+  for (let i = 0; i < count; i++) {
+    const t = (i + 0.5) / count;
+    const cx = x + step * (i + 0.5);
+    const hangY = cordY(t) + cordBand * 0.3;
+    ctx.fillStyle = css(FLAGS[i % FLAGS.length] as PaletteToken);
+    ctx.beginPath();
+    ctx.moveTo(cx - half, hangY);
+    ctx.lineTo(cx + half, hangY);
+    ctx.lineTo(cx, bottom);
     ctx.closePath();
     ctx.fill();
   }
 
-  // Snow sits in clumps on the windward face of the clusters, not as a stripe:
-  // a continuous white line along the top turned the whole thing into a girder.
-  ctx.strokeStyle = css('snow');
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (let i = 0; i <= 11; i += 2) {
-    const t = i / 11;
-    const sx = spineX(t);
-    const sy = spineY(t);
-    const wob = hash(Math.round(x) * 17 + i);
-    ctx.moveTo(sx - 3.5, sy - 1.5);
-    ctx.lineTo(sx - 0.5, sy - 1.5 + (1 + wob * 2));
-  }
-  ctx.stroke();
-
-  // The limb itself, redrawn over the clusters so it still reads as one branch
-  // running through them, with a snow highlight along its top.
-  ctx.strokeStyle = css('snow');
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (let i = 0; i <= 12; i++) {
-    const t = i / 12;
-    const px = spineX(t);
-    const py = spineY(t) - halfW(t) - 0.5;
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
-  ctx.stroke();
+  // TR-3: the killing surface gets an EDGE, never a fill over the silhouette.
+  // Drawn last so nothing covers it, and drawn flat across the whole span
+  // because the whole span is what kills — the gaps between pennants are not a
+  // way through. This is the lowest mark in the object and it sits exactly on
+  // the collision floor.
+  ctx.fillStyle = css('orange');
+  ctx.fillRect(x, bottom - 1, width, 1);
 }
-
 /** Deadfall: a snow-capped log lying across the piste, with its end grain out. */
 function drawDeadfall(
   ctx: CanvasRenderingContext2D,
@@ -924,7 +936,7 @@ export function drawRun(
     if (px < -60 || px > INTERNAL_WIDTH + 60) continue;
     const groundY = terrainYAt(course.terrain, o.x) - cam.y;
     if (o.kind === 'low')
-      drawBough(ctx, px, o.width, groundY - o.clearance, tuning.branchThickness);
+      drawBoundaryRope(ctx, px, o.width, groundY - o.clearance, tuning.branchThickness);
     else drawDeadfall(ctx, px, o.width, groundY, tuning.standHeight);
   }
 
