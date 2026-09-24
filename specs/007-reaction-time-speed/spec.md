@@ -370,3 +370,41 @@ the rotations available off each booter, and which shelves each robot pilot reac
   is a different lever (charge time) and a separate change.
 - **The course gets slightly longer in time, not in distance.** Easing a few stretches
   adds a second or two to a run. That is well inside the game's maximum run length.
+
+## Playtest findings — 2026-09-24, build bdc77bc
+
+**Verdict, in the maintainer's words:**
+
+> The pacing seems a little bit better, although there were some flagged ropes that
+> were a little too close to the boxes. The speed feels okay. We maybe overdid it just
+> a little bit, but this is probably where it should be for starters. The eased
+> narrows feel good. I did fail off of one of the big booters, so I misjudged how much
+> time I had. It might feel like a drop away.
+
+**Reading**: speed and the Narrows are accepted. There are two defects to fix before the
+feature is done, so this is not an accepting verdict for T020. Measured afterwards on
+`tuck`/`low-line`, seed 1:
+
+- **Box, then rope.** Time from landing a box to reaching the rope after it:
+
+  | Pair (box → rope) | 2.0.0 (worst) | 2.1.0 (worst) |
+  | ----------------- | ------------: | ------------: |
+  | 3,600 → 3,820     |        183 ms |        300 ms |
+  | 4,120 → 4,340     |        150 ms |        267 ms |
+  | 4,640 → 4,860     |        150 ms |     **33 ms** |
+  | 11,600/11,680 → 11,850 | 283 ms   |    **150 ms** |
+
+  Two pairs got worse under this feature. At 4,640, the eased approach carries the
+  jump almost onto the rope. At the Last Pitch, moving the box from 11,600 to 11,680
+  cut the gap from 226 to 146 units. The per-hazard lead times (B-tests) never
+  measured box-to-rope recovery, so they missed both.
+- **Small booter (7,852): the camera lurches just before landing.** Lip speed (9.59),
+  airtime (74 ticks) and how early the landing is visible (233 ms) all match 2.0.0.
+  But from 4 ticks before touchdown, the look-down overtakes the air lift and the
+  camera's descent doubles from ~5 to ~11 units a tick. The ground appears to fall
+  away just as the player times the landing. The big booter (9,188) frames exactly
+  as it did in 2.0.0. **To check with the maintainer: which booter they fell on.**
+- Aside, not new: on both booters the landing enters view only 200–233 ms before
+  touchdown, in both versions.
+
+**Next**: loop back to T012–T016 for the two defects, then hand over again (T017–T018).
