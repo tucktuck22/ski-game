@@ -1,0 +1,1697 @@
+<title>Shredpocalypse Course Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap"
+/>
+<style>
+  /* One deliberate look: the game's own night palette (src/render/palette.ts). */
+  :root {
+    color-scheme: dark;
+    --ink: #0b0616;
+    --panel: #140b27;
+    --purple: #2b1055;
+    --rule: #33205e;
+    --snow: #f2f0ff;
+    --muted: #a99fcb;
+    --faint: #6d6192;
+    --cyan: #22e8f5;
+    --magenta: #ff2d95;
+    --lilac: #c7a6ff;
+    --yellow: #ffd23f;
+    --orange: #fc6008;
+    --blue: #4361ff;
+    --display: 'Big Shoulders Display', 'Arial Narrow', Impact, sans-serif;
+    --body: 'Barlow', 'Segoe UI', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  html,
+  body {
+    background: var(--ink);
+    color: var(--snow);
+  }
+  body {
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  .wrap {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 18px 48px;
+    display: grid;
+    gap: 18px;
+  }
+  @media (max-width: 600px) {
+    .wrap {
+      padding-inline: 16px;
+    }
+  }
+
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 12px 24px;
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(30px, 5vw, 46px);
+    line-height: 0.95;
+    letter-spacing: 0.01em;
+    margin: 0;
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
+  h1 span {
+    color: var(--magenta);
+  }
+  .meta {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+  }
+  .meta b {
+    color: var(--snow);
+    font-weight: 600;
+  }
+  h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 20px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin: 0;
+    color: var(--muted);
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    align-items: center;
+  }
+  .group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+  .group > .label {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-right: 2px;
+  }
+  button.chip {
+    font: 600 13px/1 var(--body);
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 7px 12px;
+    cursor: pointer;
+    display: inline-flex;
+    gap: 7px;
+    align-items: center;
+  }
+  button.chip:hover {
+    color: var(--snow);
+    border-color: var(--faint);
+  }
+  button.chip[aria-pressed='true'] {
+    color: var(--ink);
+    background: var(--snow);
+    border-color: var(--snow);
+  }
+  button.chip:focus-visible,
+  canvas:focus-visible,
+  tr:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
+  }
+  .swatch {
+    width: 14px;
+    height: 3px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+  button.chip.pilot[aria-pressed='false'] .swatch {
+    opacity: 0.35;
+  }
+  button.chip.focus-on {
+    box-shadow:
+      0 0 0 2px var(--ink),
+      0 0 0 3px var(--snow);
+  }
+  button.play {
+    font-family: var(--mono);
+    min-width: 94px;
+    justify-content: center;
+  }
+
+  .sheet {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    touch-action: pan-y;
+  }
+  #mini {
+    height: 74px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--rule);
+  }
+  #main {
+    cursor: grab;
+  }
+  #main.dragging {
+    cursor: grabbing;
+  }
+  .hint {
+    font-size: 12px;
+    color: var(--faint);
+    padding: 8px 12px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+  }
+
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .split {
+      grid-template-columns: 1fr;
+    }
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 14px;
+    display: grid;
+    gap: 10px;
+  }
+  #frame {
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 16 / 9;
+    image-rendering: pixelated;
+    border-radius: 3px;
+  }
+  .caption {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .scrub {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .scrub input {
+    flex: 1;
+    accent-color: var(--magenta);
+  }
+  .scrub output {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    min-width: 64px;
+    text-align: right;
+  }
+
+  .readout {
+    font-family: var(--mono);
+    font-size: 13px;
+    display: grid;
+    gap: 10px;
+  }
+  .readout .where {
+    font-family: var(--body);
+    font-size: 15px;
+  }
+  .readout .where b {
+    font-family: var(--display);
+    font-size: 26px;
+    letter-spacing: 0.02em;
+  }
+  .riders {
+    display: grid;
+    gap: 6px;
+  }
+  .rider {
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    gap: 10px;
+    align-items: baseline;
+    font-variant-numeric: tabular-nums;
+  }
+  .rider .who {
+    font-family: var(--body);
+    font-weight: 600;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .rider .what {
+    color: var(--muted);
+  }
+  .rider .what b {
+    color: var(--snow);
+    font-weight: 600;
+  }
+  .ahead {
+    border-top: 1px solid var(--rule);
+    padding-top: 10px;
+    color: var(--muted);
+    font-family: var(--body);
+  }
+  .ahead b {
+    color: var(--snow);
+  }
+
+  .tables {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .tables {
+      grid-template-columns: 1fr;
+    }
+  }
+  .scroll {
+    overflow-x: auto;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+  }
+  th {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--faint);
+    font-weight: 600;
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  td {
+    padding: 6px 8px;
+    border-bottom: 1px solid color-mix(in srgb, var(--rule) 60%, transparent);
+    white-space: nowrap;
+  }
+  td.num,
+  th.num {
+    text-align: right;
+    font-family: var(--mono);
+  }
+  tbody tr {
+    cursor: pointer;
+  }
+  tbody tr:hover {
+    background: color-mix(in srgb, var(--purple) 55%, transparent);
+  }
+  .pill {
+    font: 600 11px/1 var(--body);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 7px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .pill.pass {
+    background: color-mix(in srgb, var(--snow) 12%, transparent);
+    color: var(--snow);
+  }
+  .pill.tight {
+    background: color-mix(in srgb, var(--yellow) 20%, transparent);
+    color: var(--yellow);
+  }
+  .pill.fail {
+    background: var(--orange);
+    color: var(--ink);
+  }
+  .pill.info {
+    color: var(--faint);
+    padding-inline: 0;
+  }
+  .kind {
+    display: inline-flex;
+    gap: 7px;
+    align-items: center;
+  }
+  .kind i {
+    width: 10px;
+    height: 10px;
+    display: inline-block;
+    border-radius: 2px;
+  }
+  .stack {
+    display: grid;
+    gap: 18px;
+  }
+  .note {
+    font-size: 13px;
+    color: var(--muted);
+    max-width: 70ch;
+  }
+  .note code {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--snow);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      scroll-behavior: auto !important;
+    }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Shredpocalypse <span>Course Map</span></h1>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="controls">
+      <div class="group" role="group" aria-label="Course" id="courses"></div>
+      <div class="group" role="group" aria-label="Height scale">
+        <span class="label">Height</span><span id="vex"></span>
+      </div>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="group" role="group" aria-label="Riders">
+      <span class="label">Riders</span><span class="group" id="pilots"></span>
+    </div>
+    <div class="group" role="group" aria-label="Sections">
+      <span class="label">Jump to</span><span class="group" id="sections"></span>
+    </div>
+  </div>
+
+  <section class="sheet" aria-label="Course profile">
+    <canvas id="mini" tabindex="0" aria-label="Whole course. Click to move the view."></canvas>
+    <canvas
+      id="main"
+      tabindex="0"
+      aria-label="Course profile, riders' lines, grade, speed and reaction time. Drag to pan, scroll to zoom."
+    ></canvas>
+    <div class="hint">
+      <span>Drag or arrow keys to pan · scroll or +/− to zoom · hover to inspect</span>
+      <span
+        >The profile is levelled against the average fall line, so jumps and shelves read at true
+        height. Ground that rises here is flatter than average, not uphill. The camera frame below
+        shows the true slope. Shaded speed = crouch held.</span
+      >
+    </div>
+  </section>
+
+  <div class="split">
+    <section class="panel" aria-label="Camera frame">
+      <canvas
+        id="frame"
+        width="640"
+        height="360"
+        aria-label="The 320 by 180 frame the player sees"
+      ></canvas>
+      <div class="scrub">
+        <button class="chip play" id="play" aria-pressed="false">▶ Replay</button>
+        <input type="range" id="tick" min="0" max="1" value="0" aria-label="Time in the run" />
+        <output id="clock" for="tick">0.00 s</output>
+      </div>
+      <div class="caption" id="frameCaption"></div>
+    </section>
+    <section class="panel readout" aria-live="polite" id="readout"></section>
+  </div>
+
+  <div class="tables">
+    <section class="stack">
+      <h2>Hazards</h2>
+      <div class="scroll"><table id="hazards"></table></div>
+      <p class="note">
+        <b>Boxes</b> are held to the 680 ms reaction budget: time from entering the frame to the
+        last release that still clears it, on whichever rider meets it worst. Other hazards show
+        lead time, entering the frame to arrival. Tight means within 10% of a budget.
+      </p>
+    </section>
+    <section class="stack">
+      <h2>Box, then rope</h2>
+      <div class="scroll"><table id="pairs"></table></div>
+      <h2>Riders</h2>
+      <div class="scroll"><table id="riders"></table></div>
+      <p class="note">
+        The three measuring pilots from <code>tests/sim/pilots.ts</code>, ridden through the real
+        simulation and the real camera. <b>Tuck</b> tucks everywhere and takes every high line.
+        <b>Stay-low</b> never tucks and never leaves the piste. <b>Low-line</b> tucks but stands
+        well before pop ramps to stay off the shelves.
+      </p>
+    </section>
+  </div>
+</div>
+
+<script>
+  const DATA = /*__MAP_DATA__*/ null;
+
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const C = {};
+  for (const n of [
+    'ink',
+    'panel',
+    'purple',
+    'rule',
+    'snow',
+    'muted',
+    'faint',
+    'cyan',
+    'magenta',
+    'lilac',
+    'yellow',
+    'orange',
+    'blue',
+  ])
+    C[n] = css('--' + n);
+  const alpha = (hex, a) => {
+    const v = parseInt(hex.slice(1), 16);
+    return `rgba(${(v >> 16) & 255},${(v >> 8) & 255},${v & 255},${a})`;
+  };
+  const PILOT = {
+    tuck: { name: 'Tuck', color: C.cyan },
+    'stay-low': { name: 'Stay-low', color: C.magenta },
+    'low-line': { name: 'Low-line', color: C.lilac },
+  };
+  const KIND = {
+    box: { name: 'Box', color: C.orange },
+    rope: { name: 'Rope', color: C.yellow },
+    ice: { name: 'Ice', color: C.blue },
+    rock: { name: 'Rock', color: C.muted },
+  };
+  const fmt = (n) => Math.round(n).toLocaleString('en-US');
+  const TICK_S = 1 / 60;
+
+  // ---------- state ----------
+  const store = {
+    get(k, d) {
+      try {
+        const v = localStorage.getItem('cm.' + k);
+        return v === null ? d : JSON.parse(v);
+      } catch {
+        return d;
+      }
+    },
+    set(k, v) {
+      try {
+        localStorage.setItem('cm.' + k, JSON.stringify(v));
+      } catch {}
+    },
+  };
+  const S = {
+    ci: location.hash === '#warmup' ? 1 : store.get('ci', 0),
+    vex: store.get('vex', 2),
+    show: store.get('show', { tuck: true, 'stay-low': true, 'low-line': true }),
+    focus: store.get('focus', 'tuck'),
+    x0: 0,
+    span: 2400,
+    tick: 0,
+    hoverX: null,
+    playing: false,
+  };
+  let course, trend, pilotsBy;
+
+  // ---------- geometry ----------
+  function terrainY(x) {
+    const t = course.terrain;
+    if (x <= t[0].x) return t[0].y;
+    let lo = 0,
+      hi = t.length - 1;
+    while (lo < hi) {
+      const m = (lo + hi + 1) >> 1;
+      if (t[m].x <= x) lo = m;
+      else hi = m - 1;
+    }
+    const a = t[lo],
+      b = t[lo + 1];
+    if (!b) return a.y;
+    return a.y + ((b.y - a.y) * (x - a.x)) / (b.x - a.x);
+  }
+  // The average fall line: terrain smoothed over 1,600 units, extended past the
+  // ends along the end slopes so the ends are not bent.
+  function buildTrend() {
+    const step = 20,
+      half = 800,
+      L = course.length;
+    const g0 = (terrainY(200) - terrainY(0)) / 200,
+      gL = (terrainY(L) - terrainY(L - 200)) / 200;
+    const ext = (x) =>
+      x < 0 ? terrainY(0) + g0 * x : x > L ? terrainY(L) + gL * (x - L) : terrainY(x);
+    const out = [];
+    for (let x = 0; x <= L + step; x += step) {
+      let s = 0,
+        n = 0;
+      for (let u = x - half; u <= x + half; u += step) {
+        s += ext(u);
+        n++;
+      }
+      out.push(s / n);
+    }
+    return (x) => {
+      const i = Math.max(0, Math.min(out.length - 2, Math.floor(x / step)));
+      const f = Math.max(0, Math.min(1, x / step - i));
+      return out[i] + (out[i + 1] - out[i]) * f;
+    };
+  }
+  const ledgeAt = (x) => course.ledges.find((l) => x >= l.x0 && x < l.x1);
+  const gradeAt = (x) =>
+    course.grade[Math.max(0, Math.min(course.grade.length - 1, Math.round(x / 20)))];
+  const sectionAt = (x) =>
+    course.sections.find((s) => x >= s.x0 && x < s.x1) ||
+    course.sections[course.sections.length - 1];
+  function rampShape(k, x) {
+    const lip = k.x + k.width;
+    if (x < k.x || x > lip) return 0;
+    const t = (x - k.x) / k.width;
+    return k.booter ? k.rise * t : k.rise * t * t;
+  }
+  const rampAt = (x) => course.kickers.reduce((m, k) => Math.max(m, rampShape(k, x)), 0);
+
+  // ---------- course switching ----------
+  function useCourse(ci) {
+    S.ci = ci;
+    store.set('ci', ci);
+    course = DATA.courses[ci];
+    trend = buildTrend();
+    pilotsBy = Object.fromEntries(course.pilots.map((p) => [p.pilot, p]));
+    S.span = Math.min(2400, course.length);
+    S.x0 = 0;
+    S.tick = 0;
+    S.hoverX = null;
+    stop();
+    const focus = pilotsBy[S.focus];
+    tickInput.max = String(focus.x.length - 1);
+    tickInput.value = '0';
+    renderControls();
+    renderTables();
+    resize();
+  }
+
+  // ---------- controls ----------
+  const $ = (id) => document.getElementById(id);
+  const tickInput = $('tick');
+  function chip(label, pressed, onClick, extra = '') {
+    const b = document.createElement('button');
+    b.className = 'chip ' + extra;
+    b.type = 'button';
+    b.setAttribute('aria-pressed', String(pressed));
+    b.innerHTML = label;
+    b.addEventListener('click', onClick);
+    return b;
+  }
+  function renderControls() {
+    $('meta').innerHTML =
+      `<span>Rules <b>${course.rulesVersion}</b></span><span>Commit <b>${DATA.head}</b></span>` +
+      `<span>Length <b>${fmt(course.length)}</b> units</span><span>Built ${new Date(DATA.generated).toLocaleString()}</span>`;
+    const cs = $('courses');
+    cs.replaceChildren();
+    DATA.courses.forEach((c, i) =>
+      cs.append(
+        chip(c.id === 'official' ? 'Official' : 'Warm-up', i === S.ci, () => {
+          history.replaceState(null, '', i ? '#warmup' : '#official');
+          useCourse(i);
+        }),
+      ),
+    );
+    const vx = $('vex');
+    vx.replaceChildren();
+    [1, 2, 4].forEach((v) =>
+      vx.append(
+        chip('×' + v, S.vex === v, () => {
+          S.vex = v;
+          store.set('vex', v);
+          renderControls();
+          draw();
+        }),
+      ),
+    );
+    const ps = $('pilots');
+    ps.replaceChildren();
+    for (const p of course.pilots) {
+      const P = PILOT[p.pilot];
+      const b = chip(
+        `<span class="swatch" style="background:${P.color}"></span>${P.name}`,
+        !!S.show[p.pilot],
+        () => {
+          if (S.focus === p.pilot && S.show[p.pilot]) {
+            S.show[p.pilot] = false;
+          } else if (!S.show[p.pilot]) {
+            S.show[p.pilot] = true;
+          } else {
+            S.focus = p.pilot;
+            store.set('focus', S.focus);
+            retime();
+          }
+          if (!S.show[S.focus]) {
+            const f = course.pilots.find((q) => S.show[q.pilot]);
+            if (f) {
+              S.focus = f.pilot;
+              retime();
+            }
+          }
+          store.set('show', S.show);
+          renderControls();
+          draw();
+        },
+        'pilot' + (S.focus === p.pilot ? ' focus-on' : ''),
+      );
+      b.title =
+        S.focus === p.pilot
+          ? 'Followed by the camera frame. Click to hide.'
+          : 'Click to follow with the camera frame.';
+      ps.append(b);
+    }
+    const ss = $('sections');
+    ss.replaceChildren();
+    for (const s of course.sections)
+      ss.append(
+        chip(s.name, false, () => {
+          S.x0 = s.x0 - 100;
+          S.span = Math.max(1200, s.x1 - s.x0 + 200);
+          clampView();
+          draw();
+        }),
+      );
+  }
+  // Keep the moment in the run when the followed rider changes: same x, their tick.
+  function retime() {
+    const x = pilotsBy[S.focus] ? currentX() : 0;
+    const p = pilotsBy[S.focus];
+    tickInput.max = String(p.x.length - 1);
+    S.tick = tickAtX(p, x);
+    tickInput.value = String(S.tick);
+  }
+  function tickAtX(p, x) {
+    let lo = 0,
+      hi = p.x.length - 1;
+    while (lo < hi) {
+      const m = (lo + hi) >> 1;
+      if (p.x[m] < x) lo = m + 1;
+      else hi = m;
+    }
+    return lo;
+  }
+  function currentX() {
+    const p = pilotsBy[S.focus];
+    return p.x[Math.min(S.tick, p.x.length - 1)];
+  }
+
+  // ---------- canvases ----------
+  const mini = $('mini'),
+    main = $('main'),
+    frame = $('frame');
+  const mctx = mini.getContext('2d'),
+    ctx = main.getContext('2d'),
+    fctx = frame.getContext('2d');
+  let W = 800,
+    DPR = 1;
+  const LAYOUT = { top: 26, profile: 300, gap: 10, grade: 12, speed: 92, hazard: 128, bottom: 18 };
+  const Y = {};
+  function layout() {
+    let y = LAYOUT.top;
+    Y.profile = [y, y + LAYOUT.profile];
+    y += LAYOUT.profile + LAYOUT.gap;
+    Y.grade = [y, y + LAYOUT.grade];
+    y += LAYOUT.grade + LAYOUT.gap + 6;
+    Y.speed = [y, y + LAYOUT.speed];
+    y += LAYOUT.speed + LAYOUT.gap + 8;
+    Y.hazard = [y, y + LAYOUT.hazard];
+    y += LAYOUT.hazard + LAYOUT.bottom;
+    return y;
+  }
+  const GUTTER = 66;
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = main.clientWidth || 800;
+    const H = layout();
+    for (const [cv, h] of [
+      [main, H],
+      [mini, 74],
+    ]) {
+      cv.width = Math.round(W * DPR);
+      cv.height = Math.round(h * DPR);
+      cv.style.height = h + 'px';
+    }
+    S.span = Math.min(S.span, course.length);
+    clampView();
+    draw();
+  }
+  const k = () => (W - GUTTER - 10) / S.span;
+  const sx = (x) => GUTTER + (x - S.x0) * k();
+  const xAt = (px) => S.x0 + (px - GUTTER) / k();
+  function clampView() {
+    S.span = Math.max(320, Math.min(course.length + 200, S.span));
+    S.x0 = Math.max(-100, Math.min(course.length + 100 - S.span, S.x0));
+  }
+
+  // ---------- main sheet ----------
+  let base = 0;
+  function profileY(x, y) {
+    const [t, b] = Y.profile;
+    return t + (b - t) * 0.66 + (y - trend(x) - base) * k() * S.vex;
+  }
+  function draw() {
+    if (!course) return;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    const H = main.height / DPR;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = C.panel;
+    ctx.fillRect(0, 0, W, H);
+    // Keep the ground at a steady height: centre on the levelled terrain in view.
+    let s = 0,
+      n = 0;
+    for (let x = S.x0; x <= S.x0 + S.span; x += S.span / 40) {
+      s += terrainY(x) - trend(x);
+      n++;
+    }
+    base = s / n;
+
+    drawSections();
+    drawProfile();
+    drawGrade();
+    drawSpeed();
+    drawHazards();
+    drawCursor();
+    drawMini();
+    drawFrame();
+    renderReadout();
+  }
+  function trackLabel(text, y) {
+    ctx.fillStyle = C.faint;
+    ctx.font = '600 10px Barlow, sans-serif';
+    ctx.save();
+    ctx.translate(12, y);
+    ctx.fillText(text.toUpperCase(), 0, 0);
+    ctx.restore();
+  }
+  function drawSections() {
+    const [pt] = Y.profile;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(GUTTER, 0, W - GUTTER, main.height / DPR);
+    ctx.clip();
+    course.sections.forEach((sec, i) => {
+      const a = sx(sec.x0),
+        b = sx(sec.x1);
+      if (i % 2) {
+        ctx.fillStyle = alpha(C.purple, 0.35);
+        ctx.fillRect(a, pt - 22, b - a, main.height / DPR);
+      }
+      ctx.strokeStyle = C.rule;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(a + 0.5, pt - 22);
+      ctx.lineTo(a + 0.5, main.height / DPR);
+      ctx.stroke();
+      // Each label stays inside its own section, so a section scrolled half out of
+      // view never writes over the next one's name.
+      const lo = Math.max(a, GUTTER) + 8,
+        room = b - lo - 8;
+      ctx.font = '600 15px "Big Shoulders Display", sans-serif';
+      const label = sec.name.toUpperCase(),
+        lw = ctx.measureText(label).width;
+      if (room > lw) {
+        ctx.fillStyle = C.snow;
+        ctx.fillText(label, lo, pt - 6);
+        ctx.font = '12px Barlow, sans-serif';
+        if (room > lw + 14 + ctx.measureText(sec.ask).width) {
+          ctx.fillStyle = C.faint;
+          ctx.fillText(sec.ask, lo + lw + 10, pt - 6);
+        }
+      }
+    });
+    // distance ticks
+    const step = niceStep(S.span / 8);
+    ctx.fillStyle = C.faint;
+    ctx.font = '10px "JetBrains Mono", monospace';
+    for (let x = Math.ceil(S.x0 / step) * step; x <= S.x0 + S.span; x += step) {
+      ctx.fillText(fmt(x), sx(x) + 3, main.height / DPR - 5);
+      ctx.fillStyle = alpha(C.rule, 0.9);
+      ctx.fillRect(sx(x), Y.grade[0] - 4, 1, main.height / DPR - Y.grade[0] - 10);
+      ctx.fillStyle = C.faint;
+    }
+    ctx.restore();
+  }
+  function niceStep(v) {
+    const p = 10 ** Math.floor(Math.log10(v));
+    for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= v) return m * p;
+    return 10 * p;
+  }
+
+  function drawProfile() {
+    const [t, b] = Y.profile;
+    trackLabel('Profile', t + 12);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(GUTTER, t - 2, W - GUTTER, b - t + 4);
+    ctx.clip();
+    const x1 = S.x0 + S.span,
+      dx = Math.max(1, 1.5 / k());
+    // snowpack
+    ctx.beginPath();
+    ctx.moveTo(sx(S.x0), b + 10);
+    for (let x = S.x0; x <= x1 + dx; x += dx) ctx.lineTo(sx(x), profileY(x, terrainY(x)));
+    ctx.lineTo(sx(x1 + dx), b + 10);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, t, 0, b);
+    g.addColorStop(0, alpha(C.purple, 0.9));
+    g.addColorStop(1, C.purple);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.beginPath();
+    for (let x = S.x0; x <= x1 + dx; x += dx) {
+      const X = sx(x),
+        Yy = profileY(x, terrainY(x));
+      x === S.x0 ? ctx.moveTo(X, Yy) : ctx.lineTo(X, Yy);
+    }
+    ctx.strokeStyle = C.snow;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // shelves
+    for (const l of course.ledges) {
+      if (l.x1 < S.x0 || l.x0 > x1) continue;
+      ctx.beginPath();
+      for (let x = l.x0; x <= l.x1; x += dx) {
+        const X = sx(x),
+          Yy = profileY(x, terrainY(x) - l.height);
+        x === l.x0 ? ctx.moveTo(X, Yy) : ctx.lineTo(X, Yy);
+      }
+      for (let x = l.x1; x >= l.x0; x -= dx)
+        ctx.lineTo(sx(x), profileY(x, terrainY(x) - l.height + 5));
+      ctx.closePath();
+      ctx.fillStyle = alpha(C.snow, 0.85);
+      ctx.fill();
+      ctx.strokeStyle = alpha(C.snow, 0.25);
+      ctx.setLineDash([2, 4]);
+      ctx.lineWidth = 1;
+      for (const x of [l.x0, l.x1]) {
+        ctx.beginPath();
+        ctx.moveTo(sx(x), profileY(x, terrainY(x) - l.height));
+        ctx.lineTo(sx(x), profileY(x, terrainY(x)));
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      label(
+        `shelf ${l.height}`,
+        sx(l.x0) + 4,
+        profileY(l.x0, terrainY(l.x0) - l.height) - 5,
+        C.muted,
+      );
+    }
+    // ice and rocks, on the shelves
+    for (const i of course.ice) {
+      const l = ledgeAt(i.x0);
+      const h = l ? l.height : 0;
+      ctx.beginPath();
+      for (let x = i.x0; x <= i.x1; x += dx) {
+        const X = sx(x),
+          Yy = profileY(x, terrainY(x) - h) - 1;
+        x === i.x0 ? ctx.moveTo(X, Yy) : ctx.lineTo(X, Yy);
+      }
+      ctx.strokeStyle = C.blue;
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    }
+    for (const r of course.rocks) {
+      const l = ledgeAt(r.x);
+      const h = l ? l.height : 0;
+      const gy = terrainY(r.x) - h;
+      ctx.beginPath();
+      ctx.moveTo(sx(r.x), profileY(r.x, gy));
+      ctx.lineTo(sx(r.x + r.width * 0.4), profileY(r.x, gy - r.height));
+      ctx.lineTo(sx(r.x + r.width), profileY(r.x + r.width, gy));
+      ctx.closePath();
+      ctx.fillStyle = C.muted;
+      ctx.fill();
+    }
+    // ramps
+    for (const kk of course.kickers) {
+      if (kk.x + kk.width < S.x0 || kk.x > x1) continue;
+      ctx.beginPath();
+      ctx.moveTo(sx(kk.x), profileY(kk.x, terrainY(kk.x)));
+      for (let x = kk.x; x <= kk.x + kk.width; x += dx / 2)
+        ctx.lineTo(sx(x), profileY(x, terrainY(x) - rampShape(kk, x)));
+      ctx.lineTo(sx(kk.x + kk.width), profileY(kk.x + kk.width, terrainY(kk.x + kk.width)));
+      ctx.closePath();
+      ctx.fillStyle = alpha(C.snow, 0.9);
+      ctx.fill();
+      label(
+        kk.booter ? `booter ${kk.launchAngle}°` : 'ramp',
+        sx(kk.x),
+        profileY(kk.x, terrainY(kk.x) - kk.rise) - 8,
+        C.muted,
+      );
+    }
+    // obstacles
+    for (const o of course.obstacles) {
+      if (o.x + o.width < S.x0 || o.x > x1) continue;
+      const gy = terrainY(o.x);
+      if (o.kind === 'solid') {
+        const top = profileY(o.x, gy - DATA.tuning.standHeight),
+          bot = profileY(o.x, gy);
+        ctx.fillStyle = C.orange;
+        ctx.fillRect(sx(o.x), top, Math.max(2, o.width * k()), bot - top);
+        label(fmt(o.x), sx(o.x), top - 5, C.orange);
+      } else {
+        const lo = gy - o.clearance,
+          hi = lo - DATA.tuning.branchThickness;
+        const top = profileY(o.x, hi),
+          bot = profileY(o.x, lo);
+        ctx.fillStyle = alpha(C.yellow, 0.35);
+        ctx.fillRect(sx(o.x), top, Math.max(2, o.width * k()), bot - top);
+        ctx.fillStyle = C.yellow;
+        ctx.fillRect(sx(o.x), bot - 2, Math.max(2, o.width * k()), 2);
+        ctx.fillStyle = alpha(C.yellow, 0.5);
+        for (const px of [o.x, o.x + o.width])
+          ctx.fillRect(sx(px) - 0.5, bot, 1, profileY(px, terrainY(px)) - bot);
+        label(fmt(o.x), sx(o.x), top - 5, C.yellow);
+      }
+    }
+    // pickups
+    ctx.fillStyle = alpha(C.yellow, 0.55);
+    for (const p of course.pickups) {
+      if (p.x < S.x0 || p.x > x1) continue;
+      ctx.beginPath();
+      ctx.arc(
+        sx(p.x),
+        profileY(p.x, terrainY(p.x) + p.y),
+        p.value === 'large' ? 2.2 : 1.4,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+    }
+    // riders
+    const order = course.pilots
+      .filter((p) => S.show[p.pilot])
+      .sort((a, z) => (a.pilot === S.focus) - (z.pilot === S.focus));
+    for (const p of order) {
+      const col = PILOT[p.pilot].color,
+        focus = p.pilot === S.focus;
+      const i0 = Math.max(0, tickAtX(p, S.x0 - 50)),
+        i1 = Math.min(p.x.length - 1, tickAtX(p, x1 + 50));
+      ctx.lineJoin = 'round';
+      // the whole line thin, then every flight over it thick, so air reads at a glance
+      ctx.beginPath();
+      for (let i = i0; i <= i1; i++) {
+        const X = sx(p.x[i]),
+          Yy = profileY(p.x[i], p.y[i]);
+        i === i0 ? ctx.moveTo(X, Yy) : ctx.lineTo(X, Yy);
+      }
+      ctx.strokeStyle = alpha(col, focus ? 0.95 : 0.6);
+      ctx.lineWidth = focus ? 1.3 : 1;
+      ctx.stroke();
+      ctx.beginPath();
+      for (let i = Math.max(i0, 1); i <= i1; i++) {
+        if (p.f[i] & 1 && p.f[i - 1] & 1) continue;
+        ctx.moveTo(sx(p.x[i - 1]), profileY(p.x[i - 1], p.y[i - 1]));
+        ctx.lineTo(sx(p.x[i]), profileY(p.x[i], p.y[i]));
+      }
+      ctx.strokeStyle = alpha(col, focus ? 1 : 0.75);
+      ctx.lineWidth = focus ? 2.6 : 1.8;
+      ctx.stroke();
+      if (p.outcome !== 'finished') {
+        const i = p.x.length - 1;
+        if (p.x[i] >= S.x0 && p.x[i] <= x1) {
+          ctx.strokeStyle = C.orange;
+          ctx.lineWidth = 2;
+          const X = sx(p.x[i]),
+            Yy = profileY(p.x[i], p.y[i]);
+          ctx.beginPath();
+          ctx.moveTo(X - 5, Yy - 5);
+          ctx.lineTo(X + 5, Yy + 5);
+          ctx.moveTo(X + 5, Yy - 5);
+          ctx.lineTo(X - 5, Yy + 5);
+          ctx.stroke();
+        }
+      }
+    }
+    // the camera frame and the rider, at the scrubbed moment
+    const p = pilotsBy[S.focus];
+    if (p && S.show[S.focus]) {
+      const i = Math.min(S.tick, p.x.length - 1);
+      const cx = p.x[i] - DATA.frame.xOffset,
+        cy = p.cy[i],
+        fw = DATA.frame.width,
+        fh = DATA.frame.height;
+      ctx.beginPath();
+      // Flat in the world, so it bends by the levelling like everything else.
+      for (let x = cx; x <= cx + fw; x += 8) ctx.lineTo(sx(x), profileY(x, cy));
+      for (let x = cx + fw; x >= cx; x -= 8) ctx.lineTo(sx(x), profileY(x, cy + fh));
+      ctx.closePath();
+      ctx.fillStyle = alpha(C.snow, 0.05);
+      ctx.fill();
+      ctx.strokeStyle = alpha(C.snow, 0.55);
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.arc(sx(p.x[i]), profileY(p.x[i], p.y[i] - 8), 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = PILOT[S.focus].color;
+      ctx.fill();
+      ctx.strokeStyle = C.ink;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function label(text, x, y, color) {
+    if (k() < 0.25) return;
+    ctx.fillStyle = color;
+    ctx.font = '10px "JetBrains Mono", monospace';
+    ctx.fillText(text, x, y);
+  }
+
+  function drawGrade() {
+    const [t, b] = Y.grade;
+    trackLabel('Grade', b - 1);
+    const lo = 0.2,
+      hi = 0.65;
+    const dx = Math.max(20, 2 / k());
+    for (let x = Math.floor(S.x0 / 20) * 20; x <= S.x0 + S.span; x += dx) {
+      const gr = gradeAt(x),
+        f = Math.max(0, Math.min(1, (gr - lo) / (hi - lo)));
+      ctx.fillStyle = gradeColor(f);
+      ctx.fillRect(Math.max(GUTTER, sx(x)), t, dx * k() + 1, b - t);
+    }
+  }
+  function gradeColor(f) {
+    // purple (gentle) → magenta → yellow (steep)
+    const stops = [
+      [0x2b, 0x10, 0x55],
+      [0xff, 0x2d, 0x95],
+      [0xff, 0xd2, 0x3f],
+    ];
+    const s = f * 2,
+      i = Math.min(1, Math.floor(s)),
+      u = s - i,
+      a = stops[i],
+      z = stops[i + 1];
+    return `rgb(${a.map((v, j) => Math.round(v + (z[j] - v) * u)).join(',')})`;
+  }
+
+  let vmax = 10;
+  function drawSpeed() {
+    const [t, b] = Y.speed;
+    trackLabel('Speed', t + 10);
+    ctx.fillStyle = C.faint;
+    ctx.font = '10px "JetBrains Mono", monospace';
+    ctx.fillText('u/tick', 12, t + 24);
+    vmax = Math.ceil(Math.max(...course.pilots.flatMap((p) => [Math.max(...p.vx)])) / 2) * 2;
+    for (let v = 0; v <= vmax; v += 2) {
+      const y = b - ((b - t) * v) / vmax;
+      ctx.fillStyle = alpha(C.rule, 0.8);
+      ctx.fillRect(GUTTER, y, W - GUTTER, 1);
+      ctx.fillStyle = C.faint;
+      ctx.fillText(String(v), GUTTER - 16, y + 3);
+    }
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(GUTTER, t - 2, W - GUTTER, b - t + 4);
+    ctx.clip();
+    const fp = pilotsBy[S.focus];
+    if (fp && S.show[S.focus]) {
+      // crouch held: shaded under the followed rider's line
+      ctx.fillStyle = alpha(PILOT[S.focus].color, 0.055);
+      const i0 = tickAtX(fp, S.x0),
+        i1 = tickAtX(fp, S.x0 + S.span);
+      for (let i = i0; i <= i1; i++)
+        if (fp.f[i] & 2 && i + 1 < fp.x.length)
+          ctx.fillRect(sx(fp.x[i]), t, Math.max(1, (fp.x[i + 1] - fp.x[i]) * k() + 0.5), b - t);
+    }
+    for (const p of course.pilots) {
+      if (!S.show[p.pilot]) continue;
+      const i0 = tickAtX(p, S.x0 - 20),
+        i1 = Math.min(p.x.length - 1, tickAtX(p, S.x0 + S.span + 20));
+      ctx.beginPath();
+      for (let i = i0; i <= i1; i++) {
+        const X = sx(p.x[i]),
+          Yy = b - ((b - t) * p.vx[i]) / vmax;
+        i === i0 ? ctx.moveTo(X, Yy) : ctx.lineTo(X, Yy);
+      }
+      ctx.strokeStyle = alpha(PILOT[p.pilot].color, p.pilot === S.focus ? 1 : 0.65);
+      ctx.lineWidth = p.pilot === S.focus ? 1.8 : 1.2;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  const MS_MAX = 1400;
+  function status(r) {
+    if (r.kind !== 'box') return 'info';
+    const bud = DATA.budgets.boxMs;
+    return r.ms < bud ? 'fail' : r.ms < bud * 1.1 ? 'tight' : 'pass';
+  }
+  const pairStatus = (ms) => {
+    const b = DATA.budgets.ropeAfterBoxMs;
+    return ms < b ? 'fail' : ms < b * 1.1 ? 'tight' : 'pass';
+  };
+  const statusColor = { fail: C.orange, tight: C.yellow, pass: C.snow, info: C.muted };
+  function drawHazards() {
+    const [t, b] = Y.hazard;
+    trackLabel('Time to react', t + 10);
+    const yOf = (ms) => b - 18 - ((b - 18 - t) * Math.min(ms, MS_MAX)) / MS_MAX;
+    ctx.font = '10px "JetBrains Mono", monospace';
+    for (const ms of [0, 500, 1000]) {
+      ctx.fillStyle = alpha(C.rule, 0.8);
+      ctx.fillRect(GUTTER, yOf(ms), W - GUTTER, 1);
+      ctx.fillStyle = C.faint;
+      ctx.fillText(ms ? ms + '' : '0 ms', GUTTER - (ms ? 30 : 34), yOf(ms) + 3);
+    }
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(GUTTER, t - 4, W - GUTTER, b - t + 8);
+    ctx.clip();
+    const bud = DATA.budgets.boxMs;
+    ctx.strokeStyle = alpha(C.orange, 0.8);
+    ctx.setLineDash([5, 4]);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(GUTTER, yOf(bud) + 0.5);
+    ctx.lineTo(W, yOf(bud) + 0.5);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = C.orange;
+    ctx.fillText(`${bud} ms box budget`, GUTTER + 6, yOf(bud) - 4);
+    for (const r of course.worst) {
+      if (r.x < S.x0 - 50 || r.x > S.x0 + S.span + 50) continue;
+      const X = sx(r.x),
+        st = status(r),
+        col = st === 'info' ? alpha(KIND[r.kind].color, 0.75) : statusColor[st];
+      ctx.fillStyle = col;
+      ctx.fillRect(X - 1, yOf(r.ms), 2, yOf(0) - yOf(r.ms));
+      ctx.beginPath();
+      ctx.arc(X, yOf(r.ms), r.kind === 'box' ? 4 : 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = KIND[r.kind].color;
+      ctx.fillRect(X - 3, yOf(0) + 3, 6, 4);
+      if (k() > 0.18) {
+        ctx.fillStyle = col;
+        ctx.fillText(String(r.ms), X + 5, yOf(r.ms) - 3);
+      }
+    }
+    // box → rope brackets along the bottom
+    const seen = new Map();
+    for (const p of course.pairs) {
+      const key = p.box + '>' + p.rope;
+      if (!seen.has(key) || p.ms < seen.get(key).ms) seen.set(key, p);
+    }
+    for (const p of seen.values()) {
+      const a = sx(p.box),
+        z = sx(p.rope),
+        y = b - 4,
+        col = statusColor[pairStatus(p.ms)];
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(a, y - 5);
+      ctx.lineTo(a, y);
+      ctx.lineTo(z, y);
+      ctx.lineTo(z, y - 5);
+      ctx.stroke();
+      if (k() > 0.18) {
+        ctx.fillStyle = col;
+        ctx.fillText(p.ms + ' ms', (a + z) / 2 - 16, y - 3);
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawCursor() {
+    const p = pilotsBy[S.focus];
+    if (!p) return;
+    const x = p.x[Math.min(S.tick, p.x.length - 1)],
+      X = sx(x);
+    if (X < GUTTER || X > W) return;
+    ctx.fillStyle = alpha(C.snow, 0.35);
+    ctx.fillRect(Math.round(X), Y.profile[0] - 20, 1, Y.hazard[1] - Y.profile[0] + 20);
+  }
+
+  // ---------- overview ----------
+  function drawMini() {
+    const w = W,
+      h = 74;
+    mctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    mctx.fillStyle = C.panel;
+    mctx.fillRect(0, 0, w, h);
+    const L = course.length,
+      top = terrainY(0),
+      bot = terrainY(L);
+    const X = (x) => 8 + ((w - 16) * x) / L,
+      Yy = (y) => 16 + ((h - 26) * (y - top)) / (bot - top || 1);
+    course.sections.forEach((s, i) => {
+      if (i % 2) {
+        mctx.fillStyle = alpha(C.purple, 0.45);
+        mctx.fillRect(X(s.x0), 0, X(s.x1) - X(s.x0), h);
+      }
+      mctx.fillStyle = C.faint;
+      mctx.font = '600 10px Barlow, sans-serif';
+      if (X(s.x1) - X(s.x0) > 60) mctx.fillText(s.name.toUpperCase(), X(s.x0) + 4, 11);
+    });
+    mctx.beginPath();
+    mctx.moveTo(X(0), h);
+    for (let x = 0; x <= L; x += 20) mctx.lineTo(X(x), Yy(terrainY(x)));
+    mctx.lineTo(X(L), h);
+    mctx.closePath();
+    mctx.fillStyle = C.purple;
+    mctx.fill();
+    mctx.beginPath();
+    for (let x = 0; x <= L; x += 20) mctx.lineTo(X(x), Yy(terrainY(x)));
+    mctx.strokeStyle = C.snow;
+    mctx.lineWidth = 1.2;
+    mctx.stroke();
+    for (const r of course.worst) {
+      const st = status(r);
+      mctx.fillStyle = st === 'info' ? alpha(KIND[r.kind].color, 0.7) : statusColor[st];
+      mctx.fillRect(
+        X(r.x) - 1,
+        Yy(terrainY(r.x)) - (r.kind === 'box' ? 9 : 6),
+        2,
+        r.kind === 'box' ? 7 : 4,
+      );
+    }
+    for (const kk of course.kickers) {
+      mctx.fillStyle = C.snow;
+      mctx.beginPath();
+      mctx.arc(X(kk.x), Yy(terrainY(kk.x)) - 3, kk.booter ? 2.6 : 1.6, 0, Math.PI * 2);
+      mctx.fill();
+    }
+    const a = X(S.x0),
+      z = X(S.x0 + S.span);
+    mctx.fillStyle = alpha(C.snow, 0.08);
+    mctx.fillRect(a, 0, z - a, h);
+    mctx.strokeStyle = C.snow;
+    mctx.lineWidth = 1;
+    mctx.strokeRect(a + 0.5, 0.5, z - a - 1, h - 1);
+  }
+
+  // ---------- the camera frame ----------
+  function drawFrame() {
+    const p = pilotsBy[S.focus];
+    if (!p) return;
+    const i = Math.min(S.tick, p.x.length - 1);
+    const fw = DATA.frame.width,
+      fh = DATA.frame.height,
+      sc = frame.width / fw;
+    const cx = p.x[i] - DATA.frame.xOffset,
+      cy = p.cy[i];
+    const F = (x) => (x - cx) * sc,
+      G = (y) => (y - cy) * sc;
+    const sky = fctx.createLinearGradient(0, 0, 0, frame.height);
+    sky.addColorStop(0, C.blue);
+    sky.addColorStop(1, C.purple);
+    fctx.fillStyle = sky;
+    fctx.fillRect(0, 0, frame.width, frame.height);
+    fctx.beginPath();
+    fctx.moveTo(0, frame.height);
+    for (let x = cx - 2; x <= cx + fw + 2; x += 1) fctx.lineTo(F(x), G(terrainY(x) - rampAt(x)));
+    fctx.lineTo(frame.width, frame.height);
+    fctx.closePath();
+    fctx.fillStyle = C.snow;
+    fctx.fill();
+    for (const l of course.ledges) {
+      if (l.x1 < cx || l.x0 > cx + fw) continue;
+      fctx.beginPath();
+      for (let x = Math.max(l.x0, cx - 2); x <= Math.min(l.x1, cx + fw + 2); x += 1)
+        fctx.lineTo(F(x), G(terrainY(x) - l.height));
+      for (let x = Math.min(l.x1, cx + fw + 2); x >= Math.max(l.x0, cx - 2); x -= 1)
+        fctx.lineTo(F(x), G(terrainY(x) - l.height + 6));
+      fctx.closePath();
+      fctx.fillStyle = C.snow;
+      fctx.fill();
+      fctx.strokeStyle = C.purple;
+      fctx.lineWidth = sc;
+      fctx.stroke();
+    }
+    for (const ic of course.ice) {
+      const l = ledgeAt(ic.x0),
+        h = l ? l.height : 0;
+      fctx.strokeStyle = C.cyan;
+      fctx.lineWidth = 2 * sc;
+      fctx.beginPath();
+      for (let x = ic.x0; x <= ic.x1; x += 2) fctx.lineTo(F(x), G(terrainY(x) - h) + sc);
+      fctx.stroke();
+    }
+    for (const r of course.rocks) {
+      const l = ledgeAt(r.x),
+        gy = terrainY(r.x) - (l ? l.height : 0);
+      fctx.fillStyle = C.purple;
+      fctx.beginPath();
+      fctx.moveTo(F(r.x), G(gy));
+      fctx.lineTo(F(r.x + r.width * 0.4), G(gy - r.height));
+      fctx.lineTo(F(r.x + r.width), G(gy));
+      fctx.fill();
+    }
+    for (const o of course.obstacles) {
+      if (o.x + o.width < cx || o.x > cx + fw) continue;
+      const gy = terrainY(o.x);
+      if (o.kind === 'solid') {
+        fctx.fillStyle = C.orange;
+        fctx.fillRect(
+          F(o.x),
+          G(gy - DATA.tuning.standHeight),
+          o.width * sc,
+          DATA.tuning.standHeight * sc,
+        );
+      } else {
+        const lo = gy - o.clearance,
+          hi = lo - DATA.tuning.branchThickness;
+        fctx.fillStyle = C.magenta;
+        fctx.fillRect(F(o.x), G(hi), o.width * sc, (lo - hi) * sc);
+        fctx.fillStyle = C.ink;
+        fctx.fillRect(F(o.x), G(lo), sc * 2, (gy - lo) * sc);
+        fctx.fillRect(F(o.x + o.width) - sc * 2, G(lo), sc * 2, (gy - lo) * sc);
+      }
+    }
+    fctx.fillStyle = C.yellow;
+    for (const pk of course.pickups) {
+      if (pk.x < cx || pk.x > cx + fw) continue;
+      fctx.beginPath();
+      fctx.arc(
+        F(pk.x),
+        G(terrainY(pk.x) + pk.y),
+        (pk.value === 'large' ? 3 : 2) * sc,
+        0,
+        Math.PI * 2,
+      );
+      fctx.fill();
+    }
+    // other riders at the same moment, as ghosts
+    for (const q of course.pilots) {
+      if (q.pilot === S.focus || !S.show[q.pilot]) continue;
+      const j = Math.min(i, q.x.length - 1);
+      skier(fctx, F(q.x[j]), G(q.y[j]), sc, alpha(PILOT[q.pilot].color, 0.55), q.f[j] & 2);
+    }
+    skier(fctx, F(p.x[i]), G(p.y[i]), sc, PILOT[S.focus].color, p.f[i] & 2);
+    // the promised lookahead
+    fctx.strokeStyle = alpha(C.ink, 0.35);
+    fctx.setLineDash([3 * sc, 3 * sc]);
+    fctx.lineWidth = sc / 2;
+    fctx.beginPath();
+    fctx.moveTo(F(p.x[i]), 0);
+    fctx.lineTo(F(p.x[i]), frame.height);
+    fctx.stroke();
+    fctx.setLineDash([]);
+
+    const t = i * TICK_S,
+      sec = sectionAt(p.x[i]);
+    $('clock').value = t.toFixed(2) + ' s';
+    $('frameCaption').innerHTML =
+      `What <b style="color:${PILOT[S.focus].color}">${PILOT[S.focus].name}</b> sees at ${t.toFixed(2)} s, x ${fmt(p.x[i])}, ${sec.name}. The real 320 × 180 frame, drawn from the game's camera.`;
+  }
+  function skier(c, x, y, sc, col, crouch) {
+    const h = (crouch ? DATA.tuning.crouchHeight : DATA.tuning.standHeight) * sc;
+    c.fillStyle = col;
+    c.fillRect(x - 2.5 * sc, y - h, 5 * sc, h);
+    c.fillRect(x - 6 * sc, y - sc, 12 * sc, sc * 1.5);
+  }
+
+  // ---------- readout ----------
+  function renderReadout() {
+    const fp = pilotsBy[S.focus];
+    if (!fp) return;
+    const i = Math.min(S.tick, fp.x.length - 1),
+      x = fp.x[i],
+      sec = sectionAt(x);
+    const rows = course.pilots
+      .filter((p) => S.show[p.pilot])
+      .map((p) => {
+        const j = p === fp ? i : tickAtX(p, x),
+          g = p.f[j] & 1,
+          cr = p.f[j] & 2;
+        const above = terrainY(p.x[j]) - p.y[j];
+        const where =
+          p.ledge[j] >= 0 ? 'on the shelf' : g ? 'on the snow' : `air, ${Math.round(above)} up`;
+        const done = j >= p.x.length - 1 && p.outcome !== 'finished' && x > p.x[p.x.length - 1];
+        return `<div class="rider"><span class="who"><span class="swatch" style="background:${PILOT[p.pilot].color}"></span>${PILOT[p.pilot].name}</span>
+        <span class="what">${done ? `<b style="color:${C.orange}">${p.outcome.replace('_', ' ')}</b> at ${fmt(p.x[p.x.length - 1])}` : `<b>${p.vx[j].toFixed(2)}</b> u/tick · ${where}${cr ? ' · crouched' : ''} · ${(j * TICK_S).toFixed(2)} s`}</span></div>`;
+      })
+      .join('');
+    const next = course.worst.filter((r) => r.x >= x).sort((a, z) => a.x - z.x)[0];
+    const nextHtml = next
+      ? `Next: <b>${KIND[next.kind].name} at ${fmt(next.x)}</b>, ${fmt(next.x - x)} ahead. ${next.kind === 'box' ? 'Time to decide' : 'Lead time'} <b>${next.ms} ms</b> (${PILOT[next.pilot].name}).`
+      : 'Nothing left ahead but the line.';
+    $('readout').innerHTML =
+      `<div class="where">x <b>${fmt(x)}</b> · ${sec.name} · grade ${gradeAt(x).toFixed(2)}</div><div class="riders">${rows}</div><div class="ahead">${nextHtml}</div>`;
+  }
+
+  // ---------- tables ----------
+  function renderTables() {
+    const rows = [...course.worst]
+      .sort((a, z) => a.x - z.x)
+      .map((r) => {
+        const st = status(r);
+        const pill =
+          st === 'info'
+            ? `<span class="pill info">lead</span>`
+            : `<span class="pill ${st}">${st === 'fail' ? 'below budget' : st}</span>`;
+        return `<tr tabindex="0" data-x="${r.x}"><td class="num">${fmt(r.x)}</td><td><span class="kind"><i style="background:${KIND[r.kind].color}"></i>${KIND[r.kind].name}</span></td><td>${sectionAt(r.x).name}</td><td class="num">${r.ms}</td><td>${PILOT[r.pilot].name}</td><td>${pill}</td></tr>`;
+      })
+      .join('');
+    $('hazards').innerHTML =
+      `<thead><tr><th class="num">x</th><th>Hazard</th><th>Section</th><th class="num">ms</th><th>Worst rider</th><th>Status</th></tr></thead><tbody>${rows}</tbody>`;
+    const seen = new Map();
+    for (const p of course.pairs) {
+      const key = p.box + '>' + p.rope;
+      if (!seen.has(key) || p.ms < seen.get(key).ms) seen.set(key, p);
+    }
+    $('pairs').innerHTML =
+      `<thead><tr><th class="num">Box</th><th class="num">Rope</th><th class="num">Land → rope</th><th>Worst rider</th><th>Status</th></tr></thead><tbody>${
+        [...seen.values()]
+          .sort((a, z) => a.box - z.box)
+          .map((p) => {
+            const st = pairStatus(p.ms);
+            return `<tr tabindex="0" data-x="${p.box}"><td class="num">${fmt(p.box)}</td><td class="num">${fmt(p.rope)}</td><td class="num">${p.ms} ms</td><td>${PILOT[p.pilot].name}</td><td><span class="pill ${st}">${st === 'fail' ? `under ${DATA.budgets.ropeAfterBoxMs}` : st}</span></td></tr>`;
+          })
+          .join('') || '<tr><td colspan="5">No rope follows a box on this course.</td></tr>'
+      }</tbody>`;
+    $('riders').innerHTML =
+      `<thead><tr><th>Rider</th><th>Outcome</th><th class="num">Time</th><th class="num">Score</th><th class="num">Shelves</th></tr></thead><tbody>${course.pilots
+        .map(
+          (p) =>
+            `<tr tabindex="0" data-pilot="${p.pilot}"><td><span class="kind"><i style="background:${PILOT[p.pilot].color}"></i>${PILOT[p.pilot].name}</span></td><td>${p.outcome === 'finished' ? 'finished' : `<span class="pill fail">${p.outcome.replace('_', ' ')}</span>`}</td><td class="num">${(p.ticks * TICK_S).toFixed(2)} s</td><td class="num">${fmt(p.score)}</td><td class="num">${p.shelves}</td></tr>`,
+        )
+        .join('')}</tbody>`;
+    for (const tr of document.querySelectorAll('tbody tr')) {
+      const go = () => {
+        if (tr.dataset.pilot) {
+          S.focus = tr.dataset.pilot;
+          S.show[S.focus] = true;
+          store.set('focus', S.focus);
+          retime();
+          renderControls();
+          draw();
+          return;
+        }
+        const x = +tr.dataset.x;
+        S.x0 = x - S.span * 0.45;
+        clampView();
+        const p = pilotsBy[S.focus];
+        S.tick = tickAtX(p, x - 250);
+        tickInput.value = String(S.tick);
+        stop();
+        draw();
+        main.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      };
+      tr.addEventListener('click', go);
+      tr.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          go();
+        }
+      });
+    }
+  }
+
+  // ---------- interaction ----------
+  function follow() {
+    // keep the scrubbed rider in view while scrubbing or playing
+    const x = currentX();
+    if (x < S.x0 + S.span * 0.1 || x > S.x0 + S.span * 0.85) {
+      S.x0 = x - S.span * 0.3;
+      clampView();
+    }
+  }
+  tickInput.addEventListener('input', () => {
+    S.tick = +tickInput.value;
+    stop();
+    follow();
+    draw();
+  });
+  let drag = null;
+  main.addEventListener('pointerdown', (e) => {
+    drag = { px: e.clientX, x0: S.x0, moved: false };
+    main.setPointerCapture(e.pointerId);
+    main.classList.add('dragging');
+  });
+  main.addEventListener('pointermove', (e) => {
+    const r = main.getBoundingClientRect(),
+      px = e.clientX - r.left;
+    if (drag) {
+      const d = e.clientX - drag.px;
+      if (Math.abs(d) > 3) drag.moved = true;
+      if (drag.moved) {
+        S.x0 = drag.x0 - d / k();
+        clampView();
+        draw();
+        return;
+      }
+    }
+    if (px < GUTTER || S.playing) return;
+    const p = pilotsBy[S.focus];
+    S.tick = tickAtX(p, xAt(px));
+    tickInput.value = String(S.tick);
+    draw();
+  });
+  const endDrag = () => {
+    drag = null;
+    main.classList.remove('dragging');
+  };
+  main.addEventListener('pointerup', endDrag);
+  main.addEventListener('pointercancel', endDrag);
+  main.addEventListener(
+    'wheel',
+    (e) => {
+      const r = main.getBoundingClientRect(),
+        px = e.clientX - r.left;
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        S.x0 += e.deltaX / k();
+        clampView();
+        draw();
+        e.preventDefault();
+        return;
+      }
+      const at = xAt(px),
+        f = Math.exp(e.deltaY * 0.0015);
+      S.span *= f;
+      clampView();
+      S.x0 = at - (px - GUTTER) / k();
+      clampView();
+      draw();
+      e.preventDefault();
+    },
+    { passive: false },
+  );
+  main.addEventListener('keydown', (e) => {
+    const pan = S.span * 0.15;
+    if (e.key === 'ArrowRight') S.x0 += pan;
+    else if (e.key === 'ArrowLeft') S.x0 -= pan;
+    else if (e.key === '+' || e.key === '=') {
+      const c = S.x0 + S.span / 2;
+      S.span /= 1.4;
+      S.x0 = c - S.span / 2;
+    } else if (e.key === '-') {
+      const c = S.x0 + S.span / 2;
+      S.span *= 1.4;
+      S.x0 = c - S.span / 2;
+    } else return;
+    e.preventDefault();
+    clampView();
+    draw();
+  });
+  function miniJump(e) {
+    const r = mini.getBoundingClientRect(),
+      f = (e.clientX - r.left - 8) / (r.width - 16);
+    S.x0 = f * course.length - S.span / 2;
+    clampView();
+    draw();
+  }
+  let miniDown = false;
+  mini.addEventListener('pointerdown', (e) => {
+    miniDown = true;
+    mini.setPointerCapture(e.pointerId);
+    miniJump(e);
+  });
+  mini.addEventListener('pointermove', (e) => {
+    if (miniDown) miniJump(e);
+  });
+  mini.addEventListener('pointerup', () => (miniDown = false));
+  mini.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      S.x0 += (e.key === 'ArrowRight' ? 1 : -1) * S.span;
+      clampView();
+      draw();
+      e.preventDefault();
+    }
+  });
+
+  // replay at real speed, 60 ticks a second
+  let raf = 0,
+    last = 0,
+    acc = 0;
+  const playBtn = $('play');
+  function stop() {
+    S.playing = false;
+    cancelAnimationFrame(raf);
+    playBtn.setAttribute('aria-pressed', 'false');
+    playBtn.textContent = '▶ Replay';
+  }
+  function loop(ts) {
+    if (!S.playing) return;
+    acc += Math.min(100, ts - last) / (1000 / 60);
+    last = ts;
+    const p = pilotsBy[S.focus];
+    while (acc >= 1) {
+      S.tick++;
+      acc--;
+    }
+    if (S.tick >= p.x.length - 1) {
+      S.tick = p.x.length - 1;
+      tickInput.value = String(S.tick);
+      follow();
+      draw();
+      stop();
+      return;
+    }
+    tickInput.value = String(S.tick);
+    follow();
+    draw();
+    raf = requestAnimationFrame(loop);
+  }
+  playBtn.addEventListener('click', () => {
+    if (S.playing) return stop();
+    const p = pilotsBy[S.focus];
+    if (S.tick >= p.x.length - 1) S.tick = 0;
+    S.playing = true;
+    playBtn.setAttribute('aria-pressed', 'true');
+    playBtn.textContent = '❚❚ Pause';
+    last = performance.now();
+    acc = 0;
+    raf = requestAnimationFrame(loop);
+  });
+
+  new ResizeObserver(() => resize()).observe(main);
+  document.fonts?.ready.then(() => draw());
+  useCourse(Math.min(S.ci, DATA.courses.length - 1));
+</script>

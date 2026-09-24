@@ -23,6 +23,7 @@
     "gen:trig": "node --experimental-strip-types tools/gen-trig.ts",
     "gen:courses": "node --experimental-strip-types tools/gen-courses.ts",
     "build:artifact": "npm run build && node tools/build-artifact.mjs",
+    "map": "vite-node tools/course-map/build.ts",
     "build:sprites": "node tools/build-sprite-sheet.mjs"
   },
   "dependencies": {
