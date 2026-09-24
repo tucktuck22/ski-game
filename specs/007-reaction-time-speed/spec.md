@@ -58,6 +58,19 @@ has always said "simulating the actual ride", and these are the numbers it means
 **The warm-up box at 5,200 fails too: 648 ms**, because the warm-up ramp at 4,600 hops a
 low-line player into it (measured during `/speckit-analyze`; research R9)._
 
+_Corrected a third time 2026-09-24, during implementation, and this one is final
+because it is what the tests assert. The "low-line ride" above was a research probe,
+and it was never checked for which shelves it reached. Built as a real test pilot, it
+turned out to be thrown onto the shelves it was meant to stay under, because standing
+up is itself a hop. And no single ride is the worst case: on the shipped course the
+**cautious** rider, who never tucks, is worst. The measure is now every hazard read on
+all three test pilots wherever each meets it, keeping the worst reading
+([baseline-2.0.0.md](./baseline-2.0.0.md), research R11). On that measure, time to
+decide today is 1,830: 781 · 3,600: **448** · 4,120: **365** · 4,640: **315** ·
+6,100: 981 · 11,600: **348**. Warm-up: 1,289: 2,098 · 5,200: 715. **Four boxes fail,
+and the worst is 315 ms. The boxes at 1,830 and 6,100 and both warm-up boxes already
+pass, and do not move.**_
+
 "Time to decide" is the on-screen time minus about 85 ms. That is how long the jump
 needs to climb to box height, so it is the latest a release can still clear the box.
 Published human visual reaction time is roughly 250 ms for a single expected stimulus
@@ -223,12 +236,14 @@ the rotations available off each booter, and which shelves each robot pilot reac
 
 ### Functional Requirements
 
-- **FR-231**: At every box (deadfall) on both shipped courses, a player riding the
-  **low line** MUST have at least **680 ms** between the box entering view and the
-  last release that still clears it. The low line means tucked throughout, except
-  standing up before each shelf ramp so the ramp hops them rather than lifting them
-  onto the shelf. That is the line that meets the boxes beneath the shelves, and the
-  hop is part of why it is hard. "Entering view" means the box's top edge is inside
+- **FR-231**: At every box (deadfall) on both shipped courses, **every way of riding
+  that meets the box on the piste** MUST leave at least **680 ms** between the box
+  entering view and the last release that still clears it. That covers three riders:
+  tucked throughout; cautious, never tucking; and the low line, tucked except when
+  standing up well before each shelf ramp. The worst of them is the one held to the
+  number. _(Amended 2026-09-24 during implementation. This named the low line alone;
+  on the shipped course the cautious rider turned out to be the worst case, 315 ms
+  against 365.)_ "Entering view" means the box's top edge is inside
   the frame both horizontally and vertically, with the camera the player actually
   sees. This is measured by simulating the actual ride, not by the local gradient's
   terminal speed, because speed lags behind the slope. _(Reworded 2026-09-24 from "a
@@ -241,23 +256,33 @@ the rotations available off each booter, and which shelves each robot pilot reac
   approach to a box that fails FR-231 today, only as far upstream as that box needs;
   or (b) immediately downstream of such an approach, only as much as FR-235 needs to
   give back speed the easing cost a kicker or booter. Each change MUST be recorded
-  against its box in the generator's comments. This applies to both courses. On the
-  warm-up course only the approach to its box at 5,200 qualifies, and the coached
-  section MUST NOT move. _(Amended 2026-09-24: this read "only on the approach", and
+  against its box in the generator's comments. The warm-up course MUST NOT move,
+  because both its boxes pass today (715 ms and 2,098 ms). _(Amended 2026-09-24: this read "only on the approach", and
   named 1,830 as already inside the budget. On a real ride 1,830 fails, and (b) is
   needed because easing under a shelf eases the shelf; see research R1 and R5.
   Amended again the same day: it also froze the whole warm-up course, which
   `/speckit-analyze` found left no remedy for the warm-up box at 5,200, measured at
-  648 ms; see research R9.)_
-- **FR-234**: A terrain segment MUST NOT fall below the gentlest gradient the course
-  already uses, or break any rule the course validator enforces.
+  648 ms; see research R9. Restored during implementation: on the final measure that
+  box is 715 ms and needs nothing, and neither do 1,830 and 6,100. What moves is the
+  Narrows, the Cornice run-in after it, a 0.015 nudge on the Flats that keeps the
+  small booter's rotations, and the Last Pitch; research R11.)_
+- **FR-234**: A terrain segment MUST NOT fall below the 0.25 floor, the gradient
+  feature 006 anchored speed to, or break any rule the course validator enforces.
+  _(Sharpened 2026-09-24. This read "the gentlest gradient the course already uses",
+  which was 0.254 as generated, a sampling artefact rather than a decision.)_
 - **FR-235**: A tucked player MUST reach every kicker at a speed within 2% of today's.
   Each booter MUST offer the same number of rotations as under rules `2.0.0`, and
   every upper shelf MUST remain enterable with speed and avoidable without.
 - **FR-236**: After clearing a box, a player MUST be back on the snow before the next
   box on the course enters view.
-- **FR-237**: Other hazards on the official course (ropes, and rocks and ice on the
-  shelves) MUST NOT give a player less reaction time than they do today.
+- **FR-237**: No other hazard (ropes, and rocks and ice on the shelves) on either
+  course MUST drop below the reaction budget, and a hazard that already gives less
+  than the budget MUST NOT give less than it does today. _(Amended 2026-09-24 during
+  implementation. This read "MUST NOT give less reaction time than today". The steep
+  run-in restored after the Narrows gets the low-line rider to the ice on the Cornice
+  shelf sooner: 967 ms becomes 817 ms, still well above the budget. Every hazard
+  below the budget today gains time, and the ropes on the steeps gain most, 333 → 733
+  and 383 → 800 ms; research R11.)_
 - **FR-238**: Scoring MUST NOT change. The official course MUST remain finishable by
   every robot pilot that finishes it today. The rule that every finisher outranks
   every non-finisher MUST still hold against the new course. Its trick and pickup
@@ -308,8 +333,8 @@ the rotations available off each booter, and which shelves each robot pilot reac
 
 ### Measurable Outcomes
 
-- **SC-081**: The shortest time any box gives a tucked player to decide, on a real
-  ride, rises from 365 ms to at least 680 ms.
+- **SC-081**: The shortest time any box gives any test rider to decide, on a real
+  ride, rises from 315 ms to at least 680 ms.
 - **SC-082**: The maintainer, riding the official course on the play-pass build,
   clears every box on their first run of that build without releasing early from
   memory, and says so in their own words.
@@ -330,12 +355,10 @@ the rotations available off each booter, and which shelves each robot pilot reac
 
 - **"Boxes" means deadfall**, the obstacle kind cleared only by jumping over it
   (feature 005 established this reading).
-- **The warm-up course changes only at its box at 5,200.** Its coached box at 1,289
-  leaves 2,098 ms. Its box at 5,200 leaves 648 ms on a real ride and is eased like
-  the official ones (research R9). The warm-up's version is never submitted, so this
-  carries no draft consequence. _(Corrected 2026-09-24: this read "does not change.
-  Both of its boxes already leave more than 680 ms", from a clean-approach
-  measurement.)_
+- **The warm-up course does not change**, apart from its version string. Both its
+  boxes pass on the final measure: 2,098 ms and 715 ms. _(This read "changes only at
+  its box at 5,200" for part of 2026-09-24, on a probe measurement of 648 ms that the
+  real test pilots did not reproduce; research R11.)_
 - **Seeing further ahead horizontally is out of scope.** Widening the 213-unit view
   would also buy reaction time, but it is a phone/desktop fairness decision, and the
   course validator and the tutorial's cue timing both rely on it. The vertical framing

@@ -452,3 +452,109 @@ quickstart.
 are frame geometry, not tuning: the 320×180 buffer and the headroom ceiling the booter
 test derives. They were in code before this feature, and moving them is not this
 feature's to do.
+
+---
+
+## R11 — What implementation measured, and what it superseded
+
+**Date**: 2026-09-24, during `/speckit-implement`. **This section is final.** Where it
+disagrees with R1, R4, R5 or R9, it wins, and those sections are kept as the record of
+how the answer was reached.
+
+### The measuring rider was wrong, and so was having only one
+
+Built as a real pilot (`'low-line'` in `tests/sim/pilots.ts`), the research probe's
+rider did not do what R1 said:
+
+- **It did not stay low.** Standing up is a launch (FR-078), and the hop lands faster
+  than it left, because there is no drag in the air. A rider who stands 260 units
+  before a ramp still reaches the ramp fast enough to be thrown onto the shelf. At
+  260 it rode all three shelves. The probe never counted shelves, so its "low line"
+  was partly a high line. It now stands 500 units out, which keeps it off every shelf
+  but the Cornice. The Cornice follows the steepest box too closely for any stand-up
+  point to avoid.
+- **One rider is not the worst case.** The cautious pilot, who never tucks, is worst
+  on the shipped course: **315 ms at 4,640**, against the tucked rider's 365. He sees
+  the steep boxes no sooner and charges his jump later.
+
+The measure is now every hazard read on all three test pilots wherever each meets it on
+its own surface, keeping the worst reading (`tests/sim/reaction.ts`). The rules-2.0.0
+numbers are in [baseline-2.0.0.md](./baseline-2.0.0.md).
+
+### Consequence: less of the course moves
+
+On that measure, **four boxes fail today** (3,600: 448 · 4,120: 365 · 4,640: 315 ·
+11,600: 348). Box 1,830 (781), box 6,100 (981), and the warm-up boxes (2,098 and 715)
+already pass, so under FR-233(a) they do not move. That drops:
+
+- R4's eases at 1,400–2,000 (box 1,830) and at 5,800–6,600 (box 6,100);
+- R9's warm-up ease, in full. The warm-up course changes only in its version string.
+
+### The shipped programme
+
+```ts
+[
+  { x: 0, g: 0.25 },
+  { x: 1200, g: 0.3 },
+  { x: 3000, g: 0.34 },
+  { x: 3200, g: 0.3 }, // was 0.46 — the Narrows, eased throughout
+  { x: 4600, g: 0.3 }, // was 0.60
+  { x: 4700, g: 0.6 }, // new — steep again once the last log is behind you
+  { x: 5000, g: 0.53 }, // was 0.52 — Cornice lip speed back to within 0.1%
+  { x: 5400, g: 0.42 },
+  { x: 6800, g: 0.395 }, // was 0.38 — the small booter's rotations (below)
+  // 7,300 – 10,900 unchanged
+  { x: 11200, g: 0.4 }, // was 0.52 — the Last Pitch log
+  { x: 11300, g: 0.25 }, // new
+  { x: 11680, g: 0.25 }, // new
+  { x: 11850, g: 0.6 }, // new — the run to the line as before
+  { x: 12200, g: 0.6 },
+];
+```
+
+The log also moves 11,600 → 11,680 (FR-241's first fallback, as R4).
+
+### The small booter, again
+
+R5's warning held. Easing the Narrows moves every terrain point after it, and the
+generator rounds heights to 0.01. The rounded gradients downstream came out a hair
+different, and the rig reached the small booter's lip at 4.7955 against the 4.806 five
+spins need: 74 ticks of air where five spins need 75. Nothing the Cornice key did
+moved it. The Flats key at 6,800 did, **non-monotonically**:
+
+| 6,800 key | Rig lip vx |    Air | Five spins |
+| --------- | ---------: | -----: | ---------- |
+| 0.385     |     4.7957 |     74 | no         |
+| 0.39      |     4.7960 |     74 | no         |
+| **0.395** | **4.8069** | **75** | **yes**    |
+| 0.40      |     4.7964 |     74 | no         |
+
+0.395 ships, with a comment in the generator saying exactly this. The rig is zero-margin
+by its own admission, and adding margin to it stays out of scope (R5).
+
+### Final measurements (rules 2.1.0, the camera from R2/R3, worst over pilots)
+
+| Box           | 2.0.0 | 2.1.0 | Worst pilot |
+| ------------- | ----: | ----: | ----------- |
+| 1,830         |   781 |   781 | low-line    |
+| 3,600         |   448 |   731 | tuck        |
+| 4,120         |   365 |   681 | tuck        |
+| 4,640         |   315 |   681 | tuck        |
+| 6,100         |   981 |   981 | stay-low    |
+| 11,600→11,680 |   348 |   731 | tuck        |
+
+- **Kickers**: all within 2%. Official: 1,400 +0.0% · 5,200 +0.03% · 7,852 +0.02% ·
+  9,188 −0.04% · 11,000 **−1.9%**. The warm-up kickers are identical.
+- **Other hazards**: every one below 680 ms today gains time. Examples: rope 4,340
+  333 → 733, rope 4,860 333 → 433, rope 7,300 550 → 733, rope 11,850 383 → 800, and
+  ice 11,350 550 → 750. **One hazard above the budget loses time: the ice at 5,546
+  goes 967 → 817**, because the restored Cornice run-in gets the low-line rider there
+  sooner. FR-237 is amended to "not below the budget, and nothing below it loses
+  more"; the ice is 137 ms over the budget.
+- **What the camera buys on top of the course**: with the course change alone, three
+  ropes on the steeps (4,860 / 7,300 / 7,600) fall to 317 / 533 / 483 ms, the first
+  below its 2.0.0 value. With the camera they read 433 / 733 / 700. The boxes
+  themselves pass on the course change alone, because the eased Narrows is no longer
+  steep enough to hide them.
+- **Suites**: the whole suite passes (594/594), and the built artifact passes in
+  Chromium (30/30).

@@ -13,6 +13,20 @@ export interface GameData {
   insults: string[];
   audio: AudioManifest;
   sprites: SpriteManifest;
+  camera: CameraFraming;
+}
+
+/**
+ * How far the camera looks down a steep slope. Feature 007; the reasoning is in
+ * data/camera.json itself, beside the numbers it explains.
+ */
+export interface CameraFraming {
+  /** Units the piste 213 ahead is kept inside the bottom edge of the frame. */
+  lookMargin: number;
+  /** Units an overhead shelf's top edge is kept inside the top of the frame. */
+  shelfMargin: number;
+  /** Distance before a shelf over which that cap blends in. */
+  shelfEaseIn: number;
 }
 
 /** The one condition under which a music track is the one that should be audible. */
@@ -133,6 +147,23 @@ export function parseScoring(raw: unknown): Scoring {
 }
 
 const CONTEXTS: readonly PlaybackContext[] = ['frontEnd', 'course'];
+
+/** Parses data/camera.json. See CameraFraming and the file's own $comment. */
+export function parseCamera(raw: unknown): CameraFraming {
+  const o = raw as Record<string, unknown>;
+  const read = (key: keyof CameraFraming): number => {
+    const v = o?.[key];
+    if (typeof v !== 'number' || !Number.isFinite(v))
+      throw new Error(`camera.json: "${key}" must be a number`);
+    if (v < 0) throw new Error(`camera.json: "${key}" must not be negative, got ${v}`);
+    return v;
+  };
+  return {
+    lookMargin: read('lookMargin'),
+    shelfMargin: read('shelfMargin'),
+    shelfEaseIn: read('shelfEaseIn'),
+  };
+}
 
 /**
  * FR-149 and data-model.md: the manifest declares the music, and a bad manifest is
@@ -366,11 +397,13 @@ export function assembleGameData(input: {
   insults: unknown;
   audio: unknown;
   sprites: unknown;
+  camera: unknown;
 }): GameData {
   const tuning = parseTuning(input.tuning);
   const scoring = parseScoring(input.scoring);
   const audio = parseAudio(input.audio);
   const sprites = parseSprites(input.sprites);
+  const camera = parseCamera(input.camera);
   const warmup = parseCourse(input.warmup);
   const official = parseCourse(input.official);
   if (!Array.isArray(input.insults) || input.insults.length === 0)
@@ -390,5 +423,6 @@ export function assembleGameData(input: {
     insults: input.insults as string[],
     audio,
     sprites,
+    camera,
   };
 }

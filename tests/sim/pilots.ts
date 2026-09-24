@@ -23,7 +23,40 @@ import { scoring, tuning } from './fixtures.js';
  * control. FR-192 and the "ignores every badge" edge case are both statements
  * about him, so he has to exist as a pilot rather than as an assumption.
  */
-export type Pilot = 'tuck' | 'stay-low' | 'passive';
+/**
+ * `low-line` is feature 007's, and it is the one the reaction budget is measured on.
+ *
+ * It tucks everywhere the `tuck` pilot does, except that it stands up for the
+ * run-in to every pop ramp, so it stays on the piste and meets the boxes under the
+ * shelves that the tuck pilot flies over - the player who wants speed but not the
+ * high line. It is one of three pilots the reaction budget is measured on, and a
+ * box has to be reactable for every one of them that meets it (FR-231).
+ *
+ * Standing up is itself a hop, and a hop matters: there is no drag in the air,
+ * so it lands him faster than the slope he lands on is worth, and he is still
+ * shedding that when the next box comes into view. See
+ * specs/007-reaction-time-speed/research.md R1.
+ */
+export type Pilot = 'tuck' | 'stay-low' | 'passive' | 'low-line';
+
+/**
+ * The low-line pilot stands from this far before a pop ramp's leading edge until
+ * he is clear of its lip. Re-tucking on the ramp itself would carry tuck speed
+ * through the lip and throw him onto the shelf he is there to stay under.
+ *
+ * WHY 500 AND NOT LESS. Standing up is a launch (FR-078), so the moment he stops
+ * tucking he hops, and a hop lands him faster than he left - there is no drag in
+ * the air. At 260 he reached every ramp fast enough to be thrown onto all three
+ * shelves anyway; at 350 two; from 450 on, only the Cornice, which follows the
+ * steepest box on the course closely enough that no stand-up point avoids it. 400
+ * puts the hop into the rope at 4,860. Measured, not chosen; see
+ * specs/007-reaction-time-speed/research.md R1.
+ */
+export const LOW_LINE_STAND_BEFORE_RAMP = 500;
+const LOW_LINE_STAND_PAST_LIP = 20;
+
+/** Called once per tick with the state before and after it. Tests only watch. */
+export type RideObserver = (before: RunState, after: RunState) => void;
 
 export interface Ride {
   state: RunState;
@@ -141,12 +174,15 @@ export const RIG_CHARGE_FROM = RIG_RELEASE_WITHIN + CHARGE_AHEAD;
 export const releaseWithin = (vx: number): number => RELEASE_TICKS * Math.max(vx, 0.5);
 export const chargeFrom = (vx: number): number => releaseWithin(vx) + CHARGE_AHEAD;
 
-export function ride(course: Course, pilot: Pilot, seed: number): Ride {
+export function ride(course: Course, pilot: Pilot, seed: number, onTick?: RideObserver): Ride {
   const derived = derive(tuning);
   let s = initialState(course, tuning, seed);
 
   const boughs = course.obstacles.filter((o) => o.kind === 'low');
   const deadfall = course.obstacles.filter((o) => o.kind === 'solid');
+  // Pop ramps only: a booter is ridden ALONG, and standing on one would only
+  // cost the low-line pilot the air he is there to measure the landing from.
+  const popRamps = course.kickers.filter((k) => (k.launchAngle ?? 90) >= 90);
 
   let ticksOnShelf = 0;
   let fellThroughIce = 0;
@@ -180,16 +216,23 @@ export function ride(course: Course, pilot: Pilot, seed: number): Ride {
     const charging = gap < chargeFrom(s.vx) && gap > release;
     const releasing = gap <= release && gap > -30;
 
+    const standingForRamp =
+      pilot === 'low-line' &&
+      popRamps.some(
+        (k) =>
+          s.x >= k.x - LOW_LINE_STAND_BEFORE_RAMP && s.x < k.x + k.width + LOW_LINE_STAND_PAST_LIP,
+      );
+    const tucking =
+      (pilot === 'tuck' || (pilot === 'low-line' && !standingForRamp)) && s.grounded && s.ledge < 0;
+
     const input: RunInput = {
-      crouch:
-        pilot === 'passive'
-          ? false
-          : !releasing && (duck || charging || (pilot === 'tuck' && s.grounded && s.ledge < 0)),
+      crouch: pilot === 'passive' ? false : !releasing && (duck || charging || tucking),
       rotate: 0,
     };
 
     const before = s;
     s = step(s, input, course, tuning, scoring, derived);
+    onTick?.(before, s);
 
     if (s.ledge >= 0) {
       ticksOnShelf++;

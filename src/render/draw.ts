@@ -14,7 +14,8 @@ import type { Course, RunState, Tuning } from '../sim/types.js';
 import { terrainYAt, surfaceYAt, iceIndexAt, slopeAt } from '../sim/terrain.js';
 import { PALETTE, type PaletteToken } from './palette.js';
 import { CAMERA_X_OFFSET, INTERNAL_HEIGHT, INTERNAL_WIDTH } from './stage.js';
-import { cameraAirLift, rampLift, rampRise } from './rampGeometry.js';
+import { cameraAirLift, lookDown, rampLift, rampRise } from './rampGeometry.js';
+import type { CameraFraming } from '../data/load.js';
 import type { MotionSettings } from './reducedMotion.js';
 import type { Shake } from './landing.js';
 import type { Tumble } from './death.js';
@@ -43,12 +44,16 @@ export interface Camera {
  * the instant he rode off one - and a camera that jumps on landing trades one
  * unreadable moment for another.
  */
-export const cameraFor = (state: RunState, course: Course): Camera => {
+export const cameraFor = (state: RunState, course: Course, framing: CameraFraming): Camera => {
   const above = terrainYAt(course.terrain, state.x) - state.y;
-  const lift = cameraAirLift(above);
+  // The larger of the two, never the sum: in the air the lift already shows the
+  // ground, and adding the look-down on top would push his head out of the top
+  // of the frame (AIR_LIFT_MAX is that limit). On the steeps the look-down shows
+  // the slope the horizontal lookahead promises (feature 007, FR-242).
+  const shift = Math.max(cameraAirLift(above), lookDown(course, state.x, state.ledge < 0, framing));
   return {
     x: state.x - CAMERA_X_OFFSET,
-    y: state.y - INTERNAL_HEIGHT * 0.6 + lift,
+    y: state.y - INTERNAL_HEIGHT * 0.6 + shift,
   };
 };
 
@@ -832,13 +837,14 @@ export function drawRun(
   state: RunState,
   course: Course,
   tuning: Tuning,
+  framing: CameraFraming,
   motion: MotionSettings = FULL_MOTION,
   shake: Shake = { x: 0, y: 0 },
   flashAlpha = 0,
   tumble: Tumble = { spin: 0, slide: 0 },
   skin: SkierSkin | null = null,
 ): void {
-  const cam = cameraFor(state, course);
+  const cam = cameraFor(state, course, framing);
   // The kick is applied to the CAMERA, not to the finished frame. Translating
   // the buffer afterwards would drag the sky with it and leave a bare strip at
   // the edge; moving the camera shakes the world inside a frame that still

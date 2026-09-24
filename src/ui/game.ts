@@ -17,6 +17,7 @@ import { cueAt, type Cue } from '../render/coachingCue.js';
 import { drawRun, resetSceneryCache, type SkierSkin } from '../render/draw.js';
 import { LeanState, PoseTimers, selectPose } from '../render/skierPose.js';
 import type { SpriteSheets } from '../render/sprites.js';
+import type { CameraFraming } from '../data/load.js';
 import { LandingEffect } from '../render/landing.js';
 import { DeathSequence } from '../render/death.js';
 import { startLoop, type LoopHandle } from '../render/loop.js';
@@ -68,6 +69,8 @@ export class GameView {
     private readonly course: Course,
     private readonly tuning: Tuning,
     private readonly scoring: Scoring,
+    /** How far the camera looks down the steeps (data/camera.json, feature 007). */
+    private readonly framing: CameraFraming,
     seed: number,
     private readonly kind: RunKind,
     private readonly onEnd: (r: RunReport) => void,
@@ -230,6 +233,7 @@ export class GameView {
       this.state,
       this.course,
       this.tuning,
+      this.framing,
       this.motion,
       this.landing.shake(),
       this.landing.flashAlpha(),

@@ -12,8 +12,10 @@
  * state, so none of this can reach determinism.
  */
 import type { Course, Kicker, Tuning } from '../sim/types.js';
+import type { CameraFraming } from '../data/load.js';
 import { terrainYAt } from '../sim/terrain.js';
 import { terminalSpeedAtGradient } from '../sim/slopeResponse.js';
+import { INTERNAL_HEIGHT, PLAYER_LOOKAHEAD } from './stage.js';
 
 /**
  * How far up the frame the skier rides per unit of air beneath him, and the
@@ -66,6 +68,54 @@ export const AIR_LIFT_MAX = 92;
 /** The camera's vertical offset for a skier `h` units above the piste. */
 export const cameraAirLift = (h: number): number =>
   h <= 0 ? 0 : Math.min(h * AIR_LIFT, AIR_LIFT_MAX);
+
+/**
+ * How far the camera drops to show the slope ahead on steep ground. Feature 007.
+ *
+ * The skier sits 60% of the way down the frame, which leaves 72 units below him.
+ * Every device is promised 213 units of course ahead (PLAYER_LOOKAHEAD), but on
+ * ground steeper than about 0.41 the piste that far ahead is more than 72 below
+ * him - so a log was still under the bottom edge when it was close enough to
+ * see, and on the Narrows a player lost up to a third of the time the lookahead
+ * was meant to buy (specs/007-reaction-time-speed/research.md R2). This drops the
+ * view by exactly enough to show the piste across that 213 units, plus a margin,
+ * and never more: it only makes visible what the horizontal lookahead already
+ * promises, so every device still sees the same course (FR-242).
+ *
+ * Capped at AIR_LIFT_MAX, the ceiling the booters' headroom is already held to,
+ * and combined with the air lift by taking the larger, so no airborne frame shows
+ * less of the jump than it did (FR-243).
+ *
+ * On the piste beneath an upper shelf it is capped again, so the shelf's top edge
+ * stays inside the frame - the shelf reading as a choice outranks seeing a
+ * little further down (research R3). That cap blends in over `shelfEaseIn` before
+ * the shelf and out over the same distance after it, so it never snaps.
+ *
+ * Pure: a function of the course and an x. The piste is continuous, so this is
+ * too, and the camera cannot jump because of it.
+ */
+export function lookDown(
+  course: Course,
+  x: number,
+  onPiste: boolean,
+  framing: CameraFraming,
+): number {
+  const drop = terrainYAt(course.terrain, x + PLAYER_LOOKAHEAD) - terrainYAt(course.terrain, x);
+  const below = INTERNAL_HEIGHT * 0.4;
+  let look = Math.min(Math.max(drop - below + framing.lookMargin, 0), AIR_LIFT_MAX);
+  if (!onPiste) return look;
+
+  const ease = framing.shelfEaseIn;
+  for (const l of course.ledges) {
+    if (x < l.x0 - ease || x >= l.x1 + ease) continue;
+    const cap = INTERNAL_HEIGHT * 0.6 - l.height - framing.shelfMargin;
+    // 0 outside the shelf's reach, 1 across it, linear in between.
+    const weight =
+      ease <= 0 ? 1 : x < l.x0 ? (x - (l.x0 - ease)) / ease : x >= l.x1 ? 1 - (x - l.x1) / ease : 1;
+    look = Math.min(look, AIR_LIFT_MAX + (cap - AIR_LIFT_MAX) * weight);
+  }
+  return Math.max(look, 0);
+}
 
 /** A booter is a wedge you ride ALONG. A pop ramp is a lip you unweight off. */
 export const isBooter = (k: Kicker): boolean => (k.launchAngle ?? 90) < 90;
