@@ -70,3 +70,18 @@ was wrong: a standing player at the steepest box also gets about 650 ms, because
 frame hides the box. It now says so and points at FR-242. FR-236's "needs a
 decision" now reads "enters view", which can be measured. SC-086 is moved to the end
 so the success criteria are in numeric order.
+
+**Validation run 5 — 2026-09-24 (`/speckit-plan`). All items pass after amendment.**
+Planning research measured a full ride instead of a clean approach per box and found
+the spec wrong on four facts:
+
+1. The worst box is 365 ms, not 398 ms.
+2. The box at 1,830 fails.
+3. The needed speed cut is 5–19%, not "about 8%".
+4. The ramp at 5,200 is the Cornice shelf ramp, not the big booter.
+
+FR-233 was widened to allow terrain changes that give back downstream speed, each one
+named, and FR-243's shelf clause was sharpened to a measurable margin. The one box move
+(11,600 → 11,680) is recorded as FR-241's first fallback, taken. Every amendment is
+marked in place with its date and its research reference, rather than silently
+rewritten.

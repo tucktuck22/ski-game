@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-23
 
-**Status**: Approved 2026-09-23 — decisions recorded under [Clarifications](#clarifications), ready for `/speckit-plan`
+**Status**: Approved 2026-09-23, amended 2026-09-24 by `/speckit-plan` research (see [plan.md § Spec amendments](./plan.md#spec-amendments)). Planned; ready for `/speckit-tasks`
 
 **Input**: User description: "in playtesting on production, I'm finding that I am
 moving too fast and don't have the reaction time necessary to jump over boxes while
@@ -46,18 +46,29 @@ _Corrected 2026-09-23 during `/speckit-clarify`. The first version of this table
 treated speed along the slope as horizontal speed and ignored the frame's bottom edge,
 giving 524 ms at the worst box. The measured figure is 398 ms._
 
+_Corrected again 2026-09-24 during `/speckit-plan`. The table above starts each box
+from a clean approach at the slope's own speed. A real ride is worse, because **there
+is no drag in the air**: every jump over the previous box, and every ramp hop, lands the
+player faster than the slope's own speed, and they are still bleeding it off when the
+next box appears. Measured on a full low-line ride
+([research R1](./research.md#r1--how-is-time-to-decide-measured)), time to decide is
+1,830: **631 ms** · 3,600: 531 · 4,120: 398 · 4,640: **365** · 6,100: 631 · 11,600: 398.
+**Every official box fails, including 1,830**, which the table above passes. FR-231
+has always said "simulating the actual ride", and these are the numbers it means._
+
 "Time to decide" is the on-screen time minus about 85 ms. That is how long the jump
 needs to climb to box height, so it is the latest a release can still clear the box.
 Published human visual reaction time is roughly 250 ms for a single expected stimulus
 and 400–500 ms when the player first has to identify _what_ appeared. Touch input and
 display latency on a phone come on top of that.
 
-**Five of the six official boxes leave under 680 ms. Four of them sit on ground steep
-enough that the frame hides them, and at the worst the player has 398 ms, less than
-it takes to recognise something new.** The boxes on moderate ground are comfortable.
-The problem is not the course's speed in general; it is that boxes were placed on its
-fastest, steepest ground, where they are both seen late and approached fast. Three of them (3,600 / 4,120 / 4,640) also come about 1.5 s apart, so a
-player who is late on the first is still recovering when the next appears.
+**All six official boxes leave under 680 ms on a real ride. Four of them sit on ground
+steep enough that the frame hides them, and at the worst the player has 365 ms, less
+than it takes to recognise something new.** The problem is not the course's speed in
+general; it is that boxes were placed on its fastest, steepest ground, where they are
+both seen late and approached fast. Three of them (3,600 / 4,120 / 4,640) also come
+about 1.5 s apart, so a player who is late on the first is still recovering when the
+next appears.
 
 **Numbering**: requirements continue from feature 006 (FR-231+, SC-081+).
 
@@ -69,7 +80,9 @@ player who is late on the first is still recovering when the next appears.
   player who first has to recognise what appeared, plus phone input latency, with
   some margin. Equivalent to at least **765 ms on screen**, which at the fixed 213
   units ahead means a tucked player reaches every box at a horizontal speed of
-  **about 4.6 or less**, roughly 8% under today's steep boxes. (When first answered,
+  **about 4.6 or less**. _(Corrected 2026-09-24: on a real ride that is 5–19% under
+  today's arrival speeds, from 4.65 → 4.43 at 1,830 to 5.41 → 4.45 at 4,640. The
+  "roughly 8%" first written here came from a clean-approach measurement.)_ (When first answered,
   this was put as "a 20% slow-down"; that figure used speed along the slope and is
   superseded.)
 - **Q: Does a live draft hold committed scores?** → **A: No.** No reset or player
@@ -79,11 +92,11 @@ player who is late on the first is still recovering when the next appears.
 - **Q: How to slow the player down?** → The maintainer asked that the physics not
   change and suggested reshaping the slope instead. Three ways were weighed:
 
-  | Approach                            | What moves                               | Verdict                                                                                                                                                                                                                                                                                                                                                  |
-  | ----------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-  | Raise drag everywhere               | Tuning file, and every kicker's power    | **Fallback.** It slows the whole game to fix five spots, costs the speed feel feature 006's play pass accepted, and forces every ramp and booter to be re-tuned. A 20% probe failed 11 existing tests.                                                                                                                                                   |
-  | Flatten the whole mountain          | Every terrain point                      | **Rejected.** 20% slower everywhere needs gradients of about 0.16–0.37. That is well under the 0.25 floor feature 006's first playtest raised the gentlest ground to, because it felt dead.                                                                                                                                                              |
-  | **Ease the ground before each box** | Terrain on each fast box's approach only | **Chosen.** Tuning is untouched, so the physics, the speed anchor and the tuck are exactly as they are. Needs to take about 8% off horizontal speed at the box, which a short stretch of gentler ground does. The steeps elsewhere and the speed carried into each kicker are unchanged. The maintainer's suggestion, applied only where the problem is. |
+  | Approach                            | What moves                               | Verdict                                                                                                                                                                                                                                                                                                                   |
+  | ----------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | Raise drag everywhere               | Tuning file, and every kicker's power    | **Fallback.** It slows the whole game to fix five spots, costs the speed feel feature 006's play pass accepted, and forces every ramp and booter to be re-tuned. A 20% probe failed 11 existing tests.                                                                                                                    |
+  | Flatten the whole mountain          | Every terrain point                      | **Rejected.** 20% slower everywhere needs gradients of about 0.16–0.37. That is well under the 0.25 floor feature 006's first playtest raised the gentlest ground to, because it felt dead.                                                                                                                               |
+  | **Ease the ground before each box** | Terrain on each fast box's approach only | **Chosen.** Tuning is untouched, so the physics, the speed anchor and the tuck are exactly as they are. Needs to take 5–19% off horizontal speed at the box (see research R4). The steeps elsewhere and the speed carried into each kicker are unchanged. The maintainer's suggestion, applied only where the problem is. |
 
   A side effect worth keeping: **the ground easing off becomes a tell that a box is
   coming.** That is a readable pattern, not a flaw, and it helps exactly the new
@@ -147,20 +160,28 @@ the rotations available off each booter, and which shelves each robot pilot reac
 
 1. **Given** a tucked player, **When** they reach any kicker, **Then** their speed is
    within 2% of what it is today.
-2. **Given** the big booter at x=5,200, which follows the 4,640 box by 560 units,
-   **When** approached tucked, **Then** it pays the same number of rotations as today.
-3. **Given** each ramp to an upper shelf, **When** approached with speed, **Then**
+2. **Given** the Cornice ramp at x=5,200, which follows the 4,640 box by 560 units,
+   **When** approached tucked, **Then** it still puts the player on its shelf.
+3. **Given** either booter (x=7,852 and x=9,188), **When** approached tucked,
+   **Then** it pays the same number of rotations as today.
+4. **Given** each ramp to an upper shelf, **When** approached with speed, **Then**
    the shelf is enterable. **When** approached without, **Then** it is not forced.
 
 ---
 
 ### Edge Cases
 
-- **The big booter comes right after the last steep box.** The 4,640 box sits 560
-  units before the big booter at 5,200. Easing the approach to that box slows the
-  player, and the ground between the box and the booter has to give the speed back
-  before the lip. If it cannot, the box moves, not the booter. This is the tightest
-  constraint in the feature.
+- **The Cornice ramp comes right after the last steep box.** The 4,640 box sits 560
+  units before the Cornice shelf ramp at 5,200. Easing the approach to that box slows
+  the player, and the ground between the box and the ramp has to give the speed back
+  before the lip. If it cannot, the box moves, not the ramp. _(Corrected 2026-09-24:
+  this read "the big booter at 5,200". The big booter is at 9,188, far from any eased
+  ground.)_
+- **Easing under a shelf eases the shelf.** Shelves stand at a fixed height above the
+  piste, so gentler ground under the Cornice makes the Cornice shelf gentler too, and
+  high-line riders leave it slower. Measured, this costs the small booter at 7,852 one
+  tick of air and a rotation. Speed has to be given back on the shelf after the box
+  (research R5).
 - **Three boxes 520 units apart.** Each needs its own eased approach, and the ground
   between them is short. The stretch may come out as a stepped descent: steep, ease,
   box, steep, ease, box. That is acceptable if FR-236 holds, and the play pass judges
@@ -207,11 +228,17 @@ the rotations available off each booter, and which shelves each robot pilot reac
   because speed lags behind the slope.
 - **FR-232**: The gain MUST come from two places only: the camera's vertical framing
   (FR-242) and the course's shape. The tuning file MUST NOT change: gravity,
-  friction, drag, the speed limits and every launch value stay as they are. So the speed model, the speed anchor and what a tuck is worth all stay
-  as they are.
-- **FR-233**: Terrain MUST change only on the approach to a box that fails FR-231
-  today, and only as far upstream as that box needs. Boxes already inside the budget
-  (official 1,830; both warm-up boxes) and the ground around them MUST NOT move.
+  friction, drag, the speed limits and every launch value stay as they are. So the
+  speed model, the speed anchor and what a tuck is worth all stay as they are.
+- **FR-233**: Terrain MUST change only for one of two named reasons: (a) on the
+  approach to a box that fails FR-231 today, only as far upstream as that box needs;
+  or (b) immediately downstream of such an approach, only as much as FR-235 needs to
+  give back speed the easing cost a kicker or booter. Each change MUST be recorded
+  against its box in the generator's comments. The warm-up course and the ground
+  around its boxes MUST NOT move. _(Amended 2026-09-24: this read "only on the
+  approach", and named 1,830 as already inside the budget. On a real ride 1,830 fails,
+  and (b) is needed because easing under a shelf eases the shelf; see research R1 and
+  R5.)_
 - **FR-234**: A terrain segment MUST NOT fall below the gentlest gradient the course
   already uses, or break any rule the course validator enforces.
 - **FR-235**: A tucked player MUST reach every kicker at a speed within 2% of today's.
@@ -232,10 +259,13 @@ the rotations available off each booter, and which shelves each robot pilot reac
   renderer. The link and commit MUST be named, and the findings MUST be recorded in
   this spec in the maintainer's own words (Principle VIII).
 - **FR-241**: If the eased approaches cannot meet FR-231 and FR-235 together, for
-  example if the big booter cannot get its speed back after the 4,640 box, the
+  example if the Cornice ramp cannot get its speed back after the 4,640 box, the
   fallback MUST be taken in this order. First, move the box to gentler ground.
   Second, and only with the maintainer's agreement, raise drag instead, as recorded
-  under Clarifications. FR-235 MUST NOT be traded away silently.
+  under Clarifications. FR-235 MUST NOT be traded away silently. _(Taken once,
+  2026-09-24: the Last Pitch box moves from 11,600 to 11,680. With its approach eased
+  to the gradient floor it still measured 615–631 ms, because the ramp at 11,000 hops
+  a low-line player into it; research R4.)_
 - **FR-242**: On steep ground, the camera MUST show enough of the slope below the
   skier that a hazard up to 213 units ahead is in the frame no later than it would be
   on level ground. The view ahead MUST stay at 213 units horizontally and MUST stay
@@ -243,7 +273,10 @@ the rotations available off each booter, and which shelves each robot pilot reac
   visible snap.
 - **FR-243**: The camera change MUST NOT reduce how much of any jump stays in frame:
   every booter's apex that is fully visible today MUST still be fully visible. While
-  riding the piste under an upper shelf, the shelf MUST stay in frame as it does today.
+  riding the piste under or towards an upper shelf, the shelf's top edge MUST stay at
+  least 8 units inside the frame. _(Sharpened 2026-09-24 from "as it does today",
+  which would have forbidden any look-down under the Cornice, where the 6,100 box sits;
+  research R3.)_
 - **FR-244**: The camera is drawing only. It MUST NOT change the simulation, and runs
   MUST stay bit-for-bit identical, so it carries no rules-version consequence of its
   own.
@@ -264,8 +297,8 @@ the rotations available off each booter, and which shelves each robot pilot reac
 
 ### Measurable Outcomes
 
-- **SC-081**: The shortest time any box gives a tucked player to decide rises from
-  398 ms to at least 680 ms.
+- **SC-081**: The shortest time any box gives a tucked player to decide, on a real
+  ride, rises from 365 ms to at least 680 ms.
 - **SC-082**: The maintainer, riding the official course on the play-pass build,
   clears every box on their first run of that build without releasing early from
   memory, and says so in their own words.
