@@ -27,6 +27,12 @@ export interface CameraFraming {
   shelfMargin: number;
   /** Distance before a shelf over which that cap blends in. */
   shelfEaseIn: number;
+  /** Most the look-down may settle in one tick while airborne. It never grows there. */
+  lookRateAir: number;
+  /** Most it may change in one tick on the snow, where it catches up after a landing. */
+  lookRateGround: number;
+  /** Ticks after touchdown over which that ground rate builds up from nothing. */
+  lookRampTicks: number;
 }
 
 /** The one condition under which a music track is the one that should be audible. */
@@ -168,10 +174,19 @@ export function parseCamera(raw: unknown): CameraFraming {
     if (v < 0) throw new Error(`camera.json: "${key}" must not be negative, got ${v}`);
     return v;
   };
+  // Zero would freeze the look-down where it stands: on a steep run-in, for good.
+  const rate = (key: keyof CameraFraming): number => {
+    const v = read(key);
+    if (v === 0) throw new Error(`camera.json: "${key}" must be positive`);
+    return v;
+  };
   return {
     lookMargin: read('lookMargin'),
     shelfMargin: read('shelfMargin'),
     shelfEaseIn: read('shelfEaseIn'),
+    lookRateAir: rate('lookRateAir'),
+    lookRateGround: rate('lookRateGround'),
+    lookRampTicks: read('lookRampTicks'),
   };
 }
 

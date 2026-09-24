@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { cameraFor } from '../../src/render/draw.js';
+import { LookFollower } from '../../src/render/rampGeometry.js';
 import { parseCamera } from '../../src/data/load.js';
 import type { Course } from '../../src/sim/types.js';
 import { official, warmup } from './fixtures.js';
@@ -36,11 +37,24 @@ import {
  */
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const framing = parseCamera(JSON.parse(readFileSync(join(root, 'data/camera.json'), 'utf8')));
-const camera = (s: Parameters<typeof cameraFor>[0], c: Course): { x: number; y: number } =>
-  cameraFor(s, c, framing);
+// The camera as the game draws it: the look-down followed tick by tick (FR-261).
+// One follower per course; it restarts itself at the first tick of each ride.
+const followers = new Map<Course, LookFollower>();
+const camera = (s: Parameters<typeof cameraFor>[0], c: Course): { x: number; y: number } => {
+  let f = followers.get(c);
+  if (!f) followers.set(c, (f = new LookFollower(c, framing)));
+  return cameraFor(s, c, framing, f.advance(s));
+};
 
 /** FR-246, the maintainer's number. */
 const BUDGET_MS = 680;
+/**
+ * FR-260: landing a box to reaching the rope after it. The rope was in view in the
+ * air, so this is time to act, not to decide. The play pass on bdc77bc found
+ * 33 ms and 150 ms "a little too close"; 300 is the best such pair it praised.
+ */
+const ROPE_AFTER_BOX_MS = 300;
+const ROPE_AFTER_BOX_WITHIN = 400;
 
 const COURSES: [string, Course][] = [
   ['official', official],
@@ -82,6 +96,14 @@ const BASELINE_LEAD_MS: Record<string, Record<string, number>> = {
     'rock@5126': 833,
   },
 };
+/**
+ * Hazards FR-260 moved after the 2.0.0 baseline, old key to new. B4 holds each
+ * moved rope to its old time; moving one must never be how it loses time.
+ */
+const MOVED: Record<string, Record<string, string>> = {
+  official: { 'rope@4340': 'rope@4360', 'rope@4860': 'rope@4945', 'rope@11850': 'rope@11900' },
+};
+
 const BASELINE_LIP_SPEED: Record<string, Record<number, number>> = {
   official: { 1400: 4.371, 5200: 5.73, 7852: 5.045, 9188: 5.169, 11000: 5.188 },
   'warm-up': { 1889: 1.633, 2489: 1.633, 4600: 4.785, 5586: 4.379 },
@@ -124,6 +146,23 @@ describe('the reaction budget (FR-246, SC-088)', () => {
         }
       }
     });
+
+    it(`B10: a rope after a box leaves ${ROPE_AFTER_BOX_MS} ms on the snow to duck it (${name})`, () => {
+      const rs = all.get(name)!;
+      for (const box of rs.filter((r) => r.kind === 'box')) {
+        const rope = rs
+          .filter((r) => r.kind === 'rope' && r.pilot === box.pilot && r.x > box.x)
+          .sort((a, b) => a.x - b.x)[0];
+        // Only the rope that follows before anything else does. A rope far down the
+        // hill is not the box's problem.
+        if (!rope || rope.x - box.x > ROPE_AFTER_BOX_WITHIN) continue;
+        const ms = (rope.arriveTick - box.landedTick) * (1000 / 60);
+        expect(
+          ms,
+          `${box.pilot}: landed the box at ${box.x} ${ms.toFixed(0)} ms before the rope at ${rope.x}`,
+        ).toBeGreaterThanOrEqual(ROPE_AFTER_BOX_MS);
+      }
+    });
   }
 });
 
@@ -147,7 +186,7 @@ describe('what must not move (FR-250 - FR-253, SC-091)', () => {
           .map((r) => [`${r.kind}@${r.x}`, r]),
       );
       for (const [key, before] of Object.entries(BASELINE_LEAD_MS[name]!)) {
-        const r = now.get(key);
+        const r = now.get(MOVED[name]?.[key] ?? key);
         expect(r, `${key} was met on 2.0.0 and no measuring pilot meets it now`).toBeDefined();
         expect(r!.ms, `${describeReading(r!)}; it was ${before} ms`).toBeGreaterThanOrEqual(
           Math.min(before, BUDGET_MS) - 1,

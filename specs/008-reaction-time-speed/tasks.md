@@ -169,6 +169,11 @@ B1/B3/B9 assertions, and the play-pass build lets the maintainer react to every 
 - [x] T017 [US1] Commit T007–T016 and push to `claude/bold-albattani-pag0m9`, so the play-pass build has a named commit.
 - [x] T018 [US1] Build the play-pass artifact. First assert `head -c 4 public/sprites/skier.png` is the PNG signature (`\x89PNG`). **If it is not, stop and tell the maintainer the build would show the fallback skier; do not hand it over.** Otherwise run `npm run build:artifact`, publish the single file as an artifact, and give the maintainer the link, the commit from T017, and quickstart §6's four questions.
 - [x] T019 [US1] Record the maintainer's verdict in `specs/008-reaction-time-speed/spec.md` under a new "Playtest findings — <date>, build <sha>" section, in their own words, before any value moves again. If they ask for changes, loop back to T012–T016 and hand over again (T017–T018) rather than continuing.
+- [x] T035 [US1] (loop-back from T019) Add B10 (FR-260) to `tests/sim/reaction-budget.test.ts`: landing a box to reaching the rope after it, at least 300 ms on every measuring pilot.
+- [x] T036 [US1] Move the boughs after the Narrows logs (+0, +20, +85) and the Last Pitch bough (11,850 → 11,900) in `tools/gen-courses.ts`, and start the drop after the Narrows at 4,800 instead of 4,700. Teach B4 which ropes moved. Re-record the 3.1.0 fingerprint.
+- [x] T037 [US1] Add C8 and C9 (FR-261) to `tests/unit/camera-framing.test.ts`.
+- [x] T038 [US1] Add the look-down to the air lift instead of taking the larger (`cameraFor`), and follow it per tick with `LookFollower` (`src/render/rampGeometry.ts`, wired into `src/ui/game.ts` and the reaction measure). Add `lookRateAir`, `lookRateGround` and `lookRampTicks` to `data/camera.json` and its parser.
+- [ ] T039 [US1] Hand over a fresh build (T017–T018) and record the verdict (T019).
 - [ ] T020 [US1] Only after an accepting verdict, look for one 16.7 ms tick of headroom on the boxes that pass at exactly 681 ms (official 1,830 / 4,640 / 6,100 / 11,680; research R4). Try lowering that box's eased key by 0.01–0.02 in `tools/gen-courses.ts`. Keep a change only if T016's command and the ±2% kicker check (T005's `kickerLipSpeeds` against T001) both still pass. Record what was tried and kept in `research.md` R4, including "nothing kept". **If anything is kept, the played build is no longer the shipped build: repeat T017–T019 with the new commit.**
 - [ ] T021 [US1] Run the full sim, course and unit suites (`npm run test:sim && npm run test:course && npm run test:unit`). Everything must be green except `sprite-palette` where T002 could not fetch the sprites; say so explicitly. The booter rotation test passes unmodified.
 
@@ -216,7 +221,7 @@ and the Postgres invariants job passes in CI.
 - [ ] T029 [P] [US3] Update `README.md`:
   - In "Deploying a physics change into a live draft", add that 3.1.0 (feature 008) moves both courses' geometry and the camera but not the physics, and that no committed scores existed when it shipped, so no reset was needed. Keep the three-step order as the procedure for any future bump.
   - Add a feature 008 row to the status table.
-- [ ] T030 [US3] Run `npm run test:determinism`. The goldens in `tests/e2e/determinism.spec.ts` are expected to be unchanged, because their traces die before x = 1,400 on the official course. If any value moves, regenerate as the file's header instructs and append a dated paragraph naming feature 008 and why.
+- [x] T030 [US3] Run `npm run test:determinism`. The goldens in `tests/e2e/determinism.spec.ts` are expected to be unchanged, because their traces die before x = 1,400 on the official course. If any value moves, regenerate as the file's header instructs and append a dated paragraph naming feature 008 and why.
 
 **Checkpoint**: version, operator SQL and README agree on 3.1.0, with no reset in the
 instructions.

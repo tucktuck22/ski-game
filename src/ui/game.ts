@@ -15,6 +15,7 @@ import { applyCrt, resetCrt } from '../render/filters/crt.js';
 import { resolveMotion, type MotionSettings } from '../render/reducedMotion.js';
 import { cueAt, type Cue } from '../render/coachingCue.js';
 import { drawRun, resetSceneryCache, type SkierSkin } from '../render/draw.js';
+import { LookFollower } from '../render/rampGeometry.js';
 import { LeanState, PoseTimers, selectPose } from '../render/skierPose.js';
 import type { SpriteSheets } from '../render/sprites.js';
 import type { CameraFraming } from '../data/load.js';
@@ -54,6 +55,8 @@ export class GameView {
    */
   private readonly poseTimers = new PoseTimers();
   private readonly lean = new LeanState();
+  /** The camera's look-down, followed per tick rather than per frame (FR-261). */
+  private readonly look: LookFollower;
   private resolveFinale: () => void = () => {};
   /**
    * Resolves when the mountain is finished being looked at.
@@ -105,6 +108,8 @@ export class GameView {
     this.derived = derive(tuning);
     this.state = initialState(course, tuning, seed);
     this.prevState = this.state;
+    this.look = new LookFollower(course, framing);
+    this.look.advance(this.state);
     this.finale = new Promise<void>((resolve) => {
       this.resolveFinale = resolve;
     });
@@ -164,6 +169,7 @@ export class GameView {
     // field the simulation had to carry (FR-164, FR-168).
     this.poseTimers.advance(this.prevState, this.state);
     this.lean.update(slopeAt(this.course.terrain, this.state.x));
+    this.look.advance(this.state);
 
     // A trick is paid in the tick the skier lands: rotationAccum is converted to
     // score and cleared. Reading the transition here rather than adding a field
@@ -234,6 +240,7 @@ export class GameView {
       this.course,
       this.tuning,
       this.framing,
+      this.look.current,
       this.motion,
       this.landing.shake(),
       this.landing.flashAlpha(),

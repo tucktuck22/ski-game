@@ -61,8 +61,8 @@ const OFFICIAL_GEOMETRY: Record<string, string> = {
   '2.0.0': '2dcab59a32e75a087c8884711164c3fc1f68f42627fdbfb27b92b3fe5f6f2980',
   // Feature 007: best of three official attempts. Run economy only; no geometry moved.
   '3.0.0': '2dcab59a32e75a087c8884711164c3fc1f68f42627fdbfb27b92b3fe5f6f2980',
-  // Feature 008: the Narrows and the Last Pitch eased, one log moved.
-  '3.1.0': '76625b52c2986f4f853f8f0714216b202781e8a45dedf8c0eeecde6a011bbba0',
+  // Feature 008: the Narrows and the Last Pitch eased, one log and three boughs moved.
+  '3.1.0': '055327e20655721360266c0a504c571b4276b5dde30899a63889cb3b78b3ea60',
 };
 
 /** Versions whose bump moved no geometry, and what they moved instead. */

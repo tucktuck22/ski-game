@@ -27,6 +27,7 @@ beside the existing pilots, so there is one definition of how a test rider jumps
 | B7  | Shelves ridden by the tuck pilot and by the stay-low pilot                                                                                      | 3 and 0, as on 2.0.0                              |
 | B8  | The gentlest gradient on the official course                                                                                                    | = 0.25 (FR-249)                                   |
 | B9  | Failure messages name the box's x, the measured ms, and the horizontal speed on arrival                                                         | —                                                 |
+| B10 | Where a rope follows a box within 400 units, landing the box to reaching the rope, every measuring pilot                                        | ≥ 300 ms (FR-260)                                 |
 
 ## Baseline table (rules 2.0.0, committed in the test)
 

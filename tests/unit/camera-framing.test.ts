@@ -3,14 +3,14 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { cameraFor } from '../../src/render/draw.js';
-import { AIR_LIFT_MAX, cameraAirLift } from '../../src/render/rampGeometry.js';
+import { AIR_LIFT_MAX, cameraAirLift, LookFollower } from '../../src/render/rampGeometry.js';
 import { CAMERA_X_OFFSET, INTERNAL_HEIGHT, PLAYER_LOOKAHEAD } from '../../src/render/stage.js';
 import { parseCamera } from '../../src/data/load.js';
 import { initialState } from '../../src/sim/step.js';
 import { terrainYAt } from '../../src/sim/terrain.js';
 import type { Course, RunState } from '../../src/sim/types.js';
 import { official, tuning, warmup } from '../sim/fixtures.js';
-import { ride } from '../sim/pilots.js';
+import { ride, type Pilot } from '../sim/pilots.js';
 
 /**
  * The camera looks down the steeps. specs/008-reaction-time-speed/contracts/camera-framing.md.
@@ -171,5 +171,68 @@ describe('camera framing (FR-257, FR-258, FR-259)', () => {
       readFileSync(join(root, 'src/sim', f), 'utf8'),
     );
     for (const f of sim) expect(f).not.toMatch(/render\//);
+  });
+});
+
+describe('the look-down in the air (FR-261)', () => {
+  /**
+   * The largest change in the camera's per-tick move over the 1,200 units after
+   * `from`: how hard it lurches. A steady move reads as motion, a sudden change of
+   * speed reads as the ground moving.
+   */
+  const largestLurch = (
+    course: Course,
+    pilot: Pilot,
+    from: number,
+    cam: (s: RunState) => number,
+  ): number => {
+    let prevY: number | null = null;
+    let prevStep: number | null = null;
+    let most = 0;
+    ride(course, pilot, 1, (_b, s) => {
+      const y = cam(s);
+      if (prevY !== null) {
+        const step = y - prevY;
+        if (prevStep !== null && s.x >= from && s.x <= from + 1200)
+          most = Math.max(most, Math.abs(step - prevStep));
+        prevStep = step;
+      }
+      prevY = y;
+    });
+    return most;
+  };
+
+  it('C8: over a booter, the camera lurches no harder than the 2.0.0 camera did', () => {
+    // The play pass on build bdc77bc fell on the small booter and said the landing
+    // "might feel like a drop away". It did: the camera's descent went from 5.2 to
+    // 10.5 units a tick in one tick, four ticks before touchdown.
+    const airOnly = (s: RunState): number =>
+      s.y - INTERNAL_HEIGHT * 0.6 + cameraAirLift(terrainYAt(official.terrain, s.x) - s.y);
+    for (const k of official.kickers.filter((k) => (k.launchAngle ?? 90) < 90)) {
+      for (const pilot of ['tuck', 'low-line'] as const) {
+        const f = new LookFollower(official, framing);
+        const followed = (s: RunState): number => cameraFor(s, official, framing, f.advance(s)).y;
+        const before = largestLurch(official, pilot, k.x, airOnly);
+        const now = largestLurch(official, pilot, k.x, followed);
+        expect(
+          now,
+          `${pilot} over the booter at ${k.x}: ${now.toFixed(2)}, was ${before.toFixed(2)}`,
+        ).toBeLessThanOrEqual(before + 0.5);
+      }
+    }
+  });
+
+  it('C9: the follower restarts on a new run and never moves faster than its rate', () => {
+    const f = new LookFollower(official, framing);
+    const s = grounded(official, 4800);
+    const target = shiftOf(s, official);
+    expect(f.advance({ ...s, tick: 1 })).toBe(target);
+    const air = { ...grounded(official, 200), tick: 2, grounded: false };
+    const moved = Math.abs(f.advance(air) - target);
+    expect(moved).toBeLessThanOrEqual(framing.lookRateAir + 1e-9);
+    // Tick 1 again is a new run: straight to the target, no follow.
+    expect(f.advance({ ...grounded(official, 200), tick: 1 })).toBe(
+      shiftOf(grounded(official, 200), official),
+    );
   });
 });

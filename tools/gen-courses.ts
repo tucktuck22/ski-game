@@ -381,7 +381,7 @@ const OFFICIAL_GRADE: GradeKey[] = [
   // worse than written. Riding it, the steep boxes left as little as 315 ms, not
   // 600: the frame's bottom edge hid them on the steeps, and a rider who has just
   // jumped lands faster than the slope is worth, because there is no drag in the
-  // air. Feature 007 answers both - the camera now looks down the steeps
+  // air. Feature 008 answers both - the camera now looks down the steeps
   // (src/render/rampGeometry.ts, lookDown), and the approaches to the boxes that
   // were placed on the steepest ground are eased below. The steeps themselves are
   // where they were. See specs/008-reaction-time-speed/research.md.
@@ -398,17 +398,20 @@ const OFFICIAL_GRADE: GradeKey[] = [
   // Was 0.46 rising to 0.60, and its three logs left 448, 365 and 315 ms to
   // decide. Easing it throughout rather than stepping it is not a style choice:
   // speed answers a gradient over some 200 units, and with logs 520 apart there
-  // is no room to rebuild speed between them and shed it again (feature 007,
-  // FR-233a, research R4). Now 731 / 681 / 681 ms at the worst.
+  // is no room to rebuild speed between them and shed it again (feature 008,
+  // FR-248a, research R4). Now 731 / 681 / 681 ms at the worst.
   { x: 3200, g: 0.3 },
   { x: 4600, g: 0.3 },
-  // ...and steep again the moment the last log is behind you, so the Cornice
-  // ramp is still taken with real speed under you (FR-233b: its lip speed is
-  // within 0.1% of what it was).
-  { x: 4700, g: 0.6 },
+  // ...and steep again once the last log is behind you, so the Cornice ramp is
+  // still taken with real speed under you (FR-248b: its lip speed is within 0.1%
+  // of what it was). The drop began at 4,700 until the 2026-09-24 play pass: a
+  // rider jumping the log at 4,640 flew off the drop's edge and landed 33 ms from
+  // the bough behind it, which came into view only 433 ms out. From 4,800, with
+  // that bough 85 later (FR-260), it is 400 ms and 567 ms.
+  { x: 4800, g: 0.6 },
   { x: 5000, g: 0.53 }, // was 0.52; the extra 0.01 is that 0.1%
   { x: 5400, g: 0.42 }, // eases, so shelf work up there stays readable
-  // Was 0.38. Feature 007, FR-233b. Easing the Narrows moves every terrain point
+  // Was 0.38. Feature 008, FR-248b. Easing the Narrows moves every terrain point
   // after it, and heights are rounded to 0.01, so the small booter's run-in came
   // out a hair shallower and its rig reached the lip 0.2% slow - 74 ticks of air
   // where five spins need 75. This gives the 0.2% back. The rig has no margin and
@@ -431,7 +434,7 @@ const OFFICIAL_GRADE: GradeKey[] = [
   { x: 9200, g: 0.34 }, // eased across the ramp, same reason
   { x: 10600, g: 0.25 }, // the long shallow landing the big one needs
   { x: 10900, g: 0.44 }, // the Last Pitch builds again
-  // Feature 007, FR-233a: the Last Pitch log. Was 0.52 then 0.60 straight to the
+  // Feature 008, FR-248a: the Last Pitch log. Was 0.52 then 0.60 straight to the
   // line, and a rider hopped by the ramp at 11,000 met the log in 348 ms. Eased
   // to the floor for the approach, then the run to the line as before.
   { x: 11200, g: 0.4 },
@@ -523,9 +526,13 @@ function official(): Built {
   // Still a decision every 520 units against the old course's 1,200.
   const NARROWS_BEAT = 520;
   const NARROWS_LOG_AT = 300;
+  // Feature 008, FR-260: each bough after the first sits a little later than the
+  // beat, so a rider landing the log before it has time on the snow to duck. The
+  // logs stay on the beat. Measured at 2.1.0's play pass: 300, 267 and 33 ms.
+  const NARROWS_BOUGH_LATE = [0, 0, 20, 85];
   for (let i = 0; i < 4; i++) {
     const x = 3300 + i * NARROWS_BEAT;
-    bough(x, 12 + (i % 3));
+    bough(x + NARROWS_BOUGH_LATE[i]!, 12 + (i % 3));
     if (i < 3) deadfall(x + NARROWS_LOG_AT);
   }
 
@@ -593,13 +600,14 @@ function official(): Built {
   ledges.push({ x0: 11100, x1: 12000, height: SHELF_H });
   ice.push({ x0: 11350, x1: 11350 + iceSpanFor(grade(11350)) });
   rocks.push({ x: 11600, width: 16, height: 12 });
-  // Was 11,600. Feature 007, FR-256's first fallback, taken: with its approach
+  // Was 11,600. Feature 008, FR-256's first fallback, taken: with its approach
   // eased all the way to the gradient floor, a rider hopped by the ramp at 11,000
   // still reached a log at 11,600 before shedding the hop's speed. 80 more units
-  // does it. CV-11 wants the log 140 clear of the bough at 11,850, which caps it at
-  // 11,686. The rock on the shelf above stays at 11,600.
+  // does it. CV-11 wants the log 140 clear of the bough after it, which capped it at
+  // 11,686 while that bough stood at 11,850. The rock on the shelf above stays at 11,600.
   deadfall(11680);
-  bough(11850, 13);
+  // Was 11,850. Feature 008, FR-260: 150 ms from landing the log to the bough.
+  bough(11900, 13);
   shelfPickups(11100, 12000, SHELF_H, 6);
 
   // Piste pickups: small, low, and frequent enough to mark the racing line.

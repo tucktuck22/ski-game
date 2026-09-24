@@ -315,6 +315,16 @@ the rotations available off each booter, and which shelves each robot pilot reac
 - **FR-259**: The camera is drawing only. It MUST NOT change the simulation, and runs
   MUST stay bit-for-bit identical, so it carries no rules-version consequence of its
   own.
+- **FR-260** _(added 2026-09-24, from the play pass on bdc77bc)_: Where a rope follows a
+  box, a rider who jumps the box MUST have at least 300 ms on the snow between landing
+  and reaching the rope, on every measuring pilot. The rope is in view in the air, so
+  this is time to act rather than to decide. The logs do not move; the boughs after
+  them may.
+- **FR-261** _(added 2026-09-24, from the same play pass)_: Over each booter, the
+  camera MUST NOT change speed from one tick to the next by more than the 2.0.0 camera
+  did on the same jump (+0.5 units). The look-down MUST NOT grow while the rider is
+  in the air. This makes FR-257's "no visible snap" measurable. C6 capped the size of
+  each move and passed, while the camera's speed doubled in a tick.
 
 ### Key Entities
 
@@ -387,17 +397,18 @@ feature is done, so this is not an accepting verdict for T020. Measured afterwar
 
 - **Box, then rope.** Time from landing a box to reaching the rope after it:
 
-  | Pair (box → rope) | 2.0.0 (worst) | 3.1.0 (worst) |
-  | ----------------- | ------------: | ------------: |
-  | 3,600 → 3,820     |        183 ms |        300 ms |
-  | 4,120 → 4,340     |        150 ms |        267 ms |
-  | 4,640 → 4,860     |        150 ms |     **33 ms** |
-  | 11,600/11,680 → 11,850 | 283 ms   |    **150 ms** |
+  | Pair (box → rope)      | 2.0.0 (worst) | 3.1.0 (worst) |
+  | ---------------------- | ------------: | ------------: |
+  | 3,600 → 3,820          |        183 ms |        300 ms |
+  | 4,120 → 4,340          |        150 ms |        267 ms |
+  | 4,640 → 4,860          |        150 ms |     **33 ms** |
+  | 11,600/11,680 → 11,850 |        283 ms |    **150 ms** |
 
   Two pairs got worse under this feature. At 4,640, the eased approach carries the
   jump almost onto the rope. At the Last Pitch, moving the box from 11,600 to 11,680
   cut the gap from 226 to 146 units. The per-hazard lead times (B-tests) never
   measured box-to-rope recovery, so they missed both.
+
 - **Small booter (7,852): the camera lurches just before landing.** Lip speed (9.59),
   airtime (74 ticks) and how early the landing is visible (233 ms) all match 2.0.0.
   But from 4 ticks before touchdown, the look-down overtakes the air lift and the
@@ -408,3 +419,19 @@ feature is done, so this is not an accepting verdict for T020. Measured afterwar
   touchdown, in both versions.
 
 **Next**: loop back to T012–T016 for the two defects, then hand over again (T017–T018).
+
+**Loop-back (T035–T039), measured on the build that follows:**
+
+- Box → rope, landing to arrival (worst pilot): 3,600 → 3,820 **300 ms**; 4,120 → 4,360
+  **333 ms**; 4,640 → 4,945 **400 ms**; 11,680 → 11,900 **317 ms**. The boughs moved
+  +20, +85 and +50 units. The drop after the Narrows now starts at 4,800 instead of 4,700,
+  which is what freed 4,945. At +90 or more, the cautious pilot is thrown onto the
+  Cornice, so +85 is the ceiling there.
+- Camera: the look-down is now added to the air lift, not maxed with it, and followed
+  tick by tick (never growing in the air, then ramping in over 12 ticks after
+  touchdown). Largest change in camera speed over the small booter: 5.6 → about 3.0,
+  against 2.8 in 2.0.0. The warm-up course now frames exactly as it did in 2.0.0.
+- Cost: ropes first seen mid-jump now appear a little later than on bdc77bc, because
+  the look-down no longer grows in the air. The Last Pitch rope goes ~800 → 550 ms and
+  4,945 goes 567 → 533 ms. Both are still above 2.0.0 (383 and 333).
+- Boxes are unchanged: 781 / 731 / 681 / 681 / 981 / 731 ms. All suites pass.

@@ -11,7 +11,7 @@
  * Nothing here touches the DOM or the simulation. drawRun only ever reads run
  * state, so none of this can reach determinism.
  */
-import type { Course, Kicker, Tuning } from '../sim/types.js';
+import type { Course, Kicker, RunState, Tuning } from '../sim/types.js';
 import type { CameraFraming } from '../data/load.js';
 import { terrainYAt } from '../sim/terrain.js';
 import { terminalSpeedAtGradient } from '../sim/slopeResponse.js';
@@ -82,9 +82,10 @@ export const cameraAirLift = (h: number): number =>
  * and never more: it only makes visible what the horizontal lookahead already
  * promises, so every device still sees the same course (FR-257).
  *
- * Capped at AIR_LIFT_MAX, the ceiling the booters' headroom is already held to,
- * and combined with the air lift by taking the larger, so no airborne frame shows
- * less of the jump than it did (FR-258).
+ * Capped at AIR_LIFT_MAX, the ceiling the booters' headroom is already held to.
+ * The camera adds it to the air lift and holds the sum to that same ceiling, so
+ * the skier's head never leaves the frame (FR-258) and neither term's motion is
+ * ever discarded (FR-261; see cameraFor).
  *
  * On the piste beneath an upper shelf it is capped again, so the shelf's top edge
  * stays inside the frame - the shelf reading as a choice outranks seeing a
@@ -115,6 +116,60 @@ export function lookDown(
     look = Math.min(look, AIR_LIFT_MAX + (cap - AIR_LIFT_MAX) * weight);
   }
   return Math.max(look, 0);
+}
+
+/**
+ * The look-down as the camera actually shows it: `lookDown`, followed at a
+ * limited rate. Feature 008, FR-261.
+ *
+ * `lookDown` is a pure function of x, and on the ground that is all it needs.
+ * In the air it is not: landing the small booter, the piste 213 ahead reaches the
+ * big booter's steep run-in four ticks before touchdown, just as the air lift runs
+ * out, and the camera's descent doubled in a tick. The ground looked as if it fell
+ * away under a player timing his landing. So in the air it never grows, and
+ * settles by at most `lookRateAir` a tick; on the snow it follows the target at up
+ * to `lookRateGround`, which spreads that change over the roll-out instead.
+ *
+ * Advanced once per SIMULATION tick, never per frame, so the view is the same on
+ * every display (FR-257). Deterministic: it reads only the states it is given. It
+ * restarts at the target whenever the tick does not follow on from the last one,
+ * which is what a new run looks like.
+ */
+export class LookFollower {
+  private value = 0;
+  private lastTick = Number.NaN;
+  /** Ticks on the snow before this one; 0 in the air and on touchdown. */
+  private groundedFor = Number.POSITIVE_INFINITY;
+
+  constructor(
+    private readonly course: Course,
+    private readonly framing: CameraFraming,
+  ) {}
+
+  advance(state: RunState): number {
+    const target = lookDown(this.course, state.x, state.ledge < 0, this.framing);
+    if (state.tick !== this.lastTick + 1) {
+      this.value = target;
+    } else {
+      // In the air it may settle but never grow: growing there adds to a fall the
+      // air lift was absorbing, which is exactly the lurch. On the snow the
+      // skier's own descent is slow, and that is where it catches up.
+      // Nor on the tick of touchdown, which still carries the last of the fall,
+      // and after it the rate builds over `lookRampTicks` while the landing settles.
+      const settled = Math.min(this.groundedFor / Math.max(this.framing.lookRampTicks, 1), 1);
+      const up = this.framing.lookRateGround * settled;
+      const down = state.grounded ? this.framing.lookRateGround : this.framing.lookRateAir;
+      this.value += Math.min(Math.max(target - this.value, -down), up);
+    }
+    this.lastTick = state.tick;
+    this.groundedFor = state.grounded ? this.groundedFor + 1 : 0;
+    return this.value;
+  }
+
+  /** The look-down as of the last tick advanced. */
+  get current(): number {
+    return this.value;
+  }
 }
 
 /** A booter is a wedge you ride ALONG. A pop ramp is a lip you unweight off. */

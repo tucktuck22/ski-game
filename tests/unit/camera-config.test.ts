@@ -19,11 +19,33 @@ const shipped = JSON.parse(readFileSync(join(root, 'data/camera.json'), 'utf8'))
 >;
 
 describe('data/camera.json', () => {
-  it('parses, with the values research R2 and R3 measured against', () => {
-    expect(parseCamera(shipped)).toEqual({ lookMargin: 4, shelfMargin: 8, shelfEaseIn: 120 });
+  it("parses, with the values research R2 and R3 measured against, and FR-261's rates", () => {
+    expect(parseCamera(shipped)).toEqual({
+      lookMargin: 4,
+      shelfMargin: 8,
+      shelfEaseIn: 120,
+      lookRateAir: 1,
+      lookRateGround: 3.5,
+      lookRampTicks: 12,
+    });
   });
 
-  for (const key of ['lookMargin', 'shelfMargin', 'shelfEaseIn'] as const) {
+  for (const key of ['lookRateAir', 'lookRateGround'] as const) {
+    it(`refuses a zero "${key}", which would freeze the look-down`, () => {
+      expect(() => parseCamera({ ...shipped, [key]: 0 })).toThrow(
+        `camera.json: "${key}" must be positive`,
+      );
+    });
+  }
+
+  for (const key of [
+    'lookMargin',
+    'shelfMargin',
+    'shelfEaseIn',
+    'lookRateAir',
+    'lookRateGround',
+    'lookRampTicks',
+  ] as const) {
     it(`refuses a missing "${key}", naming it`, () => {
       const { [key]: _gone, ...rest } = shipped;
       expect(() => parseCamera(rest)).toThrow(`camera.json: "${key}" must be a number`);
