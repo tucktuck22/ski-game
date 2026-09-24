@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-23
 
-**Status**: Approved 2026-09-23, amended 2026-09-24 by `/speckit-plan` research (see [plan.md § Spec amendments](./plan.md#spec-amendments)). Planned; ready for `/speckit-tasks`
+**Status**: Approved 2026-09-23, amended 2026-09-24 by `/speckit-plan` research (see [plan.md § Spec amendments](./plan.md#spec-amendments)). Planned and tasked; analysed 2026-09-24
 
 **Input**: User description: "in playtesting on production, I'm finding that I am
 moving too fast and don't have the reaction time necessary to jump over boxes while
@@ -54,7 +54,9 @@ next box appears. Measured on a full low-line ride
 ([research R1](./research.md#r1--how-is-time-to-decide-measured)), time to decide is
 1,830: **631 ms** · 3,600: 531 · 4,120: 398 · 4,640: **365** · 6,100: 631 · 11,600: 398.
 **Every official box fails, including 1,830**, which the table above passes. FR-231
-has always said "simulating the actual ride", and these are the numbers it means._
+has always said "simulating the actual ride", and these are the numbers it means.
+**The warm-up box at 5,200 fails too: 648 ms**, because the warm-up ramp at 4,600 hops a
+low-line player into it (measured during `/speckit-analyze`; research R9)._
 
 "Time to decide" is the on-screen time minus about 85 ms. That is how long the jump
 needs to climb to box height, so it is the latest a release can still clear the box.
@@ -79,12 +81,13 @@ next appears.
 - **Q: How much reaction time?** → **A: 680 ms to decide at every box.** It covers a
   player who first has to recognise what appeared, plus phone input latency, with
   some margin. Equivalent to at least **765 ms on screen**, which at the fixed 213
-  units ahead means a tucked player reaches every box at a horizontal speed of
-  **about 4.6 or less**. _(Corrected 2026-09-24: on a real ride that is 5–19% under
-  today's arrival speeds, from 4.65 → 4.43 at 1,830 to 5.41 → 4.45 at 4,640. The
-  "roughly 8%" first written here came from a clean-approach measurement.)_ (When first answered,
-  this was put as "a 20% slow-down"; that figure used speed along the slope and is
-  superseded.)
+  units ahead would mean crossing the view at an average horizontal speed of about
+  4.6 or less. _(Corrected 2026-09-24. Riders are still slowing from their last jump
+  as they cross the view, so on a real ride passing boxes are reached at **4.2–4.45**,
+  5–19% under today's arrival speeds: from 4.65 → 4.43 at 1,830, to 5.41 → 4.45 at
+  4,640. The requirement is the measured 680 ms, not any speed. When first answered,
+  this was put as "a 20% slow-down", and later as "roughly 8%". The first used speed
+  along the slope; the second came from a clean approach. Both are superseded.)_
 - **Q: Does a live draft hold committed scores?** → **A: No.** No reset or player
   notice is needed. `rulesVersion` is still bumped, because the official course
   changes. The draft's first-commit freeze then adopts the new version from the
@@ -220,12 +223,16 @@ the rotations available off each booter, and which shelves each robot pilot reac
 
 ### Functional Requirements
 
-- **FR-231**: At every box (deadfall) on both shipped courses, a player riding tucked
-  MUST have at least **680 ms** between the box entering view and the last release
-  that still clears it. "Entering view" means the box's top edge is inside the frame
-  both horizontally and vertically, with the camera the player actually sees. This is
-  measured by simulating the actual ride, not by the local gradient's terminal speed,
-  because speed lags behind the slope.
+- **FR-231**: At every box (deadfall) on both shipped courses, a player riding the
+  **low line** MUST have at least **680 ms** between the box entering view and the
+  last release that still clears it. The low line means tucked throughout, except
+  standing up before each shelf ramp so the ramp hops them rather than lifting them
+  onto the shelf. That is the line that meets the boxes beneath the shelves, and the
+  hop is part of why it is hard. "Entering view" means the box's top edge is inside
+  the frame both horizontally and vertically, with the camera the player actually
+  sees. This is measured by simulating the actual ride, not by the local gradient's
+  terminal speed, because speed lags behind the slope. _(Reworded 2026-09-24 from "a
+  player riding tucked", which did not describe the ride the measurement uses.)_
 - **FR-232**: The gain MUST come from two places only: the camera's vertical framing
   (FR-242) and the course's shape. The tuning file MUST NOT change: gravity,
   friction, drag, the speed limits and every launch value stay as they are. So the
@@ -234,11 +241,14 @@ the rotations available off each booter, and which shelves each robot pilot reac
   approach to a box that fails FR-231 today, only as far upstream as that box needs;
   or (b) immediately downstream of such an approach, only as much as FR-235 needs to
   give back speed the easing cost a kicker or booter. Each change MUST be recorded
-  against its box in the generator's comments. The warm-up course and the ground
-  around its boxes MUST NOT move. _(Amended 2026-09-24: this read "only on the
-  approach", and named 1,830 as already inside the budget. On a real ride 1,830 fails,
-  and (b) is needed because easing under a shelf eases the shelf; see research R1 and
-  R5.)_
+  against its box in the generator's comments. This applies to both courses. On the
+  warm-up course only the approach to its box at 5,200 qualifies, and the coached
+  section MUST NOT move. _(Amended 2026-09-24: this read "only on the approach", and
+  named 1,830 as already inside the budget. On a real ride 1,830 fails, and (b) is
+  needed because easing under a shelf eases the shelf; see research R1 and R5.
+  Amended again the same day: it also froze the whole warm-up course, which
+  `/speckit-analyze` found left no remedy for the warm-up box at 5,200, measured at
+  648 ms; see research R9.)_
 - **FR-234**: A terrain segment MUST NOT fall below the gentlest gradient the course
   already uses, or break any rule the course validator enforces.
 - **FR-235**: A tucked player MUST reach every kicker at a speed within 2% of today's.
@@ -285,9 +295,10 @@ the rotations available off each booter, and which shelves each robot pilot reac
 
 - **Reaction budget**: 680 ms. The minimum time a player is guaranteed between a box
   appearing and the last moment they can still release and clear it.
-- **Eased approach**: A stretch of gentler ground ahead of a box, long enough that a
-  tucked player has slowed to about 4.6 horizontally or less by the time the box
-  comes into view.
+- **Eased approach**: A stretch of gentler ground ahead of a box, long enough that the
+  box meets the reaction budget on a real ride. It is defined by the measured result,
+  not by a speed: passing boxes are reached at 4.2–4.45 horizontally, because riders
+  are still slowing from their last jump as they cross the view.
 - **Steep-slope framing**: How far the camera shifts the skier up the frame on steep
   ground, so the slope below and ahead is visible. It is set by how steep the ground
   is, and zero on gentle ground.
@@ -310,14 +321,21 @@ the rotations available off each booter, and which shelves each robot pilot reac
   easing before a box reads as part of the mountain rather than as a speed bump. This
   is a play-pass question and cannot be measured.
 - **SC-086**: On every stretch of either course steeper than 0.41, a hazard enters the
-  frame when it comes within 213 units horizontally, rather than later.
+  frame when it comes within 213 units horizontally, rather than later. The exception
+  is where a shelf overhead limits how far the camera may look down (FR-243). There,
+  the shelf staying in frame takes precedence, and hazards are still covered by
+  FR-231 and FR-237.
 
 ## Assumptions
 
 - **"Boxes" means deadfall**, the obstacle kind cleared only by jumping over it
   (feature 005 established this reading).
-- **The warm-up course does not change.** Both of its boxes already leave more than
-  680 ms.
+- **The warm-up course changes only at its box at 5,200.** Its coached box at 1,289
+  leaves 2,098 ms. Its box at 5,200 leaves 648 ms on a real ride and is eased like
+  the official ones (research R9). The warm-up's version is never submitted, so this
+  carries no draft consequence. _(Corrected 2026-09-24: this read "does not change.
+  Both of its boxes already leave more than 680 ms", from a clean-approach
+  measurement.)_
 - **Seeing further ahead horizontally is out of scope.** Widening the 213-unit view
   would also buy reaction time, but it is a phone/desktop fairness decision, and the
   course validator and the tutorial's cue timing both rely on it. The vertical framing

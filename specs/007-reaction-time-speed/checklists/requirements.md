@@ -85,3 +85,17 @@ named, and FR-243's shelf clause was sharpened to a measurable margin. The one b
 (11,600 → 11,680) is recorded as FR-241's first fallback, taken. Every amendment is
 marked in place with its date and its research reference, rather than silently
 rewritten.
+
+**Validation run 6 — 2026-09-24 (`/speckit-analyze` remediation). All items pass.**
+Analysis found one constitution conflict and one feasibility gap. Both are resolved by
+amendment, not by argument:
+
+- **D1, Principle III**: the camera constants move from code to `data/camera.json`.
+- **C1**: the warm-up box at 5,200 measured 648 ms on a real ride, and FR-233 as
+  written froze the warm-up course. The freeze is lifted for that one approach. A
+  measured easing gives 698 ms with both warm-up kickers within 0.3% (research R9).
+
+Medium findings F1–F3, G1 and E1 are applied across the spec, plan, contracts and
+tasks. The full test suite passes with both candidate courses installed (559/562). The
+three failures are the LFS sprite tests and the frozen-file guard, which the tasks
+retarget.

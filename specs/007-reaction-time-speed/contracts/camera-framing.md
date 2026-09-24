@@ -7,8 +7,9 @@
 ## Signature
 
 ```ts
-cameraFor(state: RunState, course: Course): { x: number; y: number }   // unchanged
-lookDown(course: Course, x: number, onPiste: boolean): number           // new, pure
+cameraFor(state: RunState, course: Course, framing: CameraFraming): { x: number; y: number }
+lookDown(course: Course, x: number, onPiste: boolean, framing: CameraFraming): number   // new, pure
+// CameraFraming = { lookMargin, shelfMargin, shelfEaseIn }, parsed from data/camera.json
 ```
 
 ## Guarantees

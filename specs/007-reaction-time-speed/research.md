@@ -75,13 +75,15 @@ by taking the larger of the two.
 
 ```text
 drop(x)   = pisteY(x + PLAYER_LOOKAHEAD) − pisteY(x)          // how far the ground falls across the view
-look(x)   = clamp(drop(x) − 0.4·INTERNAL_HEIGHT + LOOK_MARGIN, 0, AIR_LIFT_MAX)
+look(x)   = clamp(drop(x) − 0.4·INTERNAL_HEIGHT + lookMargin, 0, AIR_LIFT_MAX)
 look(x)   = min(look(x), shelfCap(x))                         // R3, only on the piste
 shift     = max(cameraAirLift(h), look(x))
 camera.y  = state.y − 0.6·INTERNAL_HEIGHT + shift              // today: + cameraAirLift(h)
 ```
 
-`LOOK_MARGIN` = 4 units. That is enough for the whole box, not just its top pixel, to
+`lookMargin` = 4 units. It lives in a new data file, `data/camera.json`, with the
+two shelf constants from R3: see R10. That is enough for the whole box, not just its
+top pixel, to
 be in frame when it crosses 213 units.
 
 **Rationale**:
@@ -235,6 +237,47 @@ asking it at 5.4.
   no room between boxes 520 apart to both rebuild speed and shed it again.
 - **Only the three Narrows boxes**: leaves 1,830, 6,100 and 11,600 failing (R1).
 
+**The complete programme**, exactly as measured. This is what T012 writes into
+`OFFICIAL_GRADE`; the table above omits the unchanged keys between 7,300 and 10,900:
+
+```ts
+[
+  { x: 0, g: 0.25 },
+  { x: 1200, g: 0.3 },
+  { x: 1400, g: 0.3 },
+  { x: 1600, g: 0.25 },
+  { x: 1850, g: 0.25 },
+  { x: 2000, g: 0.3 },
+  { x: 3000, g: 0.34 },
+  { x: 3200, g: 0.3 },
+  { x: 4600, g: 0.3 },
+  { x: 4700, g: 0.6 },
+  { x: 5000, g: 0.56 },
+  { x: 5400, g: 0.42 },
+  { x: 5800, g: 0.42 },
+  { x: 5900, g: 0.26 },
+  { x: 6100, g: 0.26 },
+  { x: 6300, g: 0.46 },
+  { x: 6600, g: 0.46 },
+  { x: 6800, g: 0.4 },
+  { x: 7300, g: 0.56 },
+  { x: 7700, g: 0.56 },
+  { x: 7800, g: 0.34 },
+  { x: 8400, g: 0.26 },
+  { x: 8700, g: 0.26 },
+  { x: 8800, g: 0.58 },
+  { x: 9100, g: 0.58 },
+  { x: 9200, g: 0.34 },
+  { x: 10600, g: 0.25 },
+  { x: 10900, g: 0.44 },
+  { x: 11200, g: 0.4 },
+  { x: 11300, g: 0.25 },
+  { x: 11680, g: 0.25 },
+  { x: 11850, g: 0.6 },
+  { x: 12200, g: 0.6 },
+];
+```
+
 ---
 
 ## R5 — The booter rotation test is a zero-margin instrument
@@ -327,3 +370,85 @@ GitHub media endpoint. Then assert the PNG signature: the existing
 `tests/unit/sprite-palette.test.ts` does exactly this and currently fails for exactly
 this reason. **If neither route works, the build is not handed over as a play-pass
 build.** The maintainer is told plainly why.
+
+---
+
+## R9 — The warm-up course has a failing box too
+
+**Finding** (found by `/speckit-analyze`, 2026-09-24): FR-231 covers both courses, but
+the warm-up had only been measured from a clean start. On the same low-line ride, its
+coached box at 1,289 leaves 2,098 ms. Its box at **5,200 leaves 648 ms**, because the
+warm-up ramp at 4,600 hops a low-line player into it. The camera does not help: the
+box is limited horizontally, not hidden (648 ms with or without it). As first
+amended, the spec froze the whole warm-up course, which left no remedy. FR-233 is
+amended to allow this one approach.
+
+**Decision**: ease 4,800–5,200 to the 0.25 floor and give the speed back at
+5,300–5,400, so the warm-up booter at 5,586 is reached as before. Complete programme:
+
+```ts
+[
+  { x: 0, g: 0.05 },
+  { x: 2780, g: 0.05 },
+  { x: 3200, g: 0.26 },
+  { x: 4600, g: 0.38 },
+  { x: 4700, g: 0.38 },
+  { x: 4800, g: 0.25 },
+  { x: 5200, g: 0.25 },
+  { x: 5300, g: 0.3 },
+  { x: 5400, g: 0.31 },
+  { x: 6400, g: 0.3 },
+  { x: 6600, g: 0.34 },
+];
+```
+
+The coached section (0–3,200) does not move.
+
+| Measure                                 | Shipped | Candidate |
+| --------------------------------------- | ------: | --------: |
+| Box 5,200, time to decide               |  648 ms |    698 ms |
+| Ramp 4,600, lip speed (tucked)          |   4.785 |     4.799 |
+| Booter 5,586, lip speed                 |   4.379 |     4.374 |
+| Coached ramp and booter (1,889 / 2,489) |   1.633 |     1.633 |
+
+The box passes with one tick of margin, and both kickers are within 0.3%. The validator
+is clean, and the tuck and stay-low pilots finish the warm-up with 1 and 0 shelves, as
+before. The whole suite passes with both candidate courses installed (559/562). The
+three failures are the two LFS sprite tests (R8) and the frozen-file guard, which T006
+retargets.
+
+Two variants were rejected:
+
+- **Easing to 0.28 without a restore**: the box reads only 681 ms.
+- **Restoring to 0.34 at 5,300**: the booter lip moves +2.1%, outside FR-235.
+
+---
+
+## R10 — Where the camera constants live (Principle III)
+
+**Finding** (`/speckit-analyze`, D1): the plan first kept `LOOK_MARGIN`,
+`SHELF_MARGIN` and `SHELF_EASE_IN` in code beside `AIR_LIFT_MAX`. It justified that
+by precedent. Principle III says "magic numbers governing feel MUST NOT be embedded in
+code", and these three set how many milliseconds a player gets. Precedent does not
+license a MUST.
+
+**Decision**: a new versioned data file, **`data/camera.json`**:
+
+```json
+{ "lookMargin": 4, "shelfMargin": 8, "shelfEaseIn": 120 }
+```
+
+- It is parsed by a new `parseCamera` in `src/data/load.ts`, which rejects a missing
+  key, a non-number, or a negative value, following `parseAudio` and `parseSprites`.
+- It is imported in `src/main.ts` beside `sprites.json` and carried on `GameData`.
+- It is passed to `cameraFor(state, course, framing)`.
+
+`data/tuning.json` is untouched, so FR-232 holds. The renderer, not the simulation,
+reads the file, so determinism is unaffected. Changing a value re-feels the game, so
+Principle VIII's play-pass obligation extends to this file, and it is named in the
+quickstart.
+
+**What stays in code**: `PLAYER_LOOKAHEAD`, `INTERNAL_HEIGHT` and `AIR_LIFT_MAX`. These
+are frame geometry, not tuning: the 320×180 buffer and the headroom ceiling the booter
+test derives. They were in code before this feature, and moving them is not this
+feature's to do.

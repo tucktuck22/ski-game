@@ -26,6 +26,10 @@ The plan fixes both without touching `data/tuning.json`:
    - speed given back where the eases would otherwise have moved a kicker or the small
      booter.
 3. **One box moves**, 11,600 → 11,680, as FR-241's first fallback.
+4. **The warm-up box at 5,200 is eased too** (research R9). It measured 648 ms on a
+   real ride. The coached section does not move.
+5. **The three camera constants live in a new `data/camera.json`**, not in code
+   (research R10).
 
 `rulesVersion` goes 2.0.0 → 2.1.0, and no reset is needed.
 
@@ -52,22 +56,22 @@ rope loses time; six ropes gain more than 100 ms.
 
 **Constraints**: bit-for-bit determinism (the sim is not touched); `tuning.json` byte-identical; horizontal lookahead fixed at 213 on every device; every CV rule holds
 
-**Scale/Scope**: one generated course file, one version string on two courses, one renderer function, two operator SQL literals, one frozen-file test, one new sim test, one new unit test
+**Scale/Scope**: two generated course files, one version string on both, one new render-side data file (`data/camera.json`) with its parser, one renderer function, two operator SQL literals, one frozen-file test, one new sim test, one new unit test
 
 ## Constitution Check
 
 _GATE: evaluated before Phase 0 and re-checked after Phase 1. **PASS.**_
 
-| Principle                           | Assessment                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **I. Spec-driven (NN)**             | Every change traces to FR-231–FR-244. Research found the spec wrong on four facts (below), so the spec is amended in this change set before tasks, as the principle requires.                                                                                                                                                                                                                                                                                       |
-| **II. Stability**                   | The simulation is untouched. Determinism goldens are expected unchanged (R7), and the camera is render-only (C7). The monkey test and pilots run on the new course. No save schema changes.                                                                                                                                                                                                                                                                         |
-| **III. Fun is testable**            | Every feel target is numeric: 680 ms, ±2% lip speed, rotations equal, rope lead ≥ baseline. Tuning stays in data and does not move. **Camera constants in code**: `LOOK_MARGIN`, `SHELF_MARGIN` and `SHELF_EASE_IN` sit beside the existing `AIR_LIFT_MAX` and `CAMERA_X_OFFSET`. They are frame geometry, cannot change a score, and follow the precedent that camera framing is not a `tuning.json` value. Recorded rather than assumed; see Complexity Tracking. |
-| **IV. One voice**                   | No new asset. Legibility outranks style: this feature exists to un-hide hazards.                                                                                                                                                                                                                                                                                                                                                                                    |
-| **V. Fair competition**             | The same view on every device, because the horizontal lookahead is unchanged and the look-down depends only on the course. `rulesVersion` bumps, so scores under 2.0.0 and 2.1.0 are never compared. Client-trust deviation 4 is unchanged.                                                                                                                                                                                                                         |
-| **VI. Shipped artifact (NN)**       | `npm run test:build` drives the built artifact at `/ski-game/`. **Gap, stated**: no browser test asserts the camera's vertical framing from pixels. It is proven on the pure `cameraFor` function the renderer calls, and seen by a human in the play pass.                                                                                                                                                                                                         |
-| **VII. Operator instructions (NN)** | `seed-draft.sql` and `fix-rules-version.sql` carry the version literal and move to 2.1.0. CI already executes both against Postgres. The README's rules-version section gains the 2.1.0 entry, stating that no reset is needed.                                                                                                                                                                                                                                     |
-| **VIII. Player judges fun (NN)**    | Course and camera change feel, so a single-file build goes to the maintainer at the first playable point: **task order puts it before hardening tests are finalised**. The real sprite is required (R8), and quickstart §6 lists the four questions.                                                                                                                                                                                                                |
+| Principle                           | Assessment                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **I. Spec-driven (NN)**             | Every change traces to FR-231–FR-244. Research found the spec wrong on four facts (below), so the spec is amended in this change set before tasks, as the principle requires.                                                                                                                                                                                                                                                                                                      |
+| **II. Stability**                   | The simulation is untouched. Determinism goldens are expected unchanged (R7), and the camera is render-only (C7). The monkey test and pilots run on the new course. No save schema changes.                                                                                                                                                                                                                                                                                        |
+| **III. Fun is testable**            | Every feel target is numeric: 680 ms, ±2% lip speed, rotations equal, hazard lead ≥ baseline. Tuning stays in data and does not move. **The three new camera values are in a new versioned data file, `data/camera.json`** (research R10). They were first planned in code; `/speckit-analyze` finding D1 flagged that as a Principle III violation, and it is corrected here, not justified. The existing frame geometry (`PLAYER_LOOKAHEAD`, `AIR_LIFT_MAX`) stays where it was. |
+| **IV. One voice**                   | No new asset. Legibility outranks style: this feature exists to un-hide hazards.                                                                                                                                                                                                                                                                                                                                                                                                   |
+| **V. Fair competition**             | The same view on every device, because the horizontal lookahead is unchanged and the look-down depends only on the course. `rulesVersion` bumps, so scores under 2.0.0 and 2.1.0 are never compared. Client-trust deviation 4 is unchanged.                                                                                                                                                                                                                                        |
+| **VI. Shipped artifact (NN)**       | `npm run test:build` drives the built artifact at `/ski-game/`. **Gap, stated**: no browser test asserts the camera's vertical framing from pixels. It is proven on the pure `cameraFor` function the renderer calls, and seen by a human in the play pass.                                                                                                                                                                                                                        |
+| **VII. Operator instructions (NN)** | `seed-draft.sql` and `fix-rules-version.sql` carry the version literal and move to 2.1.0. CI already executes both against Postgres. The README's rules-version section gains the 2.1.0 entry, stating that no reset is needed.                                                                                                                                                                                                                                                    |
+| **VIII. Player judges fun (NN)**    | Course and camera change feel, so a single-file build goes to the maintainer at the first playable point: **task order puts it before hardening tests are finalised**. The real sprite is required (R8), and quickstart §6 lists the four questions.                                                                                                                                                                                                                               |
 
 **Post-design re-check**: PASS. Phase 1 added no dependency, no persisted state and no
 simulation code.
@@ -80,7 +84,8 @@ simulation code.
 specs/007-reaction-time-speed/
 ├── spec.md              # amended in this change (see Spec amendments)
 ├── plan.md              # this file
-├── research.md          # R1–R8, all measured
+├── research.md          # R1–R10, all measured
+├── baseline-2.0.0.md    # T001: rules-2.0.0 measurements every later assertion compares against
 ├── data-model.md
 ├── quickstart.md
 ├── contracts/
@@ -93,14 +98,18 @@ specs/007-reaction-time-speed/
 ### Source Code (repository root)
 
 ```text
-tools/gen-courses.ts               # OFFICIAL_GRADE keys; deadfall 11,600 -> 11,680; rulesVersion 2.1.0 (both courses)
+tools/gen-courses.ts               # OFFICIAL_GRADE and WARMUP_GRADE keys; deadfall 11,600 -> 11,680; rulesVersion 2.1.0 (both courses)
 data/courses/official.json         # regenerated
-data/courses/warmup.json           # regenerated (rulesVersion only)
-src/render/rampGeometry.ts         # + lookDown(course, x, onPiste), + LOOK_MARGIN / SHELF_MARGIN / SHELF_EASE_IN
-src/render/draw.ts                 # cameraFor: shift = max(cameraAirLift, lookDown)
+data/courses/warmup.json           # regenerated (terrain from x = 4,800, rulesVersion)
+data/camera.json                   # new: lookMargin 4, shelfMargin 8, shelfEaseIn 120
+src/data/load.ts                   # + parseCamera; CameraFraming on GameData
+src/main.ts                        # import camera.json beside sprites.json
+src/render/rampGeometry.ts         # + lookDown(course, x, onPiste, framing)
+src/render/draw.ts                 # cameraFor(state, course, framing): shift = max(cameraAirLift, lookDown)
 tests/sim/pilots.ts                # + low-line tucked rider, next to the existing pilots
 tests/sim/reaction-budget.test.ts  # new: B1–B9
 tests/unit/camera-framing.test.ts  # new: C1–C7
+tests/unit/camera-config.test.ts   # new: data/camera.json parses; each rejection fires
 tests/unit/tuning-frozen.test.ts   # retargeted: tuning.json stays frozen; official.json must bump rulesVersion when it moves
 tests/e2e/determinism.spec.ts      # goldens: expected unchanged; regenerated with a dated note only if they move
 supabase/seed-draft.sql            # '2.0.0' -> '2.1.0'
@@ -115,12 +124,17 @@ new tests sit in the existing `tests/sim` and `tests/unit` suites, which CI alre
 
 The order is set by Principle VIII: playable first, hardened second.
 
-1. **Camera** (`lookDown` plus `cameraFor`), with its unit test. It is independent and
-   verifiable alone, and on its own it helps ropes and four of the boxes.
-2. **Course**: generator keys, the box move and the version bump. Regenerate, then run
-   the validator, the booter, track and base-jump suites, and scoring dominance.
-3. **Fetch the real sprites, build the single-file artifact, and hand it to the
-   maintainer** (FR-240). Record the verdict before any value moves again.
+1. **Camera**: `data/camera.json` and its parser, then `lookDown` and `cameraFor`,
+   with its unit test. It is independent and verifiable alone, and on its own it helps
+   ropes and four of the boxes.
+2. **Course**: generator keys on both courses, the box move and the version bump.
+   Regenerate, then run the validator, the booter, track and base-jump suites, and
+   scoring dominance.
+3. **As soon as the validator, the booter test and the 680 ms test are green**, fetch
+   the real sprites, build the single-file artifact and hand it to the maintainer
+   (FR-240). Record the verdict before any value moves again. Looking for extra
+   margin waits until after the verdict, and any change it keeps goes back to the
+   maintainer as a fresh build (`/speckit-analyze` G1).
 4. **Harden**: `reaction-budget.test.ts` with the committed baseline table, the
    frozen-file retarget, the operator SQL and the README.
 5. **The full gate**: lint, tsc, `npm test`, `test:build`, `test:determinism`.
@@ -147,6 +161,16 @@ with the facts is a defect, so these are corrected in `spec.md` in this change:
 FR-243 is also sharpened: "the shelf stays in frame as it does today" becomes "the
 shelf's top edge stays at least 8 units inside the frame" (R3).
 
+Four more were made after `/speckit-analyze` on the same day:
+
+- **FR-231** names the **low line** it is measured on, not "a player riding tucked"
+  (finding F3).
+- **FR-233** and the Assumptions no longer freeze the warm-up course. Its box at
+  5,200 measured 648 ms on a real ride (research R9, finding C1).
+- **SC-086** states the shelf-cap exception that FR-243 creates (finding F1).
+- The eased-approach speed of "about 4.6" is corrected to the measured 4.2–4.45 on
+  arrival (finding F2).
+
 ## Risks
 
 | Risk                                                                                           | Mitigation                                                                                                                                          |
@@ -159,7 +183,6 @@ shelf's top edge stays at least 8 units inside the frame" (R3).
 
 ## Complexity Tracking
 
-| Item                                                           | Why needed                                                                                                                                                      | Simpler alternative rejected because                                                                                                                                                     |
-| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Camera constants in code, not `tuning.json` (Principle III)    | They are frame geometry derived from the 320×180 buffer, like the existing `CAMERA_X_OFFSET` and `AIR_LIFT_MAX`, and they never reach the simulation or a score | Putting them in `tuning.json` would break FR-232 (tuning byte-identical), and would put render values in the file the simulation reads, which is the coupling the architecture separates |
-| Terrain changes beyond the box approaches (6,300–6,800; 5,000) | Without them the small booter loses a rotation, or the Cornice ramp its speed (R4, R5)                                                                          | Leaving them out fails FR-235. Re-solving booter power instead changes what the zero-margin rig measures                                                                                 |
+| Item                                                           | Why needed                                                                             | Simpler alternative rejected because                                                                     |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Terrain changes beyond the box approaches (6,300–6,800; 5,000) | Without them the small booter loses a rotation, or the Cornice ramp its speed (R4, R5) | Leaving them out fails FR-235. Re-solving booter power instead changes what the zero-margin rig measures |

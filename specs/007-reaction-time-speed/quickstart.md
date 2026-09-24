@@ -29,8 +29,10 @@ node --experimental-strip-types tools/gen-courses.ts
 git diff --stat data/courses/
 ```
 
-**Expect**: running the generator twice gives no further diff. `warmup.json` changes
-only in `rulesVersion`.
+**Expect**: running the generator twice gives no further diff. `warmup.json` changes in
+`rulesVersion` and in terrain from x = 4,800 onward (research R9). The coached section
+does not move. `data/camera.json` holds the three camera values (research R10), and
+any edit to it is a feel change that goes through §6's play pass like a course edit.
 
 ## 2. The course is legal and the physics did not move
 

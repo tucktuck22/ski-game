@@ -3,8 +3,9 @@
 **Feature**: [spec.md](./spec.md) | **Date**: 2026-09-24
 
 This feature adds **no entity, no table, no persisted field and no run state**. It
-changes the shape of one data file, moves one obstacle, bumps one version string, and
-adds one pure function of existing state to the renderer.
+changes the shape of both course files, moves one obstacle, bumps one version string,
+adds one small render-side data file, and adds one pure function of existing state to
+the renderer.
 
 ---
 
@@ -37,9 +38,16 @@ The gentlest gradient used stays 0.25.
 
 ## 2. Warm-up course (data file, generated)
 
-`data/courses/warmup.json`: `rulesVersion` `2.0.0` → `2.1.0` only, kept in step with the
-official course because the generator writes both. Nothing else moves. The warm-up's
-version is never submitted, so this has no draft consequence.
+`data/courses/warmup.json`, from `WARMUP_GRADE` in the same generator:
+
+- `rulesVersion` `2.0.0` → `2.1.0`, kept in step with the official course.
+- Terrain from x = 4,800 onward: the approach to its box at 5,200 is eased to 0.25,
+  and the ground gives the speed back at 5,300–5,400
+  ([research R9](./research.md#r9--the-warm-up-course-has-a-failing-box-too)).
+- The warm-up ramp's `power` and the shelf follow as the generator derives them.
+
+The coached section (0–3,200) and every obstacle x are unchanged. The warm-up's
+version is never submitted, so none of this has a draft consequence.
 
 ## 3. Tuning
 
@@ -58,33 +66,36 @@ A pure function of `(RunState, Course)`, recomputed every frame and never stored
 | `shift`    | `max(cameraAirLift(heightAbovePiste), look)`                                        | 0 – 92                 |
 | `camera.y` | `state.y − 108 + shift`                                                             | —                      |
 
-Constants, with where each comes from:
+Constants, with where each comes from. The three **new** ones live in a new data file,
+`data/camera.json`, not in code (research R10, Principle III). The rest are existing
+frame geometry:
 
-| Name               | Value | Source                                                              |
-| ------------------ | ----: | ------------------------------------------------------------------- |
-| `PLAYER_LOOKAHEAD` |   213 | existing, `src/render/stage.ts`                                     |
-| frame below skier  |    72 | `0.4 × INTERNAL_HEIGHT`, existing geometry                          |
-| `LOOK_MARGIN`      |     4 | new: whole box inside the frame, not just its top pixel             |
-| `AIR_LIFT_MAX`     |    92 | existing, `src/render/rampGeometry.ts`: the headroom ceiling        |
-| `SHELF_MARGIN`     |     8 | new: shelf top edge kept this far inside the frame                  |
-| `SHELF_EASE_IN`    |   120 | new: distance over which the shelf cap blends in, so it never snaps |
+| Name               | Value | Source                                                                             |
+| ------------------ | ----: | ---------------------------------------------------------------------------------- |
+| `PLAYER_LOOKAHEAD` |   213 | existing, `src/render/stage.ts`                                                    |
+| frame below skier  |    72 | `0.4 × INTERNAL_HEIGHT`, existing geometry                                         |
+| `lookMargin`       |     4 | `data/camera.json`: whole box inside the frame, not just its top pixel             |
+| `AIR_LIFT_MAX`     |    92 | existing, `src/render/rampGeometry.ts`: the headroom ceiling                       |
+| `shelfMargin`      |     8 | `data/camera.json`: shelf top edge kept this far inside the frame                  |
+| `shelfEaseIn`      |   120 | `data/camera.json`: distance over which the shelf cap blends in, so it never snaps |
 
-These live beside `AIR_LIFT_MAX` in code, not in `data/tuning.json`. They are frame
-geometry, like `CAMERA_X_OFFSET`, not feel values the simulation reads, and they cannot
-change a score (see [plan.md § Constitution Check](./plan.md#constitution-check),
-Principle III).
+`data/camera.json` is parsed by a new `parseCamera` in `src/data/load.ts`. It rejects
+a missing key, a non-number and a negative value, like its neighbours
+`parseAudio`/`parseSprites`. It is carried on `GameData` and passed to `cameraFor`.
+Only the renderer reads it, so it cannot change a score or a run. Changing a value
+still changes feel, so Principle VIII's play-pass obligation applies to it.
 
 ## 5. Measured quantities (test-only)
 
 Computed by `tests/sim/reaction-budget.test.ts` and never shipped:
 
-| Quantity           | Definition                                                         | Requirement                   |
-| ------------------ | ------------------------------------------------------------------ | ----------------------------- |
-| time to decide     | `(arrives − seen − climb) / 60`, per box, on the low-line ride     | ≥ 680 ms (FR-231)             |
-| `climb`            | smaller root of `impulseMax·t − g·t²/2 = standHeight`, from tuning | 5.12 ticks today              |
-| rope lead time     | `arrives − seen`, per rope                                         | ≥ shipped value (FR-237)      |
-| kicker lip speed   | tucked high-line pilot's speed crossing each lip                   | within 2% of shipped (FR-235) |
-| landed-before-next | rider grounded when the next box is seen                           | true (FR-236)                 |
+| Quantity                     | Definition                                                         | Requirement                   |
+| ---------------------------- | ------------------------------------------------------------------ | ----------------------------- |
+| time to decide               | `(arrives − seen − climb) / 60`, per box, on the low-line ride     | ≥ 680 ms (FR-231)             |
+| `climb`                      | smaller root of `impulseMax·t − g·t²/2 = standHeight`, from tuning | 5.12 ticks today              |
+| rope, rock and ice lead time | `arrives − seen`, per hazard                                       | ≥ shipped value (FR-237)      |
+| kicker lip speed             | tucked high-line pilot's speed crossing each lip                   | within 2% of shipped (FR-235) |
+| landed-before-next           | rider grounded when the next box is seen                           | true (FR-236)                 |
 
 The "shipped" reference values are committed as a small table inside that test, taken
 from rules `2.0.0`. They are not recomputed from git history at test time, so the test
