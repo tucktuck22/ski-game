@@ -69,7 +69,7 @@ export class GameView {
     private readonly course: Course,
     private readonly tuning: Tuning,
     private readonly scoring: Scoring,
-    /** How far the camera looks down the steeps (data/camera.json, feature 007). */
+    /** How far the camera looks down the steeps (data/camera.json, feature 008). */
     private readonly framing: CameraFraming,
     seed: number,
     private readonly kind: RunKind,

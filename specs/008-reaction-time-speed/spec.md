@@ -53,7 +53,7 @@ player faster than the slope's own speed, and they are still bleeding it off whe
 next box appears. Measured on a full low-line ride
 ([research R1](./research.md#r1--how-is-time-to-decide-measured)), time to decide is
 1,830: **631 ms** · 3,600: 531 · 4,120: 398 · 4,640: **365** · 6,100: 631 · 11,600: 398.
-**Every official box fails, including 1,830**, which the table above passes. FR-231
+**Every official box fails, including 1,830**, which the table above passes. FR-246
 has always said "simulating the actual ride", and these are the numbers it means.
 **The warm-up box at 5,200 fails too: 648 ms**, because the warm-up ramp at 4,600 hops a
 low-line player into it (measured during `/speckit-analyze`; research R9)._
@@ -85,7 +85,7 @@ both seen late and approached fast. Three of them (3,600 / 4,120 / 4,640) also c
 about 1.5 s apart, so a player who is late on the first is still recovering when the
 next appears.
 
-**Numbering**: requirements continue from feature 006 (FR-231+, SC-081+).
+**Numbering**: requirements continue from feature 006 (FR-246+, SC-088+).
 
 ## Clarifications
 
@@ -200,7 +200,7 @@ the rotations available off each booter, and which shelves each robot pilot reac
   (research R5).
 - **Three boxes 520 units apart.** Each needs its own eased approach, and the ground
   between them is short. The stretch may come out as a stepped descent: steep, ease,
-  box, steep, ease, box. That is acceptable if FR-236 holds, and the play pass judges
+  box, steep, ease, box. That is acceptable if FR-251 holds, and the play pass judges
   whether it reads well.
 - **Everything downhill moves.** Easing a section changes the height of every point
   after it. Shelves are set by height above the snow, so they follow. Anything else
@@ -211,16 +211,16 @@ the rotations available off each booter, and which shelves each robot pilot reac
 - **Standing players.** A player who is not tucked is slower (about 3.3 horizontally
   at the steepest box), but because the frame hides the box until late, still has
   only about 650 ms to decide, short of the budget. That is the hidden-box problem, not
-  speed, and the camera change (FR-242) fixes it for them too. The eased approaches
+  speed, and the camera change (FR-257) fixes it for them too. The eased approaches
   only slow them further.
 - **Ropes and upper-track hazards.** Not reported as a problem. Ropes are ducked by
   staying crouched, which a tucked player already is. They must not get _worse_
-  (FR-237), and the camera change should make ropes on steep ground visible sooner
+  (FR-252), and the camera change should make ropes on steep ground visible sooner
   too.
 - **The camera and the jumps.** Showing more ground below the skier leaves less
   above. The big booter's apex already nearly fills the 180-unit frame, and the camera
   already lifts while airborne to keep it in view. The camera change must not cost
-  that headroom in the air (FR-243).
+  that headroom in the air (FR-258).
 - **The camera must not jump.** It moves continuously today, deliberately, so a
   landing or a shelf exit is not an unreadable snap. Whatever makes it show more
   ground below on steep slopes must ease in and out the same way.
@@ -236,7 +236,7 @@ the rotations available off each booter, and which shelves each robot pilot reac
 
 ### Functional Requirements
 
-- **FR-231**: At every box (deadfall) on both shipped courses, **every way of riding
+- **FR-246**: At every box (deadfall) on both shipped courses, **every way of riding
   that meets the box on the piste** MUST leave at least **680 ms** between the box
   entering view and the last release that still clears it. That covers three riders:
   tucked throughout; cautious, never tucking; and the low line, tucked except when
@@ -248,13 +248,13 @@ the rotations available off each booter, and which shelves each robot pilot reac
   sees. This is measured by simulating the actual ride, not by the local gradient's
   terminal speed, because speed lags behind the slope. _(Reworded 2026-09-24 from "a
   player riding tucked", which did not describe the ride the measurement uses.)_
-- **FR-232**: The gain MUST come from two places only: the camera's vertical framing
-  (FR-242) and the course's shape. The tuning file MUST NOT change: gravity,
+- **FR-247**: The gain MUST come from two places only: the camera's vertical framing
+  (FR-257) and the course's shape. The tuning file MUST NOT change: gravity,
   friction, drag, the speed limits and every launch value stay as they are. So the
   speed model, the speed anchor and what a tuck is worth all stay as they are.
-- **FR-233**: Terrain MUST change only for one of two named reasons: (a) on the
-  approach to a box that fails FR-231 today, only as far upstream as that box needs;
-  or (b) immediately downstream of such an approach, only as much as FR-235 needs to
+- **FR-248**: Terrain MUST change only for one of two named reasons: (a) on the
+  approach to a box that fails FR-246 today, only as far upstream as that box needs;
+  or (b) immediately downstream of such an approach, only as much as FR-250 needs to
   give back speed the easing cost a kicker or booter. Each change MUST be recorded
   against its box in the generator's comments. The warm-up course MUST NOT move,
   because both its boxes pass today (715 ms and 2,098 ms). _(Amended 2026-09-24: this read "only on the approach", and
@@ -266,16 +266,16 @@ the rotations available off each booter, and which shelves each robot pilot reac
   box is 715 ms and needs nothing, and neither do 1,830 and 6,100. What moves is the
   Narrows, the Cornice run-in after it, a 0.015 nudge on the Flats that keeps the
   small booter's rotations, and the Last Pitch; research R11.)_
-- **FR-234**: A terrain segment MUST NOT fall below the 0.25 floor, the gradient
+- **FR-249**: A terrain segment MUST NOT fall below the 0.25 floor, the gradient
   feature 006 anchored speed to, or break any rule the course validator enforces.
   _(Sharpened 2026-09-24. This read "the gentlest gradient the course already uses",
   which was 0.254 as generated, a sampling artefact rather than a decision.)_
-- **FR-235**: A tucked player MUST reach every kicker at a speed within 2% of today's.
+- **FR-250**: A tucked player MUST reach every kicker at a speed within 2% of today's.
   Each booter MUST offer the same number of rotations as under rules `2.0.0`, and
   every upper shelf MUST remain enterable with speed and avoidable without.
-- **FR-236**: After clearing a box, a player MUST be back on the snow before the next
+- **FR-251**: After clearing a box, a player MUST be back on the snow before the next
   box on the course enters view.
-- **FR-237**: No other hazard (ropes, and rocks and ice on the shelves) on either
+- **FR-252**: No other hazard (ropes, and rocks and ice on the shelves) on either
   course MUST drop below the reaction budget, and a hazard that already gives less
   than the budget MUST NOT give less than it does today. _(Amended 2026-09-24 during
   implementation. This read "MUST NOT give less reaction time than today". The steep
@@ -283,36 +283,36 @@ the rotations available off each booter, and which shelves each robot pilot reac
   shelf sooner: 967 ms becomes 817 ms, still well above the budget. Every hazard
   below the budget today gains time, and the ropes on the steeps gain most, 333 → 733
   and 383 → 800 ms; research R11.)_
-- **FR-238**: Scoring MUST NOT change. The official course MUST remain finishable by
+- **FR-253**: Scoring MUST NOT change. The official course MUST remain finishable by
   every robot pilot that finishes it today. The rule that every finisher outranks
   every non-finisher MUST still hold against the new course. Its trick and pickup
   totals do not move, but its length-based totals could.
-- **FR-239**: The official course's `rulesVersion` MUST be bumped. No draft reset is
+- **FR-254**: The official course's `rulesVersion` MUST be bumped. No draft reset is
   required, because none holds scores (see Clarifications).
-- **FR-240**: Before any value is settled, the change MUST reach the maintainer as a
+- **FR-255**: Before any value is settled, the change MUST reach the maintainer as a
   playable single-file build carrying the real skier sprite, not the fallback
   renderer. The link and commit MUST be named, and the findings MUST be recorded in
   this spec in the maintainer's own words (Principle VIII).
-- **FR-241**: If the eased approaches cannot meet FR-231 and FR-235 together, for
+- **FR-256**: If the eased approaches cannot meet FR-246 and FR-250 together, for
   example if the Cornice ramp cannot get its speed back after the 4,640 box, the
   fallback MUST be taken in this order. First, move the box to gentler ground.
   Second, and only with the maintainer's agreement, raise drag instead, as recorded
-  under Clarifications. FR-235 MUST NOT be traded away silently. _(Taken once,
+  under Clarifications. FR-250 MUST NOT be traded away silently. _(Taken once,
   2026-09-24: the Last Pitch box moves from 11,600 to 11,680. With its approach eased
   to the gradient floor it still measured 615–631 ms, because the ramp at 11,000 hops
   a low-line player into it; research R4.)_
-- **FR-242**: On steep ground, the camera MUST show enough of the slope below the
+- **FR-257**: On steep ground, the camera MUST show enough of the slope below the
   skier that a hazard up to 213 units ahead is in the frame no later than it would be
   on level ground. The view ahead MUST stay at 213 units horizontally and MUST stay
   identical on every device. The change MUST ease in and out with the slope, with no
   visible snap.
-- **FR-243**: The camera change MUST NOT reduce how much of any jump stays in frame:
+- **FR-258**: The camera change MUST NOT reduce how much of any jump stays in frame:
   every booter's apex that is fully visible today MUST still be fully visible. While
   riding the piste under or towards an upper shelf, the shelf's top edge MUST stay at
   least 8 units inside the frame. _(Sharpened 2026-09-24 from "as it does today",
   which would have forbidden any look-down under the Cornice, where the 6,100 box sits;
   research R3.)_
-- **FR-244**: The camera is drawing only. It MUST NOT change the simulation, and runs
+- **FR-259**: The camera is drawing only. It MUST NOT change the simulation, and runs
   MUST stay bit-for-bit identical, so it carries no rules-version consequence of its
   own.
 
@@ -333,23 +333,23 @@ the rotations available off each booter, and which shelves each robot pilot reac
 
 ### Measurable Outcomes
 
-- **SC-081**: The shortest time any box gives any test rider to decide, on a real
+- **SC-088**: The shortest time any box gives any test rider to decide, on a real
   ride, rises from 315 ms to at least 680 ms.
-- **SC-082**: The maintainer, riding the official course on the play-pass build,
+- **SC-089**: The maintainer, riding the official course on the play-pass build,
   clears every box on their first run of that build without releasing early from
   memory, and says so in their own words.
-- **SC-083**: A player who has never seen the official course clears the 3,600 /
+- **SC-090**: A player who has never seen the official course clears the 3,600 /
   4,120 / 4,640 sequence on their official run, observed with the group.
-- **SC-084**: The rotations available off each booter, and the shelves each pilot
+- **SC-091**: The rotations available off each booter, and the shelves each pilot
   reaches, are identical before and after.
-- **SC-085**: The maintainer judges that the steeps still feel fast, and that the
+- **SC-092**: The maintainer judges that the steeps still feel fast, and that the
   easing before a box reads as part of the mountain rather than as a speed bump. This
   is a play-pass question and cannot be measured.
-- **SC-086**: On every stretch of either course steeper than 0.41, a hazard enters the
+- **SC-093**: On every stretch of either course steeper than 0.41, a hazard enters the
   frame when it comes within 213 units horizontally, rather than later. The exception
-  is where a shelf overhead limits how far the camera may look down (FR-243). There,
+  is where a shelf overhead limits how far the camera may look down (FR-258). There,
   the shelf staying in frame takes precedence, and hazards are still covered by
-  FR-231 and FR-237.
+  FR-246 and FR-252.
 
 ## Assumptions
 
@@ -362,8 +362,8 @@ the rotations available off each booter, and which shelves each robot pilot reac
 - **Seeing further ahead horizontally is out of scope.** Widening the 213-unit view
   would also buy reaction time, but it is a phone/desktop fairness decision, and the
   course validator and the tutorial's cue timing both rely on it. The vertical framing
-  is in scope (FR-242) because it only makes visible what the 213 units already
-  promise. Widening is recorded as the alternative if SC-085 fails.
+  is in scope (FR-257) because it only makes visible what the 213 units already
+  promise. Widening is recorded as the alternative if SC-092 fails.
 - **Late-crouch jumps stay as hard as they are.** This feature gives more time to
   _decide_. It does not make a jump started at the last moment more forgiving. If the
   play pass shows the problem is a late, weak jump rather than a late decision, that

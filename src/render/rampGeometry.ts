@@ -70,21 +70,21 @@ export const cameraAirLift = (h: number): number =>
   h <= 0 ? 0 : Math.min(h * AIR_LIFT, AIR_LIFT_MAX);
 
 /**
- * How far the camera drops to show the slope ahead on steep ground. Feature 007.
+ * How far the camera drops to show the slope ahead on steep ground. Feature 008.
  *
  * The skier sits 60% of the way down the frame, which leaves 72 units below him.
  * Every device is promised 213 units of course ahead (PLAYER_LOOKAHEAD), but on
  * ground steeper than about 0.41 the piste that far ahead is more than 72 below
  * him - so a log was still under the bottom edge when it was close enough to
  * see, and on the Narrows a player lost up to a third of the time the lookahead
- * was meant to buy (specs/007-reaction-time-speed/research.md R2). This drops the
+ * was meant to buy (specs/008-reaction-time-speed/research.md R2). This drops the
  * view by exactly enough to show the piste across that 213 units, plus a margin,
  * and never more: it only makes visible what the horizontal lookahead already
- * promises, so every device still sees the same course (FR-242).
+ * promises, so every device still sees the same course (FR-257).
  *
  * Capped at AIR_LIFT_MAX, the ceiling the booters' headroom is already held to,
  * and combined with the air lift by taking the larger, so no airborne frame shows
- * less of the jump than it did (FR-243).
+ * less of the jump than it did (FR-258).
  *
  * On the piste beneath an upper shelf it is capped again, so the shelf's top edge
  * stays inside the frame - the shelf reading as a choice outranks seeing a

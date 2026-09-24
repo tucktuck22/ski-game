@@ -17,7 +17,7 @@ export interface GameData {
 }
 
 /**
- * How far the camera looks down a steep slope. Feature 007; the reasoning is in
+ * How far the camera looks down a steep slope. Feature 008; the reasoning is in
  * data/camera.json itself, beside the numbers it explains.
  */
 export interface CameraFraming {

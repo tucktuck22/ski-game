@@ -1,12 +1,12 @@
 /**
- * What may not move without saying so. Owned by feature 007 since 2026-09-24;
+ * What may not move without saying so. Owned by feature 008 since 2026-09-24;
  * feature 005 wrote it (FR-196, FR-204) and its reasoning is kept below.
  *
  * TWO GUARDS, BECAUSE THE TWO FILES ARE NOW DIFFERENT KINDS OF FROZEN.
  *
  * data/tuning.json may not move at all. Feature 005 needed that because a rope
- * drawn differently must not change what a rope does. Feature 007 needs it again
- * for its own reason: FR-232 buys the player reaction time from the course's
+ * drawn differently must not change what a rope does. Feature 008 needs it again
+ * for its own reason: FR-247 buys the player reaction time from the course's
  * shape and the camera, and explicitly NOT from drag, gravity or friction. A
  * moved tuning value is a re-feel of both courses that nobody asked for.
  *
@@ -59,7 +59,7 @@ function committed(path: string): string | null {
 const OFFICIAL_GEOMETRY: Record<string, string> = {
   // Feature 006: slope-driven speed.
   '2.0.0': '2dcab59a32e75a087c8884711164c3fc1f68f42627fdbfb27b92b3fe5f6f2980',
-  // Feature 007: the Narrows and the Last Pitch eased, one log moved.
+  // Feature 008: the Narrows and the Last Pitch eased, one log moved.
   '2.1.0': '76625b52c2986f4f853f8f0714216b202781e8a45dedf8c0eeecde6a011bbba0',
 };
 
@@ -71,7 +71,7 @@ function geometry(course: Record<string, unknown>): string {
   return createHash('sha256').update(JSON.stringify(rest)).digest('hex');
 }
 
-describe('tuning does not move (FR-232)', () => {
+describe('tuning does not move (FR-247)', () => {
   const path = 'data/tuning.json';
   it(`${path} is byte-identical to its committed version`, () => {
     const head = committed(path);
@@ -84,13 +84,13 @@ describe('tuning does not move (FR-232)', () => {
     const working = readFileSync(join(root, path), 'utf8');
     expect(
       working,
-      `${path} has been modified. Feature 007 buys reaction time from the course and ` +
-        'the camera, not from physics (FR-232), and a moved tuning value re-feels both courses.',
+      `${path} has been modified. Feature 008 buys reaction time from the course and ` +
+        'the camera, not from physics (FR-247), and a moved tuning value re-feels both courses.',
     ).toBe(head);
   });
 });
 
-describe('the official course never moves without a new rules version (FR-023, FR-239)', () => {
+describe('the official course never moves without a new rules version (FR-023, FR-254)', () => {
   const official = readJson('data/courses/official.json');
   const version = official.rulesVersion as string;
 

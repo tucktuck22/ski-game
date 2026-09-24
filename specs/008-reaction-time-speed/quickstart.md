@@ -42,10 +42,10 @@ npx vitest run tests/course tests/unit/tuning-frozen.test.ts tests/unit/scoring-
 
 **Expect**:
 
-- Every CV rule passes on both courses (FR-234).
-- `data/tuning.json` is byte-identical to its committed version (FR-232).
+- Every CV rule passes on both courses (FR-249).
+- `data/tuning.json` is byte-identical to its committed version (FR-247).
 - An official course that moved without a `rulesVersion` bump fails (R7).
-- Every finisher still outranks every non-finisher (FR-238).
+- Every finisher still outranks every non-finisher (FR-253).
 
 ## 3. Every box leaves 680 ms
 
@@ -91,16 +91,16 @@ npm run build:artifact
 
 `npm run test:build` drives the built artifact at `/ski-game/` in a real browser.
 `build:artifact` produces the single file for the play pass. Publish it and name the
-link and commit (FR-240). The play pass asks the maintainer:
+link and commit (FR-255). The play pass asks the maintainer:
 
 1. On the official course, first ride of this build: **did you react to every box, or
-   anticipate it?** (SC-082)
+   anticipate it?** (SC-089)
 2. **Do the steeps still feel fast?** Especially the Cornice run-in (4,700–5,200) and
-   both booters. (SC-085)
+   both booters. (SC-092)
 3. **Does the eased ground before a box read as part of the mountain, or as a speed
-   bump?** The Narrows is now eased throughout rather than stepped. (SC-085)
+   bump?** The Narrows is now eased throughout rather than stepped. (SC-092)
 4. **Does the camera read naturally on the steeps, or does it feel like it drops
-   away?** (FR-242)
+   away?** (FR-257)
 
 Record the answers in the maintainer's own words in `spec.md` before any further value
 moves (Principle VIII).

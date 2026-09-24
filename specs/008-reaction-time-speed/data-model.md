@@ -26,7 +26,7 @@ hand; the generator is edited and re-run.
 
 The gradient programme that produces it is in [research.md § R4](./research.md#r4--course-where-to-ease-the-ground-and-how-much).
 
-**Validation**: every rule in `src/course/validate.ts` must hold (FR-234). In
+**Validation**: every rule in `src/course/validate.ts` must hold (FR-249). In
 particular:
 
 - **CV-10**: adjacent segments within `landingAngleTolerance`.
@@ -51,7 +51,7 @@ version is never submitted, so none of this has a draft consequence.
 
 ## 3. Tuning
 
-`data/tuning.json`: **no change, byte for byte** (FR-232). Enforced by the retargeted
+`data/tuning.json`: **no change, byte for byte** (FR-247). Enforced by the retargeted
 `tests/unit/tuning-frozen.test.ts`.
 
 ## 4. Camera framing (render-only, derived each frame)
@@ -91,11 +91,11 @@ Computed by `tests/sim/reaction-budget.test.ts` and never shipped:
 
 | Quantity                     | Definition                                                         | Requirement                   |
 | ---------------------------- | ------------------------------------------------------------------ | ----------------------------- |
-| time to decide               | `(arrives − seen − climb) / 60`, per box, on the low-line ride     | ≥ 680 ms (FR-231)             |
+| time to decide               | `(arrives − seen − climb) / 60`, per box, on the low-line ride     | ≥ 680 ms (FR-246)             |
 | `climb`                      | smaller root of `impulseMax·t − g·t²/2 = standHeight`, from tuning | 5.12 ticks today              |
-| rope, rock and ice lead time | `arrives − seen`, per hazard                                       | ≥ shipped value (FR-237)      |
-| kicker lip speed             | tucked high-line pilot's speed crossing each lip                   | within 2% of shipped (FR-235) |
-| landed-before-next           | rider grounded when the next box is seen                           | true (FR-236)                 |
+| rope, rock and ice lead time | `arrives − seen`, per hazard                                       | ≥ shipped value (FR-252)      |
+| kicker lip speed             | tucked high-line pilot's speed crossing each lip                   | within 2% of shipped (FR-250) |
+| landed-before-next           | rider grounded when the next box is seen                           | true (FR-251)                 |
 
 The "shipped" reference values are committed as a small table inside that test, taken
 from rules `2.0.0`. They are not recomputed from git history at test time, so the test

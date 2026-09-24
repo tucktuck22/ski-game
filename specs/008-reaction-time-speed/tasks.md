@@ -1,6 +1,6 @@
 # Tasks: Time to See the Box
 
-**Input**: Design documents from `/specs/007-reaction-time-speed/`
+**Input**: Design documents from `/specs/008-reaction-time-speed/`
 
 **Prerequisites**: [plan.md](./plan.md), [spec.md](./spec.md), [research.md](./research.md), [data-model.md](./data-model.md), [contracts/](./contracts/), [quickstart.md](./quickstart.md)
 
@@ -40,7 +40,7 @@ recorded here and in research R11:_
   today and do not move. The Flats key at 6,800 is 0.395._
 - _**T013**: superseded. The warm-up box at 5,200 passes today at 715 ms, and the
   warm-up course changes only in its version string._
-- _**T022 (B4)**: asserts FR-237 as amended: not below the budget, and nothing already
+- _**T022 (B4)**: asserts FR-252 as amended: not below the budget, and nothing already
   below it loses more._
 - _**T028**: done early, alongside T015. `tests/contract/storage.test.ts` ties both SQL
   literals to the course version, so CI would be red between the two otherwise._
@@ -61,10 +61,10 @@ Single project. `src/`, `tests/`, `data/`, `tools/`, `supabase/` at repository r
 **Purpose**: Capture the 2.0.0 baseline before anything moves, and make a real
 play-pass build possible.
 
-- [x] T001 Record the rules-2.0.0 baseline on the unchanged courses in `specs/007-reaction-time-speed/baseline-2.0.0.md`. With both course files as committed, measure:
+- [x] T001 Record the rules-2.0.0 baseline on the unchanged courses in `specs/008-reaction-time-speed/baseline-2.0.0.md`. With both course files as committed, measure:
   - the tucked high-line pilot's speed at every kicker lip on **both** courses (official 1,400 / 5,200 / 7,852 / 9,188 / 11,000; warm-up 1,889 / 2,489 / 4,600 / 5,586);
   - the low-line rider's rope lead times;
-  - the tuck pilot's lead time to every rock and every ice band on the shelves (FR-237, not measured in research);
+  - the tuck pilot's lead time to every rock and every ice band on the shelves (FR-252, not measured in research);
   - the time to decide at every box on both courses, under the shipped camera.
 
   Confirm the kicker, rope and box values match research R1, R4, R6 and R9 to the printed precision. If any value differs, stop and correct research.md first. Every later "within 2%" and "≥ baseline" assertion is compared against this file.
@@ -99,8 +99,8 @@ frozen-file guard, which will otherwise fail the moment the course changes.
     - per rock and per ice band, on `'tuck'`, with the hazard's top on the shelf inside the frame.
   - `kickerLipSpeeds(course)`: rides `'tuck'` and returns the speed at each lip crossing, grounded, on the piste.
 - [x] T006 [P] Retarget `tests/unit/tuning-frozen.test.ts` (research R7). Changes:
-  - Retitle the suite to name feature 007 as the current owner of the freeze.
-  - Keep `data/tuning.json` byte-frozen, with the reason rewritten to cite FR-232.
+  - Retitle the suite to name feature 008 as the current owner of the freeze.
+  - Keep `data/tuning.json` byte-frozen, with the reason rewritten to cite FR-247.
   - Remove `data/courses/official.json` from `FROZEN`.
   - Add a test: for **each** course file, if the committed copy differs from the working copy in anything other than `rulesVersion`, the `rulesVersion` must also differ. Read HEAD through the existing `committed()` helper, and skip with a warning where git cannot answer, as today.
 
@@ -113,7 +113,7 @@ the unchanged courses, and T005's helpers reproduce T001's numbers when given th
 ## Phase 3: User Story 1 — A player sees a box in time to jump it (Priority: P1) 🎯 MVP
 
 **Goal**: Every box on both courses leaves ≥ 680 ms to decide on the low-line ride
-(FR-231, SC-081).
+(FR-246, SC-088).
 
 **Independent Test**: `npx vitest run tests/sim/reaction-budget.test.ts` passes on its
 B1/B3/B9 assertions, and the play-pass build lets the maintainer react to every box.
@@ -147,15 +147,15 @@ B1/B3/B9 assertions, and the play-pass build lets the maintainer react to every 
   - `look = clamp(drop − 0.4·INTERNAL_HEIGHT + framing.lookMargin, 0, AIR_LIFT_MAX)`;
   - when `onPiste`, and within `framing.shelfEaseIn` before or inside a ledge's span, cap it at `0.6·INTERNAL_HEIGHT − ledge.height − framing.shelfMargin`. The cap blends linearly from no cap to the full cap across the ease-in, so it never snaps.
 
-  Doc comment in the neighbouring style, citing research R2/R3 and FR-242/FR-243.
+  Doc comment in the neighbouring style, citing research R2/R3 and FR-257/FR-258.
 
 - [x] T011 [US1] Change `cameraFor` in `src/render/draw.ts` to `cameraFor(state, course, framing)`, with `shift = max(cameraAirLift(above), lookDown(course, state.x, state.ledge < 0, framing))`. Thread `framing` through `drawRun` from its caller in `src/ui/game.ts`, which has `GameData`. Update the comment. T007 now passes.
 
 ### Implementation for User Story 1: course
 
-- [x] T012 [US1] Replace `OFFICIAL_GRADE` in `tools/gen-courses.ts` with research R4's complete programme, the code block under "The complete programme". Give each changed key an inline comment naming the box it eases, or the kicker/booter it restores (FR-233: each change recorded against its box). Rewrite the programme's header comment where it says "213 units of lookahead at 5.9 is already only 0.6s of reaction and the frame cannot show more": it is now false, and it points to this feature.
+- [x] T012 [US1] Replace `OFFICIAL_GRADE` in `tools/gen-courses.ts` with research R4's complete programme, the code block under "The complete programme". Give each changed key an inline comment naming the box it eases, or the kicker/booter it restores (FR-248: each change recorded against its box). Rewrite the programme's header comment where it says "213 units of lookahead at 5.9 is already only 0.6s of reaction and the frame cannot show more": it is now false, and it points to this feature.
 - [x] T013 [US1] Replace `WARMUP_GRADE` in `tools/gen-courses.ts` with research R9's programme: ease 4,800–5,200 to 0.25, restore at 5,300/5,400. Leave every key at x ≤ 3,200 (the coached section) exactly as it is. Comment each changed key, citing box 5,200 and research R9.
-- [x] T014 [US1] In `official()` in `tools/gen-courses.ts`, change `deadfall(11600)` to `deadfall(11680)`. Keep the paired rock at 11,600. Add a comment citing FR-241's first fallback and research R4: the ramp hop at 11,000, and CV-11's ceiling of 11,686.
+- [x] T014 [US1] In `official()` in `tools/gen-courses.ts`, change `deadfall(11600)` to `deadfall(11680)`. Keep the paired rock at 11,600. Add a comment citing FR-256's first fallback and research R4: the ramp hop at 11,000, and CV-11's ceiling of 11,686.
 - [x] T015 [US1] Set `rulesVersion: '2.1.0'` for both courses in `tools/gen-courses.ts`, so the version moves in the same commit as the geometry and T006's guard is never red on a pushed commit. Regenerate with `node --experimental-strip-types tools/gen-courses.ts`. Then:
   - run it a second time and confirm no further diff;
   - confirm `warmup.json` changes only in `rulesVersion` and at terrain from x = 4,800;
@@ -164,11 +164,11 @@ B1/B3/B9 assertions, and the play-pass build lets the maintainer react to every 
   - adjust only the eased key for that box, down to a floor of 0.25;
   - re-run this whole command, including the booter test. Research R5 says any upstream edit can flip the booter.
 
-### Play pass (Principle VIII, FR-240): at the first playable point
+### Play pass (Principle VIII, FR-255): at the first playable point
 
 - [x] T017 [US1] Commit T007–T016 and push to `claude/bold-albattani-pag0m9`, so the play-pass build has a named commit.
 - [x] T018 [US1] Build the play-pass artifact. First assert `head -c 4 public/sprites/skier.png` is the PNG signature (`\x89PNG`). **If it is not, stop and tell the maintainer the build would show the fallback skier; do not hand it over.** Otherwise run `npm run build:artifact`, publish the single file as an artifact, and give the maintainer the link, the commit from T017, and quickstart §6's four questions.
-- [x] T019 [US1] Record the maintainer's verdict in `specs/007-reaction-time-speed/spec.md` under a new "Playtest findings — <date>, build <sha>" section, in their own words, before any value moves again. If they ask for changes, loop back to T012–T016 and hand over again (T017–T018) rather than continuing.
+- [x] T019 [US1] Record the maintainer's verdict in `specs/008-reaction-time-speed/spec.md` under a new "Playtest findings — <date>, build <sha>" section, in their own words, before any value moves again. If they ask for changes, loop back to T012–T016 and hand over again (T017–T018) rather than continuing.
 - [ ] T020 [US1] Only after an accepting verdict, look for one 16.7 ms tick of headroom on the boxes that pass at exactly 681 ms (official 1,830 / 4,640 / 6,100 / 11,680; research R4). Try lowering that box's eased key by 0.01–0.02 in `tools/gen-courses.ts`. Keep a change only if T016's command and the ±2% kicker check (T005's `kickerLipSpeeds` against T001) both still pass. Record what was tried and kept in `research.md` R4, including "nothing kept". **If anything is kept, the played build is no longer the shipped build: repeat T017–T019 with the new commit.**
 - [ ] T021 [US1] Run the full sim, course and unit suites (`npm run test:sim && npm run test:course && npm run test:unit`). Everything must be green except `sprite-palette` where T002 could not fetch the sprites; say so explicitly. The booter rotation test passes unmodified.
 
@@ -180,7 +180,7 @@ build that ships.
 ## Phase 4: User Story 2 — Everything else rides the same (Priority: P2)
 
 **Goal**: kickers, booters, shelves, hazards and jump headroom are unchanged
-(FR-235–FR-238, FR-243, SC-084, SC-086).
+(FR-250–FR-253, FR-258, SC-091, SC-093).
 
 **Independent Test**: `npx vitest run tests/sim/reaction-budget.test.ts tests/unit/camera-framing.test.ts tests/sim/booters.test.ts tests/sim/tracks.test.ts`
 is green with every B and C assertion present.
@@ -190,12 +190,12 @@ is green with every B and C assertion present.
   - **B5**: each kicker's lip speed on both courses is within ±2% of its 2.0.0 value.
   - **B7**: shelves ridden are 3 on `'tuck'` and 0 on `'stay-low'`.
   - **B8**: the gentlest official gradient is exactly 0.25.
-- [x] T023 [P] [US2] Add B2 to `tests/sim/reaction-budget.test.ts`: `'low-line'`, `'tuck'` and `'stay-low'` all finish both courses (FR-238).
+- [x] T023 [P] [US2] Add B2 to `tests/sim/reaction-budget.test.ts`: `'low-line'`, `'tuck'` and `'stay-low'` all finish both courses (FR-253).
 - [x] T024 [P] [US2] Add C4, C5 and C6 to `tests/unit/camera-framing.test.ts`, using T004's observer:
   - **C4**: `cameraAirLift(h) ≤ shift ≤ AIR_LIFT_MAX` for every tick of a `'tuck'` ride, including both booter flights.
   - **C5**: every tick of a `'low-line'` ride under or approaching a ledge keeps the ledge's top edge ≥ `shelfMargin` inside the frame.
   - **C6**: across full `'low-line'` and `'tuck'` rides, the camera moves at most 4 units vertically between consecutive ticks.
-- [x] T025 [US2] Add SC-086 to `tests/unit/camera-framing.test.ts`: on every official and warm-up segment steeper than 0.41, a piste point exactly 213 units ahead of a grounded skier on the piste is inside the frame, except where a shelf cap applies. That exception is the one the amended SC-086 names.
+- [x] T025 [US2] Add SC-093 to `tests/unit/camera-framing.test.ts`: on every official and warm-up segment steeper than 0.41, a piste point exactly 213 units ahead of a grounded skier on the piste is inside the frame, except where a shelf cap applies. That exception is the one the amended SC-093 names.
 - [x] T026 [US2] Run `npx vitest run tests/sim tests/course tests/unit` and confirm the whole of US2 is green, with `tests/sim/booters.test.ts` and `tests/unit/scoring-dominance.test.ts` unmodified. If B5 fails at the kicker at 11,000 (−1.8% in research), take the plan's risk-table mitigation: move the Last Pitch box further within CV-11's window, not steepen anything. Any such move is a course change and repeats T017–T019.
 
 **Checkpoint**: every guarantee in both contracts is asserted, and the existing suites
@@ -206,7 +206,7 @@ pass unmodified.
 ## Phase 5: User Story 3 — The draft moves to the new rules safely (Priority: P3)
 
 **Goal**: rules 2.1.0, bumped in T015 alongside the course, ships with every operator
-artifact agreeing, and no reset is needed (FR-239).
+artifact agreeing, and no reset is needed (FR-254).
 
 **Independent Test**: no file tells an operator to seed, repair to or submit `2.0.0`,
 and the Postgres invariants job passes in CI.
@@ -214,9 +214,9 @@ and the Postgres invariants job passes in CI.
 - [ ] T027 [US3] Confirm the 2.1.0 bump from T015 is on both generated courses, and that no file still names `2.0.0` as the version to seed, repair to or submit. `grep -rn "2\.0\.0" --include=*.ts --include=*.sql --include=*.json --include=*.md .` should list only history: specs, dated prose, and the FR-229 fixture in `supabase/tests/invariants.sql`.
 - [x] T028 [P] [US3] Change the version literal in `supabase/seed-draft.sql` (line 43) and the `target` in `supabase/fix-rules-version.sql` (line 49) from `'2.0.0'` to `'2.1.0'`. Leave the FR-229 fixture in `supabase/tests/invariants.sql` (research R7). Correct any version stated in either file's own comments (Principle VII).
 - [ ] T029 [P] [US3] Update `README.md`:
-  - In "Deploying a physics change into a live draft", add that 2.1.0 (feature 007) moves both courses' geometry and the camera but not the physics, and that no committed scores existed when it shipped, so no reset was needed. Keep the three-step order as the procedure for any future bump.
-  - Add a feature 007 row to the status table.
-- [ ] T030 [US3] Run `npm run test:determinism`. The goldens in `tests/e2e/determinism.spec.ts` are expected to be unchanged, because their traces die before x = 1,400 on the official course. If any value moves, regenerate as the file's header instructs and append a dated paragraph naming feature 007 and why.
+  - In "Deploying a physics change into a live draft", add that 2.1.0 (feature 008) moves both courses' geometry and the camera but not the physics, and that no committed scores existed when it shipped, so no reset was needed. Keep the three-step order as the procedure for any future bump.
+  - Add a feature 008 row to the status table.
+- [ ] T030 [US3] Run `npm run test:determinism`. The goldens in `tests/e2e/determinism.spec.ts` are expected to be unchanged, because their traces die before x = 1,400 on the official course. If any value moves, regenerate as the file's header instructs and append a dated paragraph naming feature 008 and why.
 
 **Checkpoint**: version, operator SQL and README agree on 2.1.0, with no reset in the
 instructions.
@@ -225,10 +225,10 @@ instructions.
 
 ## Phase 6: Polish & cross-cutting
 
-- [ ] T031 [P] Update `specs/007-reaction-time-speed/research.md` R4, R6 and R9 with the final measured numbers from T016/T020/T022, if they differ from the candidates'.
+- [ ] T031 [P] Update `specs/008-reaction-time-speed/research.md` R4, R6 and R9 with the final measured numbers from T016/T020/T022, if they differ from the candidates'.
 - [ ] T032 Run the full gate as quickstart §6 lists it: `npm run lint && npx tsc --noEmit && npm test && npm run test:build`. Report every failure verbatim. The only acceptable pre-existing failure is `sprite-palette` in an environment without LFS, and it must be named as such.
 - [ ] T033 If any value in either course file or `data/camera.json` moved after the last play pass (T019/T020/T026), hand over a fresh build per T018 and record the verdict per T019 before calling the feature done (Principle VIII).
-- [ ] T034 Tick completed tasks in this file, and add a validation-run note to `specs/007-reaction-time-speed/checklists/requirements.md` recording the final numbers and the play-pass verdict.
+- [ ] T034 Tick completed tasks in this file, and add a validation-run note to `specs/008-reaction-time-speed/checklists/requirements.md` recording the final numbers and the play-pass verdict.
 
 ---
 
@@ -287,7 +287,7 @@ measured. US3 lines up every operator artifact with the version.
 
 - **The maintainer rejects the feel at T019.** Loop back; do not harden a course they
   have not accepted.
-- **T016 cannot reach 680 ms without breaking the booter test.** Take FR-241's
+- **T016 cannot reach 680 ms without breaking the booter test.** Take FR-256's
   fallbacks in order: first move boxes, then raise drag only with the maintainer's
   agreement. Never adjust the booter rig to pass.
 - **T002 and T018 cannot get real sprites.** Do not hand over a build; say why.

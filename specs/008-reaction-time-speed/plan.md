@@ -2,7 +2,7 @@
 
 **Branch**: `claude/bold-albattani-pag0m9` | **Date**: 2026-09-24 | **Spec**: [spec.md](./spec.md)
 
-**Input**: Feature specification from `specs/007-reaction-time-speed/spec.md`
+**Input**: Feature specification from `specs/008-reaction-time-speed/spec.md`
 
 ## Summary
 
@@ -25,7 +25,7 @@ The plan fixes both without touching `data/tuning.json`:
    - short eases before the boxes at 1,830 and 6,100, and before the Last Pitch box;
    - speed given back where the eases would otherwise have moved a kicker or the small
      booter.
-3. **One box moves**, 11,600 → 11,680, as FR-241's first fallback.
+3. **One box moves**, 11,600 → 11,680, as FR-256's first fallback.
 4. **The warm-up box at 5,200 is eased too** (research R9). It measured 648 ms on a
    real ride. The coached section does not move.
 5. **The three camera constants live in a new `data/camera.json`**, not in code
@@ -64,7 +64,7 @@ _GATE: evaluated before Phase 0 and re-checked after Phase 1. **PASS.**_
 
 | Principle                           | Assessment                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **I. Spec-driven (NN)**             | Every change traces to FR-231–FR-244. Research found the spec wrong on four facts (below), so the spec is amended in this change set before tasks, as the principle requires.                                                                                                                                                                                                                                                                                                      |
+| **I. Spec-driven (NN)**             | Every change traces to FR-246–FR-259. Research found the spec wrong on four facts (below), so the spec is amended in this change set before tasks, as the principle requires.                                                                                                                                                                                                                                                                                                      |
 | **II. Stability**                   | The simulation is untouched. Determinism goldens are expected unchanged (R7), and the camera is render-only (C7). The monkey test and pilots run on the new course. No save schema changes.                                                                                                                                                                                                                                                                                        |
 | **III. Fun is testable**            | Every feel target is numeric: 680 ms, ±2% lip speed, rotations equal, hazard lead ≥ baseline. Tuning stays in data and does not move. **The three new camera values are in a new versioned data file, `data/camera.json`** (research R10). They were first planned in code; `/speckit-analyze` finding D1 flagged that as a Principle III violation, and it is corrected here, not justified. The existing frame geometry (`PLAYER_LOOKAHEAD`, `AIR_LIFT_MAX`) stays where it was. |
 | **IV. One voice**                   | No new asset. Legibility outranks style: this feature exists to un-hide hazards.                                                                                                                                                                                                                                                                                                                                                                                                   |
@@ -81,7 +81,7 @@ simulation code.
 ### Documentation (this feature)
 
 ```text
-specs/007-reaction-time-speed/
+specs/008-reaction-time-speed/
 ├── spec.md              # amended in this change (see Spec amendments)
 ├── plan.md              # this file
 ├── research.md          # R1–R10, all measured
@@ -132,7 +132,7 @@ The order is set by Principle VIII: playable first, hardened second.
    scoring dominance.
 3. **As soon as the validator, the booter test and the 680 ms test are green**, fetch
    the real sprites, build the single-file artifact and hand it to the maintainer
-   (FR-240). Record the verdict before any value moves again. Looking for extra
+   (FR-255). Record the verdict before any value moves again. Looking for extra
    margin waits until after the verdict, and any change it keeps goes back to the
    maintainer as a fresh build (`/speckit-analyze` G1).
 4. **Harden**: `reaction-budget.test.ts` with the committed baseline table, the
@@ -145,29 +145,29 @@ Research contradicted the spec in four places. Principle I says a spec that disa
 with the facts is a defect, so these are corrected in `spec.md` in this change:
 
 1. **The worst box is 365 ms, not 398 ms, and the box at 1,830 fails** (631 ms) once
-   measured on a real ride rather than a clean approach (R1). Context, SC-081 and FR-233
+   measured on a real ride rather than a clean approach (R1). Context, SC-088 and FR-248
    are updated.
 2. **The reduction needed at the box is 5–19% of horizontal speed, not "about 8%"**:
    4.65 → 4.43 at 1,830, up to 5.41 → 4.45 at 4,640. Clarifications and Key Entities are
    updated.
 3. **The ramp at 5,200 is the Cornice shelf ramp, not the big booter.** The big booter
-   is at 9,188. User Story 2, the Edge Cases and FR-241 named the wrong one.
-4. **FR-233's "terrain changes only on a failing box's approach" is too strict to meet
-   FR-235.** Easing under the Cornice also eases the shelf above it, and that costs the
-   small booter a tick of air (R5). FR-233 now allows terrain changes that exist only to
+   is at 9,188. User Story 2, the Edge Cases and FR-256 named the wrong one.
+4. **FR-248's "terrain changes only on a failing box's approach" is too strict to meet
+   FR-250.** Easing under the Cornice also eases the shelf above it, and that costs the
+   small booter a tick of air (R5). FR-248 now allows terrain changes that exist only to
    give speed back downstream, each one named. The move of the box from 11,600 to 11,680
-   is recorded as FR-241's first fallback, taken.
+   is recorded as FR-256's first fallback, taken.
 
-FR-243 is also sharpened: "the shelf stays in frame as it does today" becomes "the
+FR-258 is also sharpened: "the shelf stays in frame as it does today" becomes "the
 shelf's top edge stays at least 8 units inside the frame" (R3).
 
 Four more were made after `/speckit-analyze` on the same day:
 
-- **FR-231** names the **low line** it is measured on, not "a player riding tucked"
+- **FR-246** names the **low line** it is measured on, not "a player riding tucked"
   (finding F3).
-- **FR-233** and the Assumptions no longer freeze the warm-up course. Its box at
+- **FR-248** and the Assumptions no longer freeze the warm-up course. Its box at
   5,200 measured 648 ms on a real ride (research R9, finding C1).
-- **SC-086** states the shelf-cap exception that FR-243 creates (finding F1).
+- **SC-093** states the shelf-cap exception that FR-258 creates (finding F1).
 - The eased-approach speed of "about 4.6" is corrected to the measured 4.2–4.45 on
   arrival (finding F2).
 
@@ -179,10 +179,10 @@ Four more were made after `/speckit-analyze` on the same day:
 | The booter rotation test has zero margin and responds non-monotonically to upstream edits (R5) | Re-run it after every `OFFICIAL_GRADE` edit (quickstart §4). Never adjust the rig to pass.                                                          |
 | The kicker at 11,000 is at −1.8% of the 2% limit                                               | It is asserted in B5. If implementation needs more easing at the Last Pitch, move the box further before steepening anything else.                  |
 | The play-pass build ships the fallback skier                                                   | R8: assert the PNG signature before building. Do not hand over otherwise.                                                                           |
-| The maintainer finds the eased Narrows dull (SC-085)                                           | Their reading wins (Principle VIII). The documented fallbacks are, in order: shorter eases with a larger camera margin, then moving boxes (FR-241). |
+| The maintainer finds the eased Narrows dull (SC-092)                                           | Their reading wins (Principle VIII). The documented fallbacks are, in order: shorter eases with a larger camera margin, then moving boxes (FR-256). |
 
 ## Complexity Tracking
 
 | Item                                                           | Why needed                                                                             | Simpler alternative rejected because                                                                     |
 | -------------------------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Terrain changes beyond the box approaches (6,300–6,800; 5,000) | Without them the small booter loses a rotation, or the Cornice ramp its speed (R4, R5) | Leaving them out fails FR-235. Re-solving booter power instead changes what the zero-margin rig measures |
+| Terrain changes beyond the box approaches (6,300–6,800; 5,000) | Without them the small booter loses a rotation, or the Cornice ramp its speed (R4, R5) | Leaving them out fails FR-250. Re-solving booter power instead changes what the zero-margin rig measures |

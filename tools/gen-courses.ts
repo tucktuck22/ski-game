@@ -384,7 +384,7 @@ const OFFICIAL_GRADE: GradeKey[] = [
   // air. Feature 007 answers both - the camera now looks down the steeps
   // (src/render/rampGeometry.ts, lookDown), and the approaches to the boxes that
   // were placed on the steepest ground are eased below. The steeps themselves are
-  // where they were. See specs/007-reaction-time-speed/research.md.
+  // where they were. See specs/008-reaction-time-speed/research.md.
   //
   // The booter run-ins are the other half. A steep pitch is held RIGHT TO THE
   // LIP and dropped immediately after it: the speed is bought on the steep and
@@ -593,7 +593,7 @@ function official(): Built {
   ledges.push({ x0: 11100, x1: 12000, height: SHELF_H });
   ice.push({ x0: 11350, x1: 11350 + iceSpanFor(grade(11350)) });
   rocks.push({ x: 11600, width: 16, height: 12 });
-  // Was 11,600. Feature 007, FR-241's first fallback, taken: with its approach
+  // Was 11,600. Feature 007, FR-256's first fallback, taken: with its approach
   // eased all the way to the gradient floor, a rider hopped by the ramp at 11,000
   // still reached a log at 11,600 before shedding the hop's speed. 80 more units
   // does it. CV-11 wants the log 140 clear of the bough at 11,850, which caps it at

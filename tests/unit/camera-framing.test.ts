@@ -13,7 +13,7 @@ import { official, tuning, warmup } from '../sim/fixtures.js';
 import { ride } from '../sim/pilots.js';
 
 /**
- * The camera looks down the steeps. specs/007-reaction-time-speed/contracts/camera-framing.md.
+ * The camera looks down the steeps. specs/008-reaction-time-speed/contracts/camera-framing.md.
  *
  * It used to hold the skier 60% of the way down the frame on every slope, which on
  * ground steeper than about 0.41 hid the piste the 213-unit lookahead promised: a
@@ -52,7 +52,7 @@ const along = (course: Course): number[] => {
   return xs;
 };
 
-describe('camera framing (FR-242, FR-243, FR-244)', () => {
+describe('camera framing (FR-257, FR-258, FR-259)', () => {
   it('C1: the view ahead is 213 units horizontally, exactly as before', () => {
     for (const [, course] of COURSES) {
       for (const x of along(course)) {
@@ -90,7 +90,7 @@ describe('camera framing (FR-242, FR-243, FR-244)', () => {
     }
   });
 
-  it('SC-086: on every stretch steeper than 0.41, a hazard is on screen at 213 units', () => {
+  it('SC-093: on every stretch steeper than 0.41, a hazard is on screen at 213 units', () => {
     let steep = 0;
     for (const [name, course] of COURSES) {
       const t = course.terrain;

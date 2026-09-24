@@ -44,7 +44,7 @@ from.
 | warm-up  |  5,200 |   715 | low-line |
 
 **Four boxes fail 680 ms today: 3,600, 4,120, 4,640 and 11,600. The worst is 315 ms.**
-The boxes at 1,830 and 6,100 and both warm-up boxes already pass. Under FR-233(a) they
+The boxes at 1,830 and 6,100 and both warm-up boxes already pass. Under FR-248(a) they
 do not move. That supersedes research R4's eases at 1,830 and 6,100 and research R9's
 warm-up ease. All three came from the probe rider's flawed line, and none is needed.
 

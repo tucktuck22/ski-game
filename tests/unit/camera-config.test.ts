@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 import { parseCamera } from '../../src/data/load.js';
 
 /**
- * data/camera.json - how far the camera looks down the steeps (feature 007).
+ * data/camera.json - how far the camera looks down the steeps (feature 008).
  *
  * These values set how many milliseconds a player gets to see a hazard, so they
  * are feel and live in data (Principle III). A data file is only as good as the

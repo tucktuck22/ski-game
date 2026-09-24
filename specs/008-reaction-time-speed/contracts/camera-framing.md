@@ -2,7 +2,7 @@
 
 **Governs**: `cameraFor(state, course)` in `src/render/draw.ts`, and the new
 `lookDown` helper beside `cameraAirLift` in `src/render/rampGeometry.ts`.
-**Requirements**: FR-242, FR-243, FR-244, SC-086.
+**Requirements**: FR-257, FR-258, FR-259, SC-093.
 
 ## Signature
 

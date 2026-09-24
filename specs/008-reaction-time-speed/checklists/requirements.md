@@ -32,8 +32,8 @@
 ## Notes
 
 **Validation run 1 — 2026-09-23.** Passes on quality and is blocked on two decisions
-for the maintainer. Q1: the reaction budget (FR-231). Q2: whether a reset is
-acceptable now (FR-239).
+for the maintainer. Q1: the reaction budget (FR-246). Q2: whether a reset is
+acceptable now (FR-254).
 
 The spec names project data (`rulesVersion`, drag, the tuning file) where earlier
 specs in this repository do the same. The constraint "change the course, not the
@@ -51,14 +51,14 @@ reshaping the slope instead of changing drag, so the physics does not move. The
 approach changed with that: a temporary probe measured how much eased ground brings a
 tucked player back under the budget (230–330 units at 0.25–0.30), and the spec now
 changes the course shape at the five failing box approaches only, leaving tuning
-untouched. Drag is kept as the explicit fallback (FR-241) rather than dropped, because
+untouched. Drag is kept as the explicit fallback (FR-256) rather than dropped, because
 the big booter 560 units after the 4,640 box may not get its speed back in time.
 
 **Validation run 3 — 2026-09-23 (`/speckit-clarify`). All items pass.** Re-measuring
 with a simulated tucked ride and the real camera showed the frame's bottom edge hides
 steep boxes, so the worst box leaves 398 ms, not 524 ms. The Context table is
 corrected in place. The maintainer chose to fix the vertical framing as well as ease
-the approaches (option A), which adds FR-242 to FR-244 and SC-086. The earlier "20%"
+the approaches (option A), which adds FR-257 to FR-259 and SC-093. The earlier "20%"
 figure used speed along the slope rather than horizontal speed. The real reduction
 needed at the box is about 8%, and the Clarifications entry now says so rather than
 leaving the superseded number standing.
@@ -67,8 +67,8 @@ leaving the superseded number standing.
 question asked.** Three consistency fixes, made without asking the maintainer. The
 "standing players are unaffected" edge case predated the corrected measurement and
 was wrong: a standing player at the steepest box also gets about 650 ms, because the
-frame hides the box. It now says so and points at FR-242. FR-236's "needs a
-decision" now reads "enters view", which can be measured. SC-086 is moved to the end
+frame hides the box. It now says so and points at FR-257. FR-251's "needs a
+decision" now reads "enters view", which can be measured. SC-093 is moved to the end
 so the success criteria are in numeric order.
 
 **Validation run 5 — 2026-09-24 (`/speckit-plan`). All items pass after amendment.**
@@ -80,9 +80,9 @@ the spec wrong on four facts:
 3. The needed speed cut is 5–19%, not "about 8%".
 4. The ramp at 5,200 is the Cornice shelf ramp, not the big booter.
 
-FR-233 was widened to allow terrain changes that give back downstream speed, each one
-named, and FR-243's shelf clause was sharpened to a measurable margin. The one box move
-(11,600 → 11,680) is recorded as FR-241's first fallback, taken. Every amendment is
+FR-248 was widened to allow terrain changes that give back downstream speed, each one
+named, and FR-258's shelf clause was sharpened to a measurable margin. The one box move
+(11,600 → 11,680) is recorded as FR-256's first fallback, taken. Every amendment is
 marked in place with its date and its research reference, rather than silently
 rewritten.
 
@@ -91,7 +91,7 @@ Analysis found one constitution conflict and one feasibility gap. Both are resol
 amendment, not by argument:
 
 - **D1, Principle III**: the camera constants move from code to `data/camera.json`.
-- **C1**: the warm-up box at 5,200 measured 648 ms on a real ride, and FR-233 as
+- **C1**: the warm-up box at 5,200 measured 648 ms on a real ride, and FR-248 as
   written froze the warm-up course. The freeze is lifted for that one approach. A
   measured easing gives 698 ms with both warm-up kickers within 0.3% (research R9).
 

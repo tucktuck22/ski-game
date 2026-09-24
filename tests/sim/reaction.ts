@@ -7,7 +7,7 @@ import { ride, type Pilot } from './pilots.js';
 /**
  * How long a player has to react, measured on rides rather than assumed.
  *
- * Feature 007. The first attempt at these numbers divided the view ahead by the
+ * Feature 008. The first attempt at these numbers divided the view ahead by the
  * slope's terminal speed, and it was wrong three ways: it used speed along the
  * slope where only horizontal speed brings a box closer, it forgot the bottom of
  * the frame hides steep ground, and it forgot there is no drag in the air, so a
@@ -21,7 +21,7 @@ import { ride, type Pilot } from './pilots.js';
  * every hazard is read on every pilot that meets it on its own surface, and the
  * worst reading is the one that counts.
  *
- * Nothing here is shipped. See specs/007-reaction-time-speed/research.md R1.
+ * Nothing here is shipped. See specs/008-reaction-time-speed/research.md R1.
  */
 
 /** Maps a state to the top-left of the frame the player would see. */
@@ -162,7 +162,7 @@ export function worstPerHazard(all: Reading[]): Reading[] {
   return [...worst.values()].sort((a, b) => a.x - b.x || a.kind.localeCompare(b.kind));
 }
 
-/** Speed at each kicker lip on the tuck ride, taken grounded on the piste (FR-235). */
+/** Speed at each kicker lip on the tuck ride, taken grounded on the piste (FR-250). */
 export function kickerLipSpeeds(course: Course): { x: number; speed: number }[] {
   const lips = new Map<number, number>();
   ride(course, 'tuck', 1, (before) => {

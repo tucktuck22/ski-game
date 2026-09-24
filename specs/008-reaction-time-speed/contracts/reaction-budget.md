@@ -1,7 +1,7 @@
 # Contract: Reaction Budget
 
 **Governs**: the official and warm-up courses as generated, together with the camera.
-**Requirements**: FR-231, FR-233–FR-238, SC-081, SC-084.
+**Requirements**: FR-246, FR-248–FR-253, SC-088, SC-091.
 **Enforced by**: `tests/sim/reaction-budget.test.ts` (new), plus the existing
 `tests/course/validate.test.ts`, `tests/sim/booters.test.ts`, `tests/sim/tracks.test.ts`
 and `tests/unit/scoring-dominance.test.ts`.
@@ -20,12 +20,12 @@ beside the existing pilots, so there is one definition of how a test rider jumps
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
 | B1  | For every `solid` obstacle on both courses, time to decide under the real `cameraFor`                                                           | ≥ 680 ms                                          |
 | B2  | The low-line rider and both existing pilots finish the official course                                                                          | outcome `finished`                                |
-| B3  | At every box after the first, the rider is grounded on the tick that box enters view                                                            | true (FR-236)                                     |
-| B4  | For every rope, the time from entering view to arrival on the low-line ride; for every rock and ice band on a shelf, the same on the tuck pilot | ≥ the rules-2.0.0 value recorded by T001 (FR-237) |
-| B5  | Tucked high-line pilot's speed at each kicker lip, both courses                                                                                 | within ±2% of the 2.0.0 baseline (FR-235)         |
-| B6  | Booter rotations: the existing booter test, unmodified                                                                                          | passes (SC-084)                                   |
+| B3  | At every box after the first, the rider is grounded on the tick that box enters view                                                            | true (FR-251)                                     |
+| B4  | For every rope, the time from entering view to arrival on the low-line ride; for every rock and ice band on a shelf, the same on the tuck pilot | ≥ the rules-2.0.0 value recorded by T001 (FR-252) |
+| B5  | Tucked high-line pilot's speed at each kicker lip, both courses                                                                                 | within ±2% of the 2.0.0 baseline (FR-250)         |
+| B6  | Booter rotations: the existing booter test, unmodified                                                                                          | passes (SC-091)                                   |
 | B7  | Shelves ridden by the tuck pilot and by the stay-low pilot                                                                                      | 3 and 0, as on 2.0.0                              |
-| B8  | The gentlest gradient on the official course                                                                                                    | = 0.25 (FR-234)                                   |
+| B8  | The gentlest gradient on the official course                                                                                                    | = 0.25 (FR-249)                                   |
 | B9  | Failure messages name the box's x, the measured ms, and the horizontal speed on arrival                                                         | —                                                 |
 
 ## Baseline table (rules 2.0.0, committed in the test)

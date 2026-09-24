@@ -24,18 +24,18 @@ import { scoring, tuning } from './fixtures.js';
  * about him, so he has to exist as a pilot rather than as an assumption.
  */
 /**
- * `low-line` is feature 007's, and it is the one the reaction budget is measured on.
+ * `low-line` is feature 008's, and it is the one the reaction budget is measured on.
  *
  * It tucks everywhere the `tuck` pilot does, except that it stands up for the
  * run-in to every pop ramp, so it stays on the piste and meets the boxes under the
  * shelves that the tuck pilot flies over - the player who wants speed but not the
  * high line. It is one of three pilots the reaction budget is measured on, and a
- * box has to be reactable for every one of them that meets it (FR-231).
+ * box has to be reactable for every one of them that meets it (FR-246).
  *
  * Standing up is itself a hop, and a hop matters: there is no drag in the air,
  * so it lands him faster than the slope he lands on is worth, and he is still
  * shedding that when the next box comes into view. See
- * specs/007-reaction-time-speed/research.md R1.
+ * specs/008-reaction-time-speed/research.md R1.
  */
 export type Pilot = 'tuck' | 'stay-low' | 'passive' | 'low-line';
 
@@ -50,7 +50,7 @@ export type Pilot = 'tuck' | 'stay-low' | 'passive' | 'low-line';
  * shelves anyway; at 350 two; from 450 on, only the Cornice, which follows the
  * steepest box on the course closely enough that no stand-up point avoids it. 400
  * puts the hop into the rope at 4,860. Measured, not chosen; see
- * specs/007-reaction-time-speed/research.md R1.
+ * specs/008-reaction-time-speed/research.md R1.
  */
 export const LOW_LINE_STAND_BEFORE_RAMP = 500;
 const LOW_LINE_STAND_PAST_LIP = 20;

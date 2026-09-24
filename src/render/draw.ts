@@ -49,7 +49,7 @@ export const cameraFor = (state: RunState, course: Course, framing: CameraFramin
   // The larger of the two, never the sum: in the air the lift already shows the
   // ground, and adding the look-down on top would push his head out of the top
   // of the frame (AIR_LIFT_MAX is that limit). On the steeps the look-down shows
-  // the slope the horizontal lookahead promises (feature 007, FR-242).
+  // the slope the horizontal lookahead promises (feature 008, FR-257).
   const shift = Math.max(cameraAirLift(above), lookDown(course, state.x, state.ledge < 0, framing));
   return {
     x: state.x - CAMERA_X_OFFSET,

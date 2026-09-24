@@ -16,9 +16,9 @@ import {
 } from './reaction.js';
 
 /**
- * Time to see the box. specs/007-reaction-time-speed/contracts/reaction-budget.md.
+ * Time to see the box. specs/008-reaction-time-speed/contracts/reaction-budget.md.
  *
- * The playtest that started feature 007: "I don't have the reaction time
+ * The playtest that started feature 008: "I don't have the reaction time
  * necessary to jump over boxes while crouched. If even I struggle to do this and I
  * know the map layout, I don't think it's fair for new players." Measured, the
  * worst log on the shipped course gave 315 ms between coming into view and the
@@ -39,7 +39,7 @@ const framing = parseCamera(JSON.parse(readFileSync(join(root, 'data/camera.json
 const camera = (s: Parameters<typeof cameraFor>[0], c: Course): { x: number; y: number } =>
   cameraFor(s, c, framing);
 
-/** FR-231, the maintainer's number. */
+/** FR-246, the maintainer's number. */
 const BUDGET_MS = 680;
 
 const COURSES: [string, Course][] = [
@@ -52,7 +52,7 @@ const worst = new Map(COURSES.map(([n]) => [n, worstPerHazard(all.get(n)!)]));
 
 /**
  * Rules 2.0.0, as shipped, measured by T001 under the 2.0.0 camera - see
- * specs/007-reaction-time-speed/baseline-2.0.0.md. Committed rather than
+ * specs/008-reaction-time-speed/baseline-2.0.0.md. Committed rather than
  * recomputed from git so the comparison is against a fixed record, not against
  * whatever was committed last.
  */
@@ -91,7 +91,7 @@ const describeReading = (r: Reading): string =>
   `${r.kind} at x=${r.x}: ${Math.round(r.ms)} ms on the ${r.pilot} pilot, ` +
   `arriving at ${r.vxAtArrival.toFixed(2)} horizontally`;
 
-describe('the reaction budget (FR-231, SC-081)', () => {
+describe('the reaction budget (FR-246, SC-088)', () => {
   for (const [name, course] of COURSES) {
     it(`B1: every box on the ${name} course leaves ${BUDGET_MS} ms to decide`, () => {
       const boxes = worst.get(name)!.filter((r) => r.kind === 'box');
@@ -127,7 +127,7 @@ describe('the reaction budget (FR-231, SC-081)', () => {
   }
 });
 
-describe('what must not move (FR-235 - FR-238, SC-084)', () => {
+describe('what must not move (FR-250 - FR-253, SC-091)', () => {
   for (const [name, course] of COURSES) {
     it(`B2: every measuring pilot finishes the ${name} course`, () => {
       for (const pilot of MEASURING_PILOTS) {
@@ -136,7 +136,7 @@ describe('what must not move (FR-235 - FR-238, SC-084)', () => {
     });
 
     it(`B4: no other hazard on the ${name} course loses time it could not spare`, () => {
-      // FR-237 as amended: nothing may drop below the budget, and anything that was
+      // FR-252 as amended: nothing may drop below the budget, and anything that was
       // already below it may not lose more. The ice on the Cornice goes 967 -> 817
       // because the Narrows' run-out now gets the low-line pilot there sooner; that
       // is still well over the budget, which is the thing a player feels.

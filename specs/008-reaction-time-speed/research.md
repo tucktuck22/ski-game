@@ -97,11 +97,11 @@ be in frame when it crosses 213 units.
   with it `look(x)`, is continuous in x. Measured across a full ride, the largest
   camera move in one tick is 3.69 units, against 3.76 on the shipped camera. The
   existing airborne lift already sets the fastest the camera moves.
-- **It cannot cost jump headroom (FR-243).** `max` with the airborne lift means the
+- **It cannot cost jump headroom (FR-258).** `max` with the airborne lift means the
   shift is never smaller than it is today. It is capped at `AIR_LIFT_MAX` (92), which
   is exactly the headroom limit the booter test already enforces. At the apex of both
   booters the airborne lift is 85–90 and dominates, so those frames are identical.
-- **It is drawing only (FR-244).** `cameraFor` is called from the renderer alone
+- **It is drawing only (FR-259).** `cameraFor` is called from the renderer alone
   (`src/render/draw.ts:841`), and `tests/unit/sim-isolation.test.ts` already forbids the
   simulation from importing the renderer.
 
@@ -136,10 +136,10 @@ The cap eases in over the 120 units before the shelf begins, so it never snaps.
 **Rationale**: without the cap, the camera probe put the top of the final shelf 0.9
 units from the top of the frame at the finish line. With the cap the worst case is
 10.9 units, and no box loses time, because no box needs more look-down than the cap
-allows where a shelf is overhead. Today's worst case is 53.9 units. FR-243's "as today"
+allows where a shelf is overhead. Today's worst case is 53.9 units. FR-258's "as today"
 is therefore read as "the shelf's top edge stays inside the frame". A literal
 equality would forbid any look-down under the Cornice at all, where the 6,100 box sits.
-This reading is written back into FR-243.
+This reading is written back into FR-258.
 
 **Alternatives considered**: no cap, rejected because the shelf touches the frame edge.
 Suppressing look-down entirely under shelves, rejected because it re-hides steep
@@ -183,7 +183,7 @@ x      g     note
 ```
 
 **And one box moves**: the Last Pitch deadfall goes from **x = 11,600 to x = 11,680**.
-This is FR-241's first fallback, taken on evidence. With the ground eased to the
+This is FR-256's first fallback, taken on evidence. With the ground eased to the
 0.25 floor all the way from 11,300, the box at 11,600 still measured only 615–631 ms.
 The ramp at 11,000 hops a low-line player into it, and 600 units is not enough to shed
 that speed. 80 more units is. The move is inside CV-11's window: a log must sit 140
@@ -205,7 +205,7 @@ All six pass. **Four of them pass by one tick**, so the margin is thin, and impl
 should look for a tick of headroom where it is cheap: a further 0.01–0.02 off an eased
 key.
 
-**Kicker lip speeds, measured on the high-line tuck pilot (FR-235, within 2%)**:
+**Kicker lip speeds, measured on the high-line tuck pilot (FR-250, within 2%)**:
 
 | Kicker | Shipped | Candidate | Change |
 | ------ | ------: | --------: | -----: |
@@ -302,13 +302,13 @@ the "tick of headroom" suggested in R4, can flip this test again. **Re-run
 rig itself is out of scope: feature 006 deliberately froze it as the instrument its
 baseline was taken with.
 
-**Alternatives considered**: re-solving `BOOTER_MID` power. Rejected, because FR-235
+**Alternatives considered**: re-solving `BOOTER_MID` power. Rejected, because FR-250
 holds the booters to their current behaviour, and a re-solve changes what the rig
 measures.
 
 ---
 
-## R6 — Ropes and other hazards (FR-237)
+## R6 — Ropes and other hazards (FR-252)
 
 Time from each rope entering the frame to the rider reaching it, on the low-line ride:
 
@@ -346,8 +346,8 @@ the shelf pilots finishing.
   (Principle VII). `supabase/tests/invariants.sql`'s FR-229 block uses 2.0.0 as a
   historical fixture and stays as it is.
 - **`tests/unit/tuning-frozen.test.ts`** froze two files for feature 005. It keeps
-  `data/tuning.json` frozen, because FR-232 needs exactly that guarantee again. It stops
-  freezing `data/courses/official.json`, and is retitled to name feature 007 as the
+  `data/tuning.json` frozen, because FR-247 needs exactly that guarantee again. It stops
+  freezing `data/courses/official.json`, and is retitled to name feature 008 as the
   current owner of the freeze. It gains a check that the official course's rules
   version differs from the committed one whenever the course's geometry does, so a
   course edit without a bump fails loudly.
@@ -357,7 +357,7 @@ the shelf pilots finishing.
 
 ---
 
-## R8 — The play-pass build needs the real sprite (FR-240)
+## R8 — The play-pass build needs the real sprite (FR-255)
 
 **Finding**: this container has Git LFS pointer files where
 `public/sprites/skier.png` and `assets/sprites/*.png` should be (`git lfs` is not
@@ -375,12 +375,12 @@ build.** The maintainer is told plainly why.
 
 ## R9 — The warm-up course has a failing box too
 
-**Finding** (found by `/speckit-analyze`, 2026-09-24): FR-231 covers both courses, but
+**Finding** (found by `/speckit-analyze`, 2026-09-24): FR-246 covers both courses, but
 the warm-up had only been measured from a clean start. On the same low-line ride, its
 coached box at 1,289 leaves 2,098 ms. Its box at **5,200 leaves 648 ms**, because the
 warm-up ramp at 4,600 hops a low-line player into it. The camera does not help: the
 box is limited horizontally, not hidden (648 ms with or without it). As first
-amended, the spec froze the whole warm-up course, which left no remedy. FR-233 is
+amended, the spec froze the whole warm-up course, which left no remedy. FR-248 is
 amended to allow this one approach.
 
 **Decision**: ease 4,800–5,200 to the 0.25 floor and give the speed back at
@@ -420,7 +420,7 @@ retargets.
 Two variants were rejected:
 
 - **Easing to 0.28 without a restore**: the box reads only 681 ms.
-- **Restoring to 0.34 at 5,300**: the booter lip moves +2.1%, outside FR-235.
+- **Restoring to 0.34 at 5,300**: the booter lip moves +2.1%, outside FR-250.
 
 ---
 
@@ -443,7 +443,7 @@ license a MUST.
 - It is imported in `src/main.ts` beside `sprites.json` and carried on `GameData`.
 - It is passed to `cameraFor(state, course, framing)`.
 
-`data/tuning.json` is untouched, so FR-232 holds. The renderer, not the simulation,
+`data/tuning.json` is untouched, so FR-247 holds. The renderer, not the simulation,
 reads the file, so determinism is unaffected. Changing a value re-feels the game, so
 Principle VIII's play-pass obligation extends to this file, and it is named in the
 quickstart.
@@ -485,7 +485,7 @@ numbers are in [baseline-2.0.0.md](./baseline-2.0.0.md).
 
 On that measure, **four boxes fail today** (3,600: 448 · 4,120: 365 · 4,640: 315 ·
 11,600: 348). Box 1,830 (781), box 6,100 (981), and the warm-up boxes (2,098 and 715)
-already pass, so under FR-233(a) they do not move. That drops:
+already pass, so under FR-248(a) they do not move. That drops:
 
 - R4's eases at 1,400–2,000 (box 1,830) and at 5,800–6,600 (box 6,100);
 - R9's warm-up ease, in full. The warm-up course changes only in its version string.
@@ -512,7 +512,7 @@ already pass, so under FR-233(a) they do not move. That drops:
 ];
 ```
 
-The log also moves 11,600 → 11,680 (FR-241's first fallback, as R4).
+The log also moves 11,600 → 11,680 (FR-256's first fallback, as R4).
 
 ### The small booter, again
 
@@ -549,7 +549,7 @@ by its own admission, and adding margin to it stays out of scope (R5).
   333 → 733, rope 4,860 333 → 433, rope 7,300 550 → 733, rope 11,850 383 → 800, and
   ice 11,350 550 → 750. **One hazard above the budget loses time: the ice at 5,546
   goes 967 → 817**, because the restored Cornice run-in gets the low-line rider there
-  sooner. FR-237 is amended to "not below the budget, and nothing below it loses
+  sooner. FR-252 is amended to "not below the budget, and nothing below it loses
   more"; the ice is 137 ms over the budget.
 - **What the camera buys on top of the course**: with the course change alone, three
   ropes on the steeps (4,860 / 7,300 / 7,600) fall to 317 / 533 / 483 ms, the first
