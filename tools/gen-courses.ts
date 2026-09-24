@@ -616,7 +616,7 @@ function official(): Built {
 
   return {
     id: 'official',
-    rulesVersion: '2.1.0',
+    rulesVersion: '3.1.0',
     length: 12000,
     terrain: pts,
     obstacles,
@@ -755,7 +755,7 @@ function warmup(): Built {
 
   return {
     id: 'warmup',
-    rulesVersion: '2.1.0',
+    rulesVersion: '3.1.0',
     length: COACH_SPAN + 3200,
     terrain: pts,
     obstacles,

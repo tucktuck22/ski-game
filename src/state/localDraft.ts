@@ -10,16 +10,14 @@
  * and the UI says so plainly on screen so nobody mistakes a local session for
  * a real draft.
  */
-import type { EntryView } from './ordering.js';
+import { bestAttempt, type AttemptRecord, type EntryView } from './ordering.js';
 import type { DraftSnapshot, DraftView } from './supabase.js';
 import type { PendingCommit, SubmitResult } from './outbox.js';
 
 export class LocalDraftStore {
   private entries = new Map<string, EntryView>();
-  private commits = new Map<
-    string,
-    { score: number; outcome: 'finished' | 'wiped_out'; at: string }
-  >();
+  /** Many attempts per entry now, mirroring committed_score's new shape. */
+  private commits = new Map<string, AttemptRecord[]>();
   private listeners = new Set<() => void>();
   private seq = 0;
 
@@ -31,12 +29,14 @@ export class LocalDraftStore {
 
   async snapshot(): Promise<DraftSnapshot> {
     const entries = [...this.entries.values()].map((e) => {
-      const c = this.commits.get(e.id);
+      // Same reduction the Supabase client uses, from the same function, so the
+      // two backends agree by construction rather than by coincidence (R6).
+      const best = bestAttempt(this.commits.get(e.id) ?? []);
       return {
         ...e,
-        score: c?.score ?? null,
-        commitAt: c?.at ?? null,
-        outcome: c?.outcome ?? null,
+        score: best?.score ?? null,
+        commitAt: best?.commitAt ?? null,
+        outcome: best?.outcome ?? null,
       };
     });
     return { draft: this.draft, entries };
@@ -63,7 +63,7 @@ export class LocalDraftStore {
       origin: 'self_created',
       claimed: true,
       practiceRunsUsed: 0,
-      officialStatus: 'unused',
+      officialAttemptsUsed: 0,
       removed: false,
       score: null,
       commitAt: null,
@@ -81,7 +81,7 @@ export class LocalDraftStore {
       origin: 'organizer',
       claimed: false,
       practiceRunsUsed: 0,
-      officialStatus: 'unused',
+      officialAttemptsUsed: 0,
       removed: false,
       score: null,
       commitAt: null,
@@ -106,25 +106,48 @@ export class LocalDraftStore {
     this.notify();
   }
 
-  /** Spends the official run at run end, mirroring DraftStore (FR-017, FR-018). */
-  async markOfficialRunEnded(id: string): Promise<void> {
+  /**
+   * Spends an attempt at the moment the run STARTS (FR-233, FR-234).
+   *
+   * Mirrors DraftStore. Returns the attempt number so the commit can carry it,
+   * and refuses past the allowance - which is the client's job now, since the
+   * allowance is a tuning value the schema deliberately does not pin (R10).
+   */
+  async startOfficialAttempt(
+    id: string,
+    officialAttempts: number,
+  ): Promise<{ ok: true; attemptNo: number } | { ok: false; reason: string }> {
     const e = this.entries.get(id);
-    if (e) this.entries.set(id, { ...e, officialStatus: 'committed' });
+    if (!e) return { ok: false, reason: 'No such name.' };
+    if (e.officialAttemptsUsed >= officialAttempts)
+      return { ok: false, reason: `All ${officialAttempts} official attempts are used.` };
+    if (Date.now() > Date.parse(this.draft.deadline))
+      return { ok: false, reason: 'The deadline has passed.' };
+    const attemptNo = e.officialAttemptsUsed + 1;
+    this.entries.set(id, { ...e, officialAttemptsUsed: attemptNo });
     this.notify();
+    return { ok: true, attemptNo };
   }
 
-  /** Mirrors the unique index: a second commit for the same entry is rejected. */
+  /**
+   * Mirrors UNIQUE (draft_id, entry_id, attempt_no): a second commit for the
+   * SAME attempt is rejected, which is what keeps an outbox retry idempotent
+   * (R1). A different attempt number is a new row, not a duplicate.
+   */
   async submitCommit(c: PendingCommit): Promise<SubmitResult> {
-    if (this.commits.has(c.entryId))
-      return { kind: 'rejected', reason: 'That name has already committed its official run.' };
+    const existing = this.commits.get(c.entryId) ?? [];
+    if (existing.some((a) => a.attemptNo === c.attemptNo))
+      return { kind: 'rejected', reason: `Attempt ${c.attemptNo} is already recorded.` };
     if (Date.now() > Date.parse(this.draft.deadline))
       return { kind: 'rejected', reason: 'The deadline has passed.' };
-    this.commits.set(c.entryId, {
+    existing.push({
+      attemptNo: c.attemptNo,
       score: c.score,
       outcome: c.outcome,
       // Assigned here, not by the caller — mirroring commit_at DEFAULT now().
-      at: new Date().toISOString(),
+      commitAt: new Date().toISOString(),
     });
+    this.commits.set(c.entryId, existing);
     this.notify();
     return { kind: 'confirmed' };
   }
@@ -157,7 +180,7 @@ export class LocalDraftStore {
         ...e,
         claimed: false,
         practiceRunsUsed: 0,
-        officialStatus: 'unused',
+        officialAttemptsUsed: 0,
       });
     }
     this.notify();

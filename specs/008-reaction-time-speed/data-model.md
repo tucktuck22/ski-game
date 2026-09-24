@@ -16,7 +16,7 @@ hand; the generator is edited and re-run.
 
 | Field                              | Change                                                                                                                                                                       |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rulesVersion`                     | `2.0.0` → `2.1.0`                                                                                                                                                            |
+| `rulesVersion`                     | `2.0.0` → `3.1.0`                                                                                                                                                            |
 | `terrain[]`                        | Every point from x = 1,600 onward moves in y, because easing changes all descent after it. x values are unchanged: 200-unit spacing, 62 points                               |
 | `obstacles[]` (`solid` at 11,600)  | x → 11,680                                                                                                                                                                   |
 | `kickers[].power` (pop ramps)      | Re-derived by the generator from the gradient at each lip. Expected to be unchanged, because the lips' gradients are held, but whatever the generator emits is authoritative |
@@ -40,7 +40,7 @@ The gentlest gradient used stays 0.25.
 
 `data/courses/warmup.json`, from `WARMUP_GRADE` in the same generator:
 
-- `rulesVersion` `2.0.0` → `2.1.0`, kept in step with the official course.
+- `rulesVersion` `2.0.0` → `3.1.0`, kept in step with the official course.
 - Terrain from x = 4,800 onward: the approach to its box at 5,200 is eased to 0.25,
   and the ground gives the speed back at 5,300–5,400
   ([research R9](./research.md#r9--the-warm-up-course-has-a-failing-box-too)).

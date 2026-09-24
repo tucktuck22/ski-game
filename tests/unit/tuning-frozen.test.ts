@@ -59,8 +59,15 @@ function committed(path: string): string | null {
 const OFFICIAL_GEOMETRY: Record<string, string> = {
   // Feature 006: slope-driven speed.
   '2.0.0': '2dcab59a32e75a087c8884711164c3fc1f68f42627fdbfb27b92b3fe5f6f2980',
+  // Feature 007: best of three official attempts. Run economy only; no geometry moved.
+  '3.0.0': '2dcab59a32e75a087c8884711164c3fc1f68f42627fdbfb27b92b3fe5f6f2980',
   // Feature 008: the Narrows and the Last Pitch eased, one log moved.
-  '2.1.0': '76625b52c2986f4f853f8f0714216b202781e8a45dedf8c0eeecde6a011bbba0',
+  '3.1.0': '76625b52c2986f4f853f8f0714216b202781e8a45dedf8c0eeecde6a011bbba0',
+};
+
+/** Versions whose bump moved no geometry, and what they moved instead. */
+const GEOMETRY_UNCHANGED: Record<string, string> = {
+  '3.0.0': 'three official attempts, best one counts (feature 007)',
 };
 
 const readJson = (path: string): Record<string, unknown> =>
@@ -109,8 +116,13 @@ describe('the official course never moves without a new rules version (FR-023, F
     ).toBe(recorded);
   });
 
-  it('every recorded version has its own geometry', () => {
-    const hashes = Object.values(OFFICIAL_GEOMETRY);
+  it('no two versions share a geometry unless one of them says why', () => {
+    // A bump for a rule that is not the course (3.0.0: the run economy) keeps the
+    // geometry. Any other repeat is a fingerprint pasted under the wrong version.
+    const reasoned = new Set(Object.keys(GEOMETRY_UNCHANGED));
+    const hashes = Object.entries(OFFICIAL_GEOMETRY)
+      .filter(([v]) => !reasoned.has(v))
+      .map(([, h]) => h);
     expect(new Set(hashes).size).toBe(hashes.length);
   });
 

@@ -156,7 +156,7 @@ B1/B3/B9 assertions, and the play-pass build lets the maintainer react to every 
 - [x] T012 [US1] Replace `OFFICIAL_GRADE` in `tools/gen-courses.ts` with research R4's complete programme, the code block under "The complete programme". Give each changed key an inline comment naming the box it eases, or the kicker/booter it restores (FR-248: each change recorded against its box). Rewrite the programme's header comment where it says "213 units of lookahead at 5.9 is already only 0.6s of reaction and the frame cannot show more": it is now false, and it points to this feature.
 - [x] T013 [US1] Replace `WARMUP_GRADE` in `tools/gen-courses.ts` with research R9's programme: ease 4,800–5,200 to 0.25, restore at 5,300/5,400. Leave every key at x ≤ 3,200 (the coached section) exactly as it is. Comment each changed key, citing box 5,200 and research R9.
 - [x] T014 [US1] In `official()` in `tools/gen-courses.ts`, change `deadfall(11600)` to `deadfall(11680)`. Keep the paired rock at 11,600. Add a comment citing FR-256's first fallback and research R4: the ramp hop at 11,000, and CV-11's ceiling of 11,686.
-- [x] T015 [US1] Set `rulesVersion: '2.1.0'` for both courses in `tools/gen-courses.ts`, so the version moves in the same commit as the geometry and T006's guard is never red on a pushed commit. Regenerate with `node --experimental-strip-types tools/gen-courses.ts`. Then:
+- [x] T015 [US1] Set `rulesVersion: '3.1.0'` for both courses in `tools/gen-courses.ts`, so the version moves in the same commit as the geometry and T006's guard is never red on a pushed commit. Regenerate with `node --experimental-strip-types tools/gen-courses.ts`. Then:
   - run it a second time and confirm no further diff;
   - confirm `warmup.json` changes only in `rulesVersion` and at terrain from x = 4,800;
   - confirm both files' terrain matches research R4/R9's candidates.
@@ -205,20 +205,20 @@ pass unmodified.
 
 ## Phase 5: User Story 3 — The draft moves to the new rules safely (Priority: P3)
 
-**Goal**: rules 2.1.0, bumped in T015 alongside the course, ships with every operator
+**Goal**: rules 3.1.0, bumped in T015 alongside the course, ships with every operator
 artifact agreeing, and no reset is needed (FR-254).
 
 **Independent Test**: no file tells an operator to seed, repair to or submit `2.0.0`,
 and the Postgres invariants job passes in CI.
 
-- [ ] T027 [US3] Confirm the 2.1.0 bump from T015 is on both generated courses, and that no file still names `2.0.0` as the version to seed, repair to or submit. `grep -rn "2\.0\.0" --include=*.ts --include=*.sql --include=*.json --include=*.md .` should list only history: specs, dated prose, and the FR-229 fixture in `supabase/tests/invariants.sql`.
-- [x] T028 [P] [US3] Change the version literal in `supabase/seed-draft.sql` (line 43) and the `target` in `supabase/fix-rules-version.sql` (line 49) from `'2.0.0'` to `'2.1.0'`. Leave the FR-229 fixture in `supabase/tests/invariants.sql` (research R7). Correct any version stated in either file's own comments (Principle VII).
+- [ ] T027 [US3] Confirm the 3.1.0 bump from T015 is on both generated courses, and that no file still names `2.0.0` as the version to seed, repair to or submit. `grep -rn "2\.0\.0" --include=*.ts --include=*.sql --include=*.json --include=*.md .` should list only history: specs, dated prose, and the FR-229 fixture in `supabase/tests/invariants.sql`.
+- [x] T028 [P] [US3] Change the version literal in `supabase/seed-draft.sql` (line 43) and the `target` in `supabase/fix-rules-version.sql` (line 49) from `'2.0.0'` to `'3.1.0'`. Leave the FR-229 fixture in `supabase/tests/invariants.sql` (research R7). Correct any version stated in either file's own comments (Principle VII).
 - [ ] T029 [P] [US3] Update `README.md`:
-  - In "Deploying a physics change into a live draft", add that 2.1.0 (feature 008) moves both courses' geometry and the camera but not the physics, and that no committed scores existed when it shipped, so no reset was needed. Keep the three-step order as the procedure for any future bump.
+  - In "Deploying a physics change into a live draft", add that 3.1.0 (feature 008) moves both courses' geometry and the camera but not the physics, and that no committed scores existed when it shipped, so no reset was needed. Keep the three-step order as the procedure for any future bump.
   - Add a feature 008 row to the status table.
 - [ ] T030 [US3] Run `npm run test:determinism`. The goldens in `tests/e2e/determinism.spec.ts` are expected to be unchanged, because their traces die before x = 1,400 on the official course. If any value moves, regenerate as the file's header instructs and append a dated paragraph naming feature 008 and why.
 
-**Checkpoint**: version, operator SQL and README agree on 2.1.0, with no reset in the
+**Checkpoint**: version, operator SQL and README agree on 3.1.0, with no reset in the
 instructions.
 
 ---

@@ -160,6 +160,16 @@ export interface Course {
 /** Every value governing feel. Loaded from data/tuning.json — see contracts/tuning-data.md. */
 export interface Tuning {
   /**
+   * How many official attempts each roster member gets (FR-231, FR-245).
+   *
+   * The only non-physics value in this file, and it is here on purpose: it is a
+   * rule the player meets as difficulty, so Principle III puts it in data rather
+   * than in code. Changing it is a rules change (FR-243) and needs no migration -
+   * shared storage carries a loose sanity rail rather than this exact number, so
+   * a re-tuned allowance is honoured end to end instead of half-vetoed.
+   */
+  officialAttempts: number;
+  /**
    * Snow friction, as a fraction of the slope-normal force.
    *
    * Feature 006 replaced a fixed base speed with the actual physics: speed is

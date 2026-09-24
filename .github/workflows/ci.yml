@@ -127,6 +127,20 @@ jobs:
         # violation to be rejected. A block that does not raise fails the build.
         run: $PSQL -d shred -f supabase/tests/invariants.sql
 
+      - name: A migration must not corrupt a live draft (FR-050)
+        # Feature 001's T039, unchecked until feature 007 gave it a schema change
+        # to run against. A SEPARATE database carrying 0001-0004 only, with data
+        # already in it — setup.sql is already migrated and would prove nothing
+        # about pasting 0005 into a project that has been running a draft, which
+        # is how the README tells organizers to apply a single migration.
+        run: |
+          $PSQL -d postgres -c 'create database roundtrip;'
+          $PSQL -d roundtrip -c 'create role anon2;' || true
+          for f in 0001_init 0002_policies 0003_organizer 0004_rules_freeze; do
+            $PSQL -d roundtrip -f "supabase/migrations/$f.sql"
+          done
+          $PSQL -d roundtrip -f supabase/tests/migration-roundtrip.sql
+
       - name: Assert the seed script produces a usable draft
         run: |
           # Roles are CLUSTER-wide in Postgres, not per-database, so anon and

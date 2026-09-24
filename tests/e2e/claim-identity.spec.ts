@@ -114,7 +114,7 @@ test.describe('a player can go back and pick again (FR-011)', () => {
     await expect(board(page)).not.toContainText(`You are ${wrong}`);
   });
 
-  test('after the official run there is no way out: the claim is permanent', async ({ page }) => {
+  test('after the first committed attempt the claim is permanent (FR-092)', async ({ page }) => {
     await dropIn(page);
     await page.locator('[data-claim]').first().click();
     await expect(page.locator('#not-me')).toBeVisible();
@@ -128,7 +128,11 @@ test.describe('a player can go back and pick again (FR-011)', () => {
     // organizer must reset the draft to undo it." A score is already on the
     // board under this name; letting the player walk away from it would leave a
     // result attributed to somebody who is no longer there.
+    // Feature 007 note: this locks at the FIRST committed attempt, not when the
+    // last one is spent. A score under this name is already on the board, and
+    // letting him walk away would leave a result attributed to somebody who is
+    // no longer there — true after attempt one as much as after attempt three.
     await expect(page.locator('#not-me')).toHaveCount(0);
-    await expect(board(page)).toContainText('committed');
+    await expect(page.locator('#official')).toContainText('2 left');
   });
 });

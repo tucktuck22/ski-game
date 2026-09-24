@@ -1,11 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { computeStandings, pickLabel, type EntryView } from '../../src/state/ordering.js';
+import {
+  bestAttempt,
+  computeStandings,
+  pickLabel,
+  type EntryView,
+} from '../../src/state/ordering.js';
 
 const entry = (over: Partial<EntryView> & { id: string; name: string }): EntryView => ({
   origin: 'organizer',
   claimed: true,
   practiceRunsUsed: 3,
-  officialStatus: 'unused',
+  officialAttemptsUsed: 0,
   removed: false,
   score: null,
   commitAt: null,
@@ -171,5 +176,108 @@ describe('bed-pick ordering', () => {
     const s = computeStandings([entry({ id: 'a', name: 'Zach' })], false);
     expect(pickLabel(s.forfeits[0]!, false)).toBe('NO SCORE YET');
     expect(pickLabel(s.forfeits[0]!, true)).toContain('FORFEIT');
+  });
+});
+
+/**
+ * DEFECT 2 (research R4). The Supabase client used to build its score lookup with
+ * `new Map(rows.map((r) => [r.entry_id, r]))`, which keeps the LAST value per key.
+ * Exact while an entry had one score; silently the wrong bed order the moment it
+ * can have three — and since the query carried no ORDER BY, not even consistently
+ * wrong, which is worse because it would not reproduce.
+ */
+describe('the best attempt is what counts (FR-232, FR-236, SC-086)', () => {
+  const at = (attemptNo: number, score: number, commitAt: string) => ({
+    attemptNo,
+    score,
+    commitAt,
+    outcome: 'finished' as const,
+  });
+
+  it('returns null when no attempt has posted', () => {
+    expect(bestAttempt([])).toBeNull();
+  });
+
+  it('picks the highest score regardless of the order rows arrive in (FR-232)', () => {
+    const attempts = [
+      at(1, 4000, '2026-09-01T10:00:00Z'),
+      at(2, 2500, '2026-09-01T11:00:00Z'),
+      at(3, 6100, '2026-09-01T12:00:00Z'),
+    ];
+    // Every permutation, because row order from the database is unspecified.
+    const orderings = [
+      attempts,
+      [...attempts].reverse(),
+      [attempts[1]!, attempts[2]!, attempts[0]!],
+      [attempts[2]!, attempts[0]!, attempts[1]!],
+    ];
+    for (const rows of orderings) {
+      expect(bestAttempt(rows)?.score).toBe(6100);
+    }
+  });
+
+  it('a later, lower attempt never displaces a higher earlier one (FR-232)', () => {
+    const best = bestAttempt([
+      at(1, 6100, '2026-09-01T10:00:00Z'),
+      at(2, 300, '2026-09-01T12:00:00Z'),
+    ]);
+    expect(best?.score).toBe(6100);
+    expect(best?.attemptNo).toBe(1);
+  });
+
+  /**
+   * FR-236, and SC-086 states the property it protects: a player must never be
+   * ranked lower for having used an attempt he was entitled to.
+   *
+   * Carrying the LATEST attempt's timestamp would do exactly that — set a
+   * winning mark on attempt one, take attempt two out of curiosity, and lose a
+   * tiebreak already won.
+   */
+  it('carries the BEST attempt timestamp, not the most recent (FR-236, SC-086)', () => {
+    const best = bestAttempt([
+      at(1, 6100, '2026-09-01T10:00:00Z'),
+      at(2, 2500, '2026-09-01T23:00:00Z'),
+    ]);
+    expect(best?.commitAt).toBe('2026-09-01T10:00:00Z');
+  });
+
+  it('resolves a player tying with himself to the earlier attempt (FR-236)', () => {
+    const best = bestAttempt([
+      at(2, 4000, '2026-09-01T12:00:00Z'),
+      at(1, 4000, '2026-09-01T10:00:00Z'),
+    ]);
+    expect(best?.attemptNo).toBe(1);
+    expect(best?.commitAt).toBe('2026-09-01T10:00:00Z');
+  });
+
+  it('does not disadvantage a player in a head-to-head tiebreak for taking an extra attempt (SC-086)', () => {
+    // Both peak at 4,000. Dave got there first and then used a third attempt he
+    // was entitled to; Sam stopped. Dave must still win the tiebreak.
+    const dave = bestAttempt([
+      at(1, 4000, '2026-09-01T10:00:00Z'),
+      at(2, 1200, '2026-09-01T20:00:00Z'),
+    ])!;
+    const sam = bestAttempt([at(1, 4000, '2026-09-01T11:00:00Z')])!;
+    const standings = computeStandings(
+      [
+        entry({
+          id: 'd',
+          name: 'Dave',
+          score: dave.score,
+          commitAt: dave.commitAt,
+          officialAttemptsUsed: 2,
+        }),
+        entry({
+          id: 's',
+          name: 'Sam',
+          score: sam.score,
+          commitAt: sam.commitAt,
+          officialAttemptsUsed: 1,
+        }),
+      ],
+      true,
+    );
+    expect(standings.ranked.map((r) => r.name)).toEqual(['Dave', 'Sam']);
+    expect(standings.ranked[0]?.unresolvedTie).toBe(false);
   });
 });

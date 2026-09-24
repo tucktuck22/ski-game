@@ -73,6 +73,7 @@ export interface SpriteManifest {
 }
 
 const REQUIRED_TUNING_KEYS: ReadonlyArray<keyof Tuning> = [
+  'officialAttempts',
   'slopeFriction',
   'dragStanding',
   'dragTucked',
@@ -133,6 +134,15 @@ export function parseTuning(raw: unknown): Tuning {
   if (!(t.speedMin > 0))
     throw new Error(
       'tuning.json: "speedMin" must be positive — at zero a shallow pitch strands the player',
+    );
+  // FR-245: the allowance is data so play can move it, which means a typo here
+  // is a rule change nobody authored. Zero would leave the official run
+  // permanently unavailable with no message explaining why; a fraction would
+  // make "attempts remaining" count down through 0.5.
+  if (!Number.isInteger(t.officialAttempts) || t.officialAttempts < 1)
+    throw new Error(
+      'tuning.json: "officialAttempts" must be a whole number of at least 1 — ' +
+        'it is how many official attempts each player gets (FR-231, FR-245)',
     );
   return t;
 }

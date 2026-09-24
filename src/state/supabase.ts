@@ -7,7 +7,7 @@
  * "retry" versus "permanently rejected", which the outbox depends on.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { EntryView } from './ordering.js';
+import { bestAttempt, type AttemptRecord, type EntryView } from './ordering.js';
 import type { PendingCommit, SubmitResult } from './outbox.js';
 
 export interface DraftView {
@@ -98,7 +98,13 @@ export class DraftStore {
         .eq('id', this.draftId)
         .single(),
       this.db.from('roster_entry').select('*').eq('draft_id', this.draftId),
-      this.db.from('committed_score').select('*').eq('draft_id', this.draftId),
+      // ORDER BY is not decoration: the reduction below must not depend on the
+      // order rows happen to come back in (research R4).
+      this.db
+        .from('committed_score')
+        .select('*')
+        .eq('draft_id', this.draftId)
+        .order('attempt_no', { ascending: true }),
     ]);
     // A misconfigured project is the likeliest real failure, and a raw
     // PostgrestError tells the organizer nothing actionable. Name the cause and
@@ -134,21 +140,38 @@ export class DraftStore {
       throw setupError;
     }
 
-    const scores = new Map((scoreRes.data ?? []).map((s) => [s.entry_id as string, s]));
+    // MANY rows per entry now, not one. This used to be
+    // `new Map(rows.map((s) => [s.entry_id, s]))`, which keeps the LAST value
+    // per key - fine when an entry could only have one score, and silently the
+    // wrong bed order the moment it can have three (research R4).
+    const attempts = new Map<string, AttemptRecord[]>();
+    for (const row of scoreRes.data ?? []) {
+      const entryId = row.entry_id as string;
+      const list = attempts.get(entryId) ?? [];
+      list.push({
+        attemptNo: (row.attempt_no as number | null) ?? 1,
+        score: row.score as number,
+        commitAt: row.commit_at as string,
+        outcome: row.outcome as 'finished' | 'wiped_out',
+      });
+      attempts.set(entryId, list);
+    }
 
     const entries: EntryView[] = (entryRes.data ?? []).map((e) => {
-      const s = scores.get(e.id as string);
+      // FR-232: the best attempt is what stands, and FR-236 takes its timestamp
+      // with it rather than the latest attempt's.
+      const best = bestAttempt(attempts.get(e.id as string) ?? []);
       return {
         id: e.id as string,
         name: e.name as string,
         origin: e.origin as 'organizer' | 'self_created',
         claimed: e.claimed_at !== null,
         practiceRunsUsed: e.practice_runs_used as number,
-        officialStatus: (e.official_status as 'unused' | 'committed' | null) ?? 'unused',
+        officialAttemptsUsed: (e.official_attempts_used as number | null) ?? 0,
         removed: e.removed_at !== null,
-        score: s ? (s.score as number) : null,
-        commitAt: s ? (s.commit_at as string) : null,
-        outcome: s ? (s.outcome as 'finished' | 'wiped_out') : null,
+        score: best ? best.score : null,
+        commitAt: best ? best.commitAt : null,
+        outcome: best ? best.outcome : null,
       };
     });
 
@@ -215,25 +238,41 @@ export class DraftStore {
   }
 
   /**
-   * Spends the official run, at the instant the run reached a finish or a
-   * wipeout (FR-017).
+   * Spends an official attempt at the instant the run STARTS (FR-233, FR-234).
    *
-   * SEPARATE FROM THE SCORE ON PURPOSE. The score goes through the outbox and
-   * may be queued for minutes on lodge wifi; this is one small write that says
-   * the run happened. Previously the only record of a used official run was the
-   * score row itself, so any commit that did not land — a queue waiting on a
-   * signal, or a database refusal — left the run looking untaken and handed the
-   * player the button back, in direct contradiction of FR-018.
+   * THIS REPLACES markOfficialRunEnded, AND THE TIMING IS THE POINT. Spending
+   * at run end could only ever charge for a run that reached a finish or a
+   * wipeout; an abandoned run - tab closed, phone dead - cost nothing, which is
+   * the unfairness feature 007 exists to close. Moving the write to the start
+   * charges for the attempt without anyone having to DETECT the abandonment,
+   * which is impossible to do reliably when the tab is killed.
    *
-   * Throws on failure, so the caller can say the run is unrecorded rather than
-   * pretending otherwise.
+   * BEST EFFORT, AND IT FAILS OPEN. Every other write in this system does, so a
+   * bad connection cannot cost a player his run, and an earlier design that
+   * failed closed here would have made this the first network round-trip in the
+   * product to gate gameplay. The organizer ruled the count honour-system
+   * (research R2), so an offline attempt that goes uncounted is an accepted
+   * cost, not a hole to plug. The caller starts the run either way.
+   *
+   * The allowance is passed in rather than assumed: it is a tuning value, and
+   * shared storage carries only a loose sanity rail (FR-245, research R10).
    */
-  async markOfficialRunEnded(entryId: string): Promise<void> {
+  async startOfficialAttempt(
+    entryId: string,
+    officialAttempts: number,
+    attemptsUsed: number,
+  ): Promise<{ ok: true; attemptNo: number } | { ok: false; reason: string }> {
+    if (attemptsUsed >= officialAttempts)
+      return { ok: false, reason: `All ${officialAttempts} official attempts are used.` };
+    const attemptNo = attemptsUsed + 1;
     const { error } = await this.db
       .from('roster_entry')
-      .update({ official_status: 'committed' })
+      .update({ official_attempts_used: attemptNo })
       .eq('id', entryId);
-    if (error) throw error;
+    // A failed write does NOT stop the run. The count reconciles from shared
+    // storage on the next load; reporting it lets the caller say so if it wants.
+    if (error) return { ok: false, reason: error.message };
+    return { ok: true, attemptNo };
   }
 
   /**
@@ -244,15 +283,17 @@ export class DraftStore {
     const { error } = await this.db.from('committed_score').insert({
       draft_id: c.draftId,
       entry_id: c.entryId,
+      attempt_no: c.attemptNo,
       score: c.score,
       outcome: c.outcome,
       rules_version: c.rulesVersion,
       // commit_at deliberately omitted: the server assigns it (FR-037).
     });
-    // official_status is NOT set here any more. It used to be, and only on
-    // success, which made it a duplicate of the score row and therefore useless
-    // for the one case that mattered: a run that ended and did not commit.
-    // markOfficialRunEnded() writes it at run end instead.
+    // The attempt counter is NOT touched here. startOfficialAttempt() moved it
+    // to the START of the run, which is what makes an abandoned attempt cost
+    // one. A 23505 from UNIQUE (draft_id, entry_id, attempt_no) means this exact
+    // attempt is already recorded - the correct outcome for a retry whose first
+    // response was lost, and what keeps the outbox idempotent (research R1).
     return classifyError(error);
   }
 

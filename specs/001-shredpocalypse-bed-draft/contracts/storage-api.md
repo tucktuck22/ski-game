@@ -3,6 +3,11 @@
 **Backend**: Supabase (Postgres + RLS + Realtime) | **Governs**: FR-002 to FR-021,
 FR-037, FR-042 to FR-050, FR-070 to FR-075
 
+> **Amended 2026-09-23 by feature 007.** The one-run rule became three attempts with the
+> best one counting. Rows marked below carry the change; everything else stands. The
+> attempt-level contract lives in
+> [007's storage-api.md](../../007-best-of-three-official/contracts/storage-api.md).
+
 Operations are described by their observable contract, not their SQL. What matters
 is which invariants are enforced by the _database_ rather than by the client,
 because the client is public and — per
@@ -14,26 +19,26 @@ values while still being bound by rules.
 These hold regardless of what any client sends. Each is a schema constraint or a
 policy, never application code.
 
-| Invariant                                          | Enforcement                                                                  | Requirement    |
-| -------------------------------------------------- | ---------------------------------------------------------------------------- | -------------- |
-| One committed score per entry, forever             | `UNIQUE (draft_id, entry_id)`; no UPDATE or DELETE grant to any client role  | FR-017, FR-018 |
-| Roster names unique per draft, case-insensitive    | `UNIQUE (draft_id, lower(name))`                                             | FR-003         |
-| At most 16 entries                                 | `BEFORE INSERT` trigger                                                      | FR-002, FR-072 |
-| Commit timestamps not client-set                   | `commit_at timestamptz DEFAULT now()`, column excluded from the insert grant | FR-037         |
-| No commits after the deadline                      | Policy checks `now() <= draft.deadline`                                      | FR-043         |
-| Organizer actions unavailable from the player link | Policy requires the organizer secret, which is not in the player bundle      | FR-006, FR-074 |
-| Rules version pinned at commit                     | Insert copies `draft.rules_version`; mismatched commits rejected             | FR-023         |
+| Invariant                                          | Enforcement                                                                                                                                                                                                           | Requirement    |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| At most one score per (entry, attempt), forever    | `UNIQUE (draft_id, entry_id, attempt_no)`; no UPDATE or DELETE grant to any client role. **Amended by feature 007** — the allowance itself is a tuning value, and this index is what keeps an outbox retry idempotent | FR-231, FR-237 |
+| Roster names unique per draft, case-insensitive    | `UNIQUE (draft_id, lower(name))`                                                                                                                                                                                      | FR-003         |
+| At most 16 entries                                 | `BEFORE INSERT` trigger                                                                                                                                                                                               | FR-002, FR-072 |
+| Commit timestamps not client-set                   | `commit_at timestamptz DEFAULT now()`, column excluded from the insert grant                                                                                                                                          | FR-037         |
+| No commits after the deadline                      | Policy checks `now() <= draft.deadline`                                                                                                                                                                               | FR-043         |
+| Organizer actions unavailable from the player link | Policy requires the organizer secret, which is not in the player bundle                                                                                                                                               | FR-006, FR-074 |
+| Rules version pinned at commit                     | Insert copies `draft.rules_version`; mismatched commits rejected                                                                                                                                                      | FR-023         |
 
 ## Player operations
 
-| Operation                            | Contract                                                                                                    | Failure modes                                                                                            |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `listDraft()`                        | Returns roster with claim state, run counts, abandonment counts, committed scores, deadline, finalized flag | Offline → serve last cached snapshot, marked stale                                                       |
-| `createEntry(name)`                  | Creates and claims in one action (FR-008). Returns the entry                                                | Name taken → rejected, name shown as taken. Cap reached → rejected naming the cap (FR-072)               |
-| `claimEntry(id)`                     | Binds an unclaimed entry to this player                                                                     | Already claimed → rejected; first confirmed write wins (FR-012)                                          |
-| `incrementPractice(id)`              | Records a _completed_ practice run                                                                          | Abandoned runs never call this (FR-066)                                                                  |
-| `incrementAbandoned(id)`             | Records an abandoned official run                                                                           | Public counter (FR-065)                                                                                  |
-| `commitOfficial(id, score, outcome)` | The one irreversible write                                                                                  | Duplicate → rejected, "already committed". Past deadline → rejected. Offline → queued in outbox (FR-046) |
+| Operation                            | Contract                                                                                                                                                                 | Failure modes                                                                                                                                       |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `listDraft()`                        | Returns roster with claim state, run counts, abandonment counts, committed scores, deadline, finalized flag                                                              | Offline → serve last cached snapshot, marked stale                                                                                                  |
+| `createEntry(name)`                  | Creates and claims in one action (FR-008). Returns the entry                                                                                                             | Name taken → rejected, name shown as taken. Cap reached → rejected naming the cap (FR-072)                                                          |
+| `claimEntry(id)`                     | Binds an unclaimed entry to this player                                                                                                                                  | Already claimed → rejected; first confirmed write wins (FR-012)                                                                                     |
+| `incrementPractice(id)`              | Records a _completed_ practice run                                                                                                                                       | Abandoned runs never call this (FR-066)                                                                                                             |
+| ~~`incrementAbandoned(id)`~~         | **WITHDRAWN with FR-065**, and never implemented. Feature 007 charges for an abandoned attempt at its start instead (FR-233)                                             | —                                                                                                                                                   |
+| `commitOfficial(id, score, outcome)` | **Superseded by feature 007's `commitAttempt(id, attemptNo, score, outcome)`** — see [007's storage contract](../../007-best-of-three-official/contracts/storage-api.md) | Duplicate ATTEMPT → rejected, which is the correct outcome for a retry whose response was lost. Past deadline → rejected. Offline → queued (FR-046) |
 
 ## Organizer operations
 

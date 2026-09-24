@@ -387,7 +387,7 @@ feature is done, so this is not an accepting verdict for T020. Measured afterwar
 
 - **Box, then rope.** Time from landing a box to reaching the rope after it:
 
-  | Pair (box → rope) | 2.0.0 (worst) | 2.1.0 (worst) |
+  | Pair (box → rope) | 2.0.0 (worst) | 3.1.0 (worst) |
   | ----------------- | ------------: | ------------: |
   | 3,600 → 3,820     |        183 ms |        300 ms |
   | 4,120 → 4,340     |        150 ms |        267 ms |

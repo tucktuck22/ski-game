@@ -336,13 +336,13 @@ the shelf pilots finishing.
 
 **Decision**:
 
-- **`rulesVersion` 2.0.0 → 2.1.0**, on both courses. The database compares strings
+- **`rulesVersion` 2.0.0 → 3.1.0**, on both courses. The database compares strings
   exactly, so any bump behaves identically. MINOR says what happened: the course moved
   and the rules of motion did not. No draft reset is needed, because none holds scores
-  (Clarifications Q2). Migration 0004's first-commit freeze adopts 2.1.0 from the next
+  (Clarifications Q2). Migration 0004's first-commit freeze adopts 3.1.0 from the next
   official run.
 - **`supabase/seed-draft.sql` and `supabase/fix-rules-version.sql`** carry the version
-  string an operator seeds or repairs to. They move to 2.1.0 in the same change
+  string an operator seeds or repairs to. They move to 3.1.0 in the same change
   (Principle VII). `supabase/tests/invariants.sql`'s FR-229 block uses 2.0.0 as a
   historical fixture and stays as it is.
 - **`tests/unit/tuning-frozen.test.ts`** froze two files for feature 005. It keeps
@@ -532,9 +532,9 @@ moved it. The Flats key at 6,800 did, **non-monotonically**:
 0.395 ships, with a comment in the generator saying exactly this. The rig is zero-margin
 by its own admission, and adding margin to it stays out of scope (R5).
 
-### Final measurements (rules 2.1.0, the camera from R2/R3, worst over pilots)
+### Final measurements (rules 3.1.0, the camera from R2/R3, worst over pilots)
 
-| Box           | 2.0.0 | 2.1.0 | Worst pilot |
+| Box           | 2.0.0 | 3.1.0 | Worst pilot |
 | ------------- | ----: | ----: | ----------- |
 | 1,830         |   781 |   781 | low-line    |
 | 3,600         |   448 |   731 | tuck        |

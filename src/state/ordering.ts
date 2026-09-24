@@ -6,6 +6,24 @@
  * they get their own unit tests rather than being verified through the UI.
  */
 
+/**
+ * One official attempt that reached an end state and posted a score.
+ *
+ * An ABANDONED attempt has no record at all. It is visible only as a gap:
+ * `officialAttemptsUsed` advanced and no attempt arrived. That is deliberate -
+ * the counter moves when the run STARTS (FR-234), so an attempt costs
+ * something without anyone having to detect the abandonment, which is
+ * impossible to do reliably when the tab is killed.
+ */
+export interface AttemptRecord {
+  /** 1-based. Unique per entry, which is also what makes a commit retry safe. */
+  attemptNo: number;
+  score: number;
+  /** ISO timestamp assigned by shared storage, never by a device (FR-037). */
+  commitAt: string;
+  outcome: 'finished' | 'wiped_out';
+}
+
 export interface EntryView {
   id: string;
   name: string;
@@ -13,21 +31,56 @@ export interface EntryView {
   claimed: boolean;
   practiceRunsUsed: number;
   /**
-   * Whether this name's one official run has been used up.
+   * How many of this name's official attempts are spent (FR-231, FR-235).
    *
-   * Set the moment the run reaches a finish or a wipeout (FR-017), which is
-   * BEFORE the score row is guaranteed to exist: the commit goes through the
-   * outbox and may still be queued. Without this the run vanished whenever the
-   * insert did not land, and the OFFICIAL RUN button came straight back —
-   * which is FR-018's "no player-accessible path to retake" defeated by a
-   * dropped request.
+   * Advanced the moment a run STARTS, not when it ends (FR-234), which is what
+   * makes an abandoned attempt cost one. It replaces the old binary
+   * `officialStatus`, which could say "used" but never "one spent, two left".
+   *
+   * Compared against `officialAttempts` from tuning, never against a literal 3:
+   * the allowance is a tuning value so play can move it (FR-245).
    */
-  officialStatus: 'unused' | 'committed';
+  officialAttemptsUsed: number;
   removed: boolean;
+  /**
+   * The BEST attempt's score, not the most recent (FR-232). Null until one
+   * attempt has posted.
+   */
   score: number | null;
-  /** ISO timestamp assigned by shared storage, never by a device (FR-037). */
+  /**
+   * The best attempt's commit time - the one that supplies the tiebreak
+   * (FR-236). Deliberately NOT the latest attempt's: using that would let a
+   * player lose a tiebreak he had already won by taking an attempt he was
+   * entitled to.
+   */
   commitAt: string | null;
   outcome: 'finished' | 'wiped_out' | null;
+}
+
+/**
+ * Reduces an entry's attempts to the one that counts.
+ *
+ * Highest score wins; a tie between a player's own attempts resolves to the
+ * EARLIER one, so the timestamp carried into the tiebreak is the moment he
+ * first reached that score (FR-232, FR-236).
+ *
+ * This is pure and lives here rather than in the storage client so both
+ * backends share one definition and it can be tested without a server. Reading
+ * the rows into a Map keyed by entry - which is what the Supabase client used
+ * to do - silently keeps whichever row came back LAST, and with no ORDER BY
+ * that is not even consistently wrong.
+ */
+export function bestAttempt(attempts: readonly AttemptRecord[]): AttemptRecord | null {
+  let best: AttemptRecord | null = null;
+  for (const a of attempts) {
+    if (best === null) {
+      best = a;
+      continue;
+    }
+    if (a.score > best.score) best = a;
+    else if (a.score === best.score && a.commitAt < best.commitAt) best = a;
+  }
+  return best;
 }
 
 export interface RankedEntry extends EntryView {

@@ -31,7 +31,7 @@ The plan fixes both without touching `data/tuning.json`:
 5. **The three camera constants live in a new `data/camera.json`**, not in code
    (research R10).
 
-`rulesVersion` goes 2.0.0 → 2.1.0, and no reset is needed.
+`rulesVersion` goes 3.0.0 → 3.1.0. **Amended 2026-09-24:** this was planned as 2.0.0 → 2.1.0, but feature 007 (best of three) shipped 3.0.0 while this branch was open. 3.0.0 changed the run economy only; its course geometry is byte-identical to 2.0.0, so every baseline measured on 2.0.0 still holds. Whether a reset is needed depends on whether the live draft has scores under 3.0.0; see the README.
 
 All of this was measured in simulation before planning
 ([research.md](./research.md)). Every box then gets 681–748 ms. Kicker lip speeds are
@@ -68,9 +68,9 @@ _GATE: evaluated before Phase 0 and re-checked after Phase 1. **PASS.**_
 | **II. Stability**                   | The simulation is untouched. Determinism goldens are expected unchanged (R7), and the camera is render-only (C7). The monkey test and pilots run on the new course. No save schema changes.                                                                                                                                                                                                                                                                                        |
 | **III. Fun is testable**            | Every feel target is numeric: 680 ms, ±2% lip speed, rotations equal, hazard lead ≥ baseline. Tuning stays in data and does not move. **The three new camera values are in a new versioned data file, `data/camera.json`** (research R10). They were first planned in code; `/speckit-analyze` finding D1 flagged that as a Principle III violation, and it is corrected here, not justified. The existing frame geometry (`PLAYER_LOOKAHEAD`, `AIR_LIFT_MAX`) stays where it was. |
 | **IV. One voice**                   | No new asset. Legibility outranks style: this feature exists to un-hide hazards.                                                                                                                                                                                                                                                                                                                                                                                                   |
-| **V. Fair competition**             | The same view on every device, because the horizontal lookahead is unchanged and the look-down depends only on the course. `rulesVersion` bumps, so scores under 2.0.0 and 2.1.0 are never compared. Client-trust deviation 4 is unchanged.                                                                                                                                                                                                                                        |
+| **V. Fair competition**             | The same view on every device, because the horizontal lookahead is unchanged and the look-down depends only on the course. `rulesVersion` bumps, so scores under 2.0.0 and 3.1.0 are never compared. Client-trust deviation 4 is unchanged.                                                                                                                                                                                                                                        |
 | **VI. Shipped artifact (NN)**       | `npm run test:build` drives the built artifact at `/ski-game/`. **Gap, stated**: no browser test asserts the camera's vertical framing from pixels. It is proven on the pure `cameraFor` function the renderer calls, and seen by a human in the play pass.                                                                                                                                                                                                                        |
-| **VII. Operator instructions (NN)** | `seed-draft.sql` and `fix-rules-version.sql` carry the version literal and move to 2.1.0. CI already executes both against Postgres. The README's rules-version section gains the 2.1.0 entry, stating that no reset is needed.                                                                                                                                                                                                                                                    |
+| **VII. Operator instructions (NN)** | `seed-draft.sql` and `fix-rules-version.sql` carry the version literal and move to 3.1.0. CI already executes both against Postgres. The README's rules-version section gains the 3.1.0 entry, stating that no reset is needed.                                                                                                                                                                                                                                                    |
 | **VIII. Player judges fun (NN)**    | Course and camera change feel, so a single-file build goes to the maintainer at the first playable point: **task order puts it before hardening tests are finalised**. The real sprite is required (R8), and quickstart §6 lists the four questions.                                                                                                                                                                                                                               |
 
 **Post-design re-check**: PASS. Phase 1 added no dependency, no persisted state and no
@@ -98,7 +98,7 @@ specs/008-reaction-time-speed/
 ### Source Code (repository root)
 
 ```text
-tools/gen-courses.ts               # OFFICIAL_GRADE and WARMUP_GRADE keys; deadfall 11,600 -> 11,680; rulesVersion 2.1.0 (both courses)
+tools/gen-courses.ts               # OFFICIAL_GRADE and WARMUP_GRADE keys; deadfall 11,600 -> 11,680; rulesVersion 3.1.0 (both courses)
 data/courses/official.json         # regenerated
 data/courses/warmup.json           # regenerated (terrain from x = 4,800, rulesVersion)
 data/camera.json                   # new: lookMargin 4, shelfMargin 8, shelfEaseIn 120
@@ -112,9 +112,9 @@ tests/unit/camera-framing.test.ts  # new: C1–C7
 tests/unit/camera-config.test.ts   # new: data/camera.json parses; each rejection fires
 tests/unit/tuning-frozen.test.ts   # retargeted: tuning.json stays frozen; official.json must bump rulesVersion when it moves
 tests/e2e/determinism.spec.ts      # goldens: expected unchanged; regenerated with a dated note only if they move
-supabase/seed-draft.sql            # '2.0.0' -> '2.1.0'
-supabase/fix-rules-version.sql     # target '2.0.0' -> '2.1.0'
-README.md                          # rules version section: 2.1.0, no reset
+supabase/seed-draft.sql            # '2.0.0' -> '3.1.0'
+supabase/fix-rules-version.sql     # target '2.0.0' -> '3.1.0'
+README.md                          # rules version section: 3.1.0, no reset
 ```
 
 **Structure Decision**: this is the existing single project. No new directories. The
