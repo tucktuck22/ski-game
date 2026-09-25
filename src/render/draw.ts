@@ -19,7 +19,15 @@ import type { CameraFraming, FinishConfig } from '../data/load.js';
 import type { MotionSettings } from './reducedMotion.js';
 import type { Shake } from './landing.js';
 import type { Tumble } from './death.js';
-import { gantryOf, SPRAY_LIFE, type FinishSequence, type SprayParticle } from './finish.js';
+import {
+  crowdLayout,
+  crowdPose,
+  gantryOf,
+  SPRAY_LIFE,
+  type CrowdFigure,
+  type FinishSequence,
+  type SprayParticle,
+} from './finish.js';
 import { FULL_MOTION } from './reducedMotion.js';
 import type { SpriteSheets } from './sprites.js';
 import type { PoseKey } from './skierPose.js';
@@ -860,7 +868,15 @@ export function drawRun(
   const cam = cameraFor(state, course, framing, look);
   // During the finish the camera stops following at the line and holds the
   // gantry and the crowd in frame (feature 009, research R7).
-  if (finish.seq?.started) cam.x = finish.seq.cameraX();
+  if (finish.seq?.started) {
+    cam.x = finish.seq.cameraX();
+    // The finish area lies below the line, and following him down onto it
+    // carried the banner off the top of the frame. Hold it in view while the
+    // gantry is on screen; he still stops well above the bottom edge. F6 has the
+    // banner in frame at the crossing, so this starts without a jump.
+    const g = gantryOf(course, finish.cfg);
+    if (g.bannerRight - cam.x > 0) cam.y = Math.min(cam.y, g.bannerTop - 2);
+  }
   // The kick is applied to the CAMERA, not to the finished frame. Translating
   // the buffer afterwards would drag the sky with it and leave a bare strip at
   // the edge; moving the camera shakes the world inside a frame that still
@@ -920,6 +936,9 @@ export function drawRun(
 
   drawSnowfall(ctx, cam, state.tick, motion);
 
+  // The finish crowd stands behind the snow edge: drawn before the piste so the
+  // snowpack buries their feet, as it does the near pines' trunks (FN-2).
+  drawCrowd(ctx, course, cam, finish, state.tick, motion);
   drawPiste(ctx, course, cam);
   drawKickers(ctx, course, cam, tuning);
   drawLedges(ctx, course, cam, state);
@@ -1036,6 +1055,86 @@ function drawFinish(
       ctx.fillStyle = css(((cx + cy) / 4) % 2 ? 'ink' : 'snow');
       ctx.fillRect(bl + 1 + cx, bt + 1 + cy, Math.min(4, bw - 2 - cx), Math.min(4, bh - 2 - cy));
     }
+}
+
+const crowdCache = new WeakMap<Course, WeakMap<FinishConfig, CrowdFigure[]>>();
+
+function crowdFor(course: Course, cfg: FinishConfig): CrowdFigure[] {
+  let byCfg = crowdCache.get(course);
+  if (!byCfg) crowdCache.set(course, (byCfg = new WeakMap()));
+  let crowd = byCfg.get(cfg);
+  if (!crowd) byCfg.set(cfg, (crowd = crowdLayout(course, cfg)));
+  return crowd;
+}
+
+/**
+ * The crowd at the finish (FN-2, FN-3): `ink` silhouettes with a `cyan` rim,
+ * some with a `yellow` or `cyan` flag. No `skin`, no `orange`, no `magenta` -
+ * the player stays the one person in the game, hazards stay hazards, and the
+ * player's colour stays his. Idle until the line is crossed, then celebrating.
+ */
+function drawCrowd(
+  ctx: CanvasRenderingContext2D,
+  course: Course,
+  cam: Camera,
+  finish: FinishFrame,
+  tick: number,
+  motion: MotionSettings,
+): void {
+  const { cfg, seq } = finish;
+  const L = course.length;
+  if (L + cfg.crowdTo - cam.x < -10 || L + cfg.crowdFrom - cam.x > INTERNAL_WIDTH + 10) return;
+  const since = seq?.started ? seq.elapsed : null;
+  for (const f of crowdFor(course, cfg)) {
+    const left = f.x - cam.x;
+    if (left < -12 || left > INTERNAL_WIDTH + 12) continue;
+    const pose = crowdPose(f, tick, since, motion);
+    const x = Math.round(left + pose.sway);
+    const foot = Math.round(f.footY - cam.y - pose.lift);
+    const top = foot - f.height;
+    const headR = 2;
+    const cx = x + Math.floor(f.width / 2);
+
+    // Body, and a head with its corners cut so it reads round at 4 pixels.
+    ctx.fillStyle = css('ink');
+    ctx.fillRect(x, top + headR * 2 + 1, f.width, f.height - headR * 2 - 1);
+    ctx.fillRect(cx - headR, top + 1, headR * 2, headR * 2 - 1);
+    ctx.fillRect(cx - headR + 1, top, headR * 2 - 2, 1);
+    // The backlight: a cyan rim over the head and along the shoulders, so the
+    // shape reads against a dark mountain as well as against snow.
+    ctx.fillStyle = css('cyan');
+    ctx.fillRect(cx - headR + 1, top - 1, headR * 2 - 2, 1);
+    ctx.fillRect(cx - headR - 1, top + 1, 1, headR * 2 - 1);
+    ctx.fillRect(cx + headR, top + 1, 1, headR * 2 - 1);
+    ctx.fillRect(x, top + headR * 2, f.width, 1);
+    // Arms: down along the body in ink, or thrown up in a lit V - the one shape
+    // that says "cheering" at this size.
+    if (pose.armsUp) {
+      for (let i = 1; i <= 5; i++) {
+        ctx.fillRect(x - Math.ceil(i / 2), top + headR * 2 + 1 - i, 1, 1);
+        ctx.fillRect(x + f.width - 1 + Math.ceil(i / 2), top + headR * 2 + 1 - i, 1, 1);
+      }
+    } else {
+      ctx.fillStyle = css('ink');
+      ctx.fillRect(x - 1, top + headR * 2 + 1, 1, 4);
+      ctx.fillRect(x + f.width, top + headR * 2 + 1, 1, 4);
+    }
+
+    if (f.flag) {
+      // A stick from the raised hand, and the flag on it.
+      const hx = pose.armsUp ? x + f.width + 1 : x + f.width;
+      const hy = pose.armsUp ? top + 1 : top + headR * 2 + 4;
+      const lean = Math.round(pose.flagLean * 3);
+      ctx.fillStyle = css('ink');
+      ctx.fillRect(hx, hy - 6, 1, 6);
+      ctx.fillStyle = css(f.flag);
+      ctx.fillRect(hx + 1 + lean, hy - 6, 4, 3);
+    }
+    if (pose.hatUp !== null) {
+      ctx.fillStyle = css('ink');
+      ctx.fillRect(cx - 2, Math.round(top - 2 - pose.hatUp), 4, 2);
+    }
+  }
 }
 
 /** Snow thrown off the skis as he brakes past the line. Empty under reduced motion. */

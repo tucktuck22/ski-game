@@ -61,6 +61,10 @@ describe('F3: from every measuring pilot, the skier comes to a stop on the snow'
           if (stoppedAt < 0 && s.vx === 0 && s.grounded) stoppedAt = i + 1;
         });
         expect(stoppedAt, `${name} ${pilot} never stopped`).toBeGreaterThan(0);
+        // In the open snow the crowd leaves for him (FR-275).
+        const rest = seen[seen.length - 1]!.x - course.length;
+        expect(rest).toBeGreaterThanOrEqual(cfg.crowdGapFrom);
+        expect(rest).toBeLessThanOrEqual(cfg.crowdGapTo);
         expect(seq.holdTicks - stoppedAt, 'the stop must be seen').toBeGreaterThanOrEqual(60);
       });
     }
@@ -122,6 +126,9 @@ describe('F4: however he crosses, he lands clean', () => {
       }
       expect(landedAt, 'he must come down').toBeGreaterThan(0);
       expect(seq.phase).toBe('stopped');
+      const rest = seq.skier()!.x - official.length;
+      expect(rest, 'he stops in the open snow').toBeGreaterThanOrEqual(cfg.crowdGapFrom);
+      expect(rest, 'he stops in the open snow').toBeLessThanOrEqual(cfg.crowdGapTo);
     });
   }
 });

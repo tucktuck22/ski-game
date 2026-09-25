@@ -155,6 +155,18 @@ let snapshot: DraftSnapshot;
 // killed module initialisation and rendered a blank page. See safeStorage.ts.
 let myEntryId: string | null = null;
 let game: GameView | null = null;
+/*
+ * Test seam (feature 009, research R8): the tick of the run on screen, so a
+ * browser test can replay a recorded ride through the real game one tick at a
+ * time. Read-only, and defined only under automation - `navigator.webdriver` is
+ * true in a driven browser and false in every player's - so it cannot change a
+ * run and no player's page carries it.
+ */
+if (navigator.webdriver) {
+  Object.defineProperty(window, '__shredRunTick', {
+    get: (): number | null => game?.currentState.tick ?? null,
+  });
+}
 /**
  * The attempt number the in-flight official run is spending (FR-234).
  *
@@ -785,7 +797,7 @@ async function endRun(report: RunReport): Promise<void> {
   const insult = data.insults[Math.floor(Math.random() * data.insults.length)] as string;
   // FR-058: the cue has a visible equivalent - the headline and the insult -
   // so audio is never the only channel carrying the outcome.
-  synth.cue(report.outcome === 'finished' ? 'land' : 'wipeout');
+  synth.cue(report.outcome === 'finished' ? 'finish' : 'wipeout');
   const headline = report.outcome === 'finished' ? 'FINISHED' : 'WIPEOUT';
 
   if (report.kind === 'practice') {

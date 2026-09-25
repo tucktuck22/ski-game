@@ -91,12 +91,12 @@ the results arrive by panel wipe.
 
 ### Built-artifact evidence
 
-- [ ] T018 [US1] Record the input trace. Extend `RideObserver` in `tests/sim/pilots.ts`
+- [x] T018 [US1] Record the input trace. Extend `RideObserver` in `tests/sim/pilots.ts`
       to receive the tick's input. Add a script, `tools/record-trace.ts` run with
       vite-node, that writes the `tuck` pilot's warm-up inputs to
       `tests/e2e-build/fixtures/warmup-tuck.json` as run-length encoded
       `[ticks, crouch, rotate]` rows. Check in the fixture.
-- [ ] T019 [US1] Write `tests/e2e-build/finish.spec.ts` (E1):
+- [x] T019 [US1] Write `tests/e2e-build/finish.spec.ts` (E1):
   - Claim a name and start a practice run.
   - Install Playwright's clock, and replay the trace one tick at a time with
     `page.keyboard.down/up` on the keys `src/input/keyboard.ts` maps.
@@ -104,7 +104,7 @@ the results arrive by panel wipe.
     the results panel with the wipe class, and the pilot's score.
   - If the replay cannot reach the line, the test fails and the gap is reported
     (research R8); never skip it.
-- [ ] T020 [US1] Run `npm run build && npm run test:build`. All green, including T019.
+- [x] T020 [US1] Run `npm run build && npm run test:build`. All green, including T019.
 
 **Checkpoint**: US1 is complete and can ship without the crowd.
 
@@ -115,19 +115,19 @@ celebrating with a cheer. The celebration still reads under reduced motion.
 
 **Independent test**: F8 and F9, the crowd visible in the E1 run, and the play pass.
 
-- [ ] T021 [P] [US2] Write `tests/unit/finish-crowd.test.ts`: F8 (colours, feet below
+- [x] T021 [P] [US2] Write `tests/unit/finish-crowd.test.ts`: F8 (colours, feet below
       `groundY`, stable layout) and F9's crowd half (no vertical motion or thrown hats
       under reduced motion).
-- [ ] T022 [US2] Implement the crowd layout and pose function in
+- [x] T022 [US2] Implement the crowd layout and pose function in
       `src/render/finish.ts`: `crowdLayout(course, cfg)` from slot hashes, and
       `crowdPose(figure, t, celebrating, motion)` per FN-3.
-- [ ] T023 [US2] Draw the crowd in `src/render/draw.ts` before the terrain fill, so the
+- [x] T023 [US2] Draw the crowd in `src/render/draw.ts` before the terrain fill, so the
       snow edge hides the feet (FN-2). Draw only figures in frame. They are idle until a
       `FinishSequence` is active, then celebrating.
-- [ ] T024 [P] [US2] Add `cue('finish')` to `src/audio/synth.ts`: a three-note pulse
+- [x] T024 [P] [US2] Add `cue('finish')` to `src/audio/synth.ts`: a three-note pulse
       fanfare plus a crowd swell built from longer enveloped noise (A-2 voices only). Call
       it in place of `'land'` for finished runs in `endRun` in `src/main.ts`.
-- [ ] T025 [US2] Make T021 pass and rerun the whole suite plus `npm run test:build`.
+- [x] T025 [US2] Make T021 pass and rerun the whole suite plus `npm run test:build`.
 
 **Checkpoint**: both stories are complete.
 

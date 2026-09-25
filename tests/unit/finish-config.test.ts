@@ -24,9 +24,11 @@ describe('data/finish.json (D1)', () => {
       frameFollow: 240,
       gantryHeight: 100,
       bannerWidth: 60,
-      crowdFrom: -120,
-      crowdTo: 420,
-      crowdSpacing: 9,
+      crowdFrom: -160,
+      crowdTo: 480,
+      crowdSpacing: 11,
+      crowdGapFrom: 90,
+      crowdGapTo: 340,
     });
   });
 
@@ -58,6 +60,12 @@ describe('data/finish.json (D1)', () => {
   it('refuses a crowd that ends before it starts', () => {
     expect(() => parseFinish({ ...shipped, crowdFrom: 10, crowdTo: 10 })).toThrow(
       '"crowdFrom" must be less',
+    );
+  });
+
+  it('refuses a gap that ends before it starts', () => {
+    expect(() => parseFinish({ ...shipped, crowdGapFrom: 300, crowdGapTo: 200 })).toThrow(
+      '"crowdGapFrom" must not be more',
     );
   });
 

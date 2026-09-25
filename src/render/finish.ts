@@ -113,6 +113,8 @@ export type FinishPhase = 'airborne' | 'braking' | 'stopped';
 const MIN_SETTLE_TICKS = 8;
 /** However late he lands, the slide is never shorter than this: no instant stops. */
 const MIN_BRAKE_TICKS = 20;
+/** Nor shorter than this in distance: a hockey stop, not a wall. */
+const MIN_BRAKE_DISTANCE = 40;
 /** Below this he is drawn standing rather than braking. */
 export const STANDING_SPEED = 1;
 
@@ -217,12 +219,17 @@ export class FinishSequence {
     s.vy = 0;
     s.y = groundY(this.course, s.x, this.cfg);
     const v = Math.max(s.vx, 0);
-    // Whichever stops him sooner: within stopDistance units, or by stopWithinTicks
+    // Whichever stops him sooner: by L + stopDistance, or by stopWithinTicks
     // after the CROSSING. Counted from the line, not from touchdown, so time spent
     // falling past it comes out of the slide instead of the stop no one sees - the
     // cautious rider crosses the official line in the air.
     const left = Math.max(this.cfg.stopWithinTicks - this.ticks, MIN_BRAKE_TICKS);
-    this.brake = Math.max((v * v) / (2 * this.cfg.stopDistance), v / left);
+    // The distance is measured from the line too: he is stopped by
+    // L + stopDistance, so a late landing ends in a short hockey stop in the open
+    // snow rather than a long slide into the crowd (FR-275). Never shorter than
+    // MIN_BRAKE_DISTANCE, so there is always a stop to see.
+    const room = Math.max(this.course.length + this.cfg.stopDistance - s.x, MIN_BRAKE_DISTANCE);
+    this.brake = Math.max((v * v) / (2 * room), v / left);
     if (v === 0) this.phaseNow = 'stopped';
   }
 
@@ -325,4 +332,126 @@ export class FinishSequence {
   sprayParticles(): readonly SprayParticle[] {
     return this.particles;
   }
+}
+
+// ---------------------------------------------------------------------------
+// The crowd (FN-2, FN-3)
+// ---------------------------------------------------------------------------
+
+export interface CrowdFigure {
+  /** Left edge, world units. */
+  x: number;
+  /** 0 is the front row, 1 the row behind it. */
+  row: 0 | 1;
+  /** Head to snow line, before the feet are buried. */
+  height: number;
+  /** Shoulder width. */
+  width: number;
+  /** Where the feet are drawn: 2 units under the snow edge, which hides them. */
+  footY: number;
+  flag: 'yellow' | 'cyan' | null;
+  /** Throws a hat at the crossing. */
+  hat: boolean;
+  /** Hop frequency while celebrating, Hz. */
+  hopHz: number;
+  phase: number;
+}
+
+/** A stable value in [0, 1) for a slot: the crowd is placed, never rolled. */
+function slotHash(n: number, salt: number): number {
+  const h = Math.sin(n * 127.1 + salt * 311.7) * 43758.5453;
+  return h - Math.floor(h);
+}
+
+/** How far under the snow edge every figure's feet go (FN-2). */
+export const FEET_BURIED = 2;
+
+/**
+ * The crowd behind the finish, placed by slot hash like the scenery, so the
+ * same course always has the same crowd (FN-2).
+ *
+ * Two rows: the back row is offset half a slot and stands on a riser hidden by
+ * the snow edge, drawn 3 units taller so it shows over the front row. Every
+ * figure's feet are buried under the drawn ground, on its downhill side, so no
+ * figure ever reads as standing on the racing line.
+ */
+export function crowdLayout(course: Course, cfg: FinishConfig): CrowdFigure[] {
+  const L = course.length;
+  const out: CrowdFigure[] = [];
+  let slot = 0;
+  for (const row of [1, 0] as const) {
+    const offset = row === 1 ? cfg.crowdSpacing / 2 : 0;
+    for (let x = L + cfg.crowdFrom + offset; x <= L + cfg.crowdTo; x += cfg.crowdSpacing) {
+      slot++;
+      // Open snow where the skier stops, so he is never lost in the crowd (FR-275).
+      if (x + 6 >= L + cfg.crowdGapFrom && x <= L + cfg.crowdGapTo) continue;
+      const width = 4 + Math.floor(slotHash(slot, 1) * 2);
+      const height = 11 + Math.floor(slotHash(slot, 2) * 4) + (row === 1 ? 3 : 0);
+      const flagRoll = slotHash(slot, 3);
+      const fx = x + (slotHash(slot, 4) - 0.5) * 3;
+      out.push({
+        x: fx,
+        row,
+        height,
+        width,
+        // The downhill side is the lower one; bury the feet below that.
+        footY: Math.max(groundY(course, fx, cfg), groundY(course, fx + width, cfg)) + FEET_BURIED,
+        flag: flagRoll < 0.1 ? 'yellow' : flagRoll < 0.2 ? 'cyan' : null,
+        hat: slotHash(slot, 5) < 0.1,
+        hopHz: 1.5 + slotHash(slot, 6),
+        phase: slotHash(slot, 7) * Math.PI * 2,
+      });
+    }
+  }
+  return out;
+}
+
+export interface CrowdPose {
+  /** Units lifted off the snow by a hop. */
+  lift: number;
+  /** Sideways sway, units. */
+  sway: number;
+  armsUp: boolean;
+  /** Flag lean, radians from upright. */
+  flagLean: number;
+  /** Height of a thrown hat above the head, or null when there is none in the air. */
+  hatUp: number | null;
+}
+
+/** Idle sway, Hz. FN-3 caps it at 0.5. */
+const SWAY_HZ = 0.4;
+/** A thrown hat is up for this many ticks. */
+const HAT_TICKS = 50;
+
+/**
+ * One figure at one moment (FN-3). `tick` drives the motion; `sinceCrossing` is
+ * the ticks since the line was crossed, or null before it. Under reduced motion
+ * the arms and flags go up and nothing moves.
+ */
+export function crowdPose(
+  f: CrowdFigure,
+  tick: number,
+  sinceCrossing: number | null,
+  motion: MotionSettings,
+): CrowdPose {
+  const t = tick / 60;
+  const still = !motion.shake;
+  if (sinceCrossing === null) {
+    return {
+      lift: 0,
+      sway: still ? 0 : Math.sin(2 * Math.PI * SWAY_HZ * t + f.phase) * 0.8,
+      armsUp: false,
+      flagLean: 0,
+      hatUp: null,
+    };
+  }
+  if (still) return { lift: 0, sway: 0, armsUp: true, flagLean: 0, hatUp: null };
+  const u = sinceCrossing;
+  return {
+    lift: 3 * Math.abs(Math.sin(Math.PI * f.hopHz * t + f.phase)),
+    sway: 0,
+    armsUp: true,
+    flagLean: Math.sin(2 * Math.PI * f.hopHz * t + f.phase) * 0.5,
+    hatUp: f.hat && u < HAT_TICKS ? 1.4 * u - (1.4 / HAT_TICKS) * u * u : null,
+  };
 }

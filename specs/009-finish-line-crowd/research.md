@@ -49,7 +49,8 @@ are one clean arrival: no bounce, no tumble, no score.
 2. **On the snow**, follow `groundY` and decelerate uniformly. At first contact the
    rate is set to whichever stops the skier sooner: within `stopDistance` (200) units,
    or by `stopWithinTicks` (90) ticks after the crossing, counting any time in the air.
-   So `a = max(v²/(2·200), v/max(90 − t_air, 20))`.
+   Both are measured from the line: `a = max(v²/(2·max(L + 200 − x, 40)), v/max(90 − t_air, 20))`,
+   so a late landing ends in a short hockey stop in the open snow, not a slide into the crowd.
    - A spray of snow particles comes off the skis while braking. It is removed under
      reduced motion.
    - The pose is the standing pose once below 1 u/tick.
@@ -158,7 +159,7 @@ counts. Keys:
 - `runoutEase` 160, `stopDistance` 200 and `stopWithinTicks` 90
 - `frameLead` 60 and `frameFollow` 240 (R7)
 - `gantryHeight` 100 and `bannerWidth` 60
-- `crowdFrom` −120, `crowdTo` 420 and `crowdSpacing` 9
+- `crowdFrom` −160, `crowdTo` 480, `crowdSpacing` 11, and a gap from `crowdGapFrom` 90 to `crowdGapTo` 340 where nobody stands (the skier stops there)
 
 `crowdFrom` may be negative, since it is measured relative to L.
 
@@ -213,3 +214,21 @@ test fails and the gap is raised at review rather than skipped.
 - **F2's bound.** Past the line the drawn ground differs from the data by at most
   0.256 units within one tick at `speedMax`. Most of that is the warm-up's own data
   turning from 0.30 to 0.32 at its line.
+- **The finale bug E1 caught (T019).** The run view's render callback resolved the
+  finale whenever the run had ended and the wipeout's sequence reported done. A
+  `DeathSequence` that never started reports done, so a finish ended its own hold on
+  the first frame. The unit tests could not see it; the built-artifact replay did. The
+  death branch now runs for wipeouts only.
+- **First look at the hold (T023).** Two defects, both fixed before handing over:
+  - Following the skier down onto the run-out carried the banner off the top of the
+    frame. The camera now holds the banner in view during the hold.
+  - The crowd read as a cyan fence and swallowed the skier (FR-275). Heads are now
+    round with a lit rim, raised arms are lit, and spacing went from 9 to 11.
+    `crowdGapFrom` and `crowdGapTo` (90 to 340) leave open snow where every rider stops.
+  - The stopping distance is now measured from the line, so late landings end in a
+    40-unit-minimum hockey stop inside that gap rather than sliding into the crowd.
+    Riders stop 125 to 211 units past the line; the synthetic shelf and rising-jump
+    cases stop by 340.
+- **Stated gap (Principle VI).** The cheer is not asserted in a browser.
+  `cue('finish')` is wired in `endRun` for finished runs, verified by review. The FINISH
+  lettering and the crowd are its visible equivalents (A-4).

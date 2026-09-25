@@ -138,7 +138,10 @@ export class GameView {
       isRunning: () => !this.finished || this.finish.active,
       tick: () => this.tick(),
       render: () => {
-        if (this.finished) {
+        // The wipeout's beat, and only the wipeout's: a DeathSequence that never
+        // started reports itself done, so a finish reaching this branch would end
+        // its own hold on the first frame. The finish resolves from finishTick().
+        if (this.finished && this.state.outcome === 'wiped_out') {
           this.death.advance();
           if (this.death.done) this.resolveFinale();
         }

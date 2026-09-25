@@ -46,6 +46,9 @@ export interface FinishConfig {
   crowdTo: number;
   /** Units between crowd slots. */
   crowdSpacing: number;
+  /** Nobody stands between these offsets from the line: where the skier stops. */
+  crowdGapFrom: number;
+  crowdGapTo: number;
 }
 
 /**
@@ -257,10 +260,14 @@ export function parseFinish(raw: unknown): FinishConfig {
     crowdFrom: num('crowdFrom'),
     crowdTo: read('crowdTo'),
     crowdSpacing: read('crowdSpacing'),
+    crowdGapFrom: read('crowdGapFrom'),
+    crowdGapTo: read('crowdGapTo'),
   };
   if (cfg.crowdSpacing === 0) throw new Error('finish.json: "crowdSpacing" must be above zero');
   if (cfg.crowdFrom >= cfg.crowdTo)
     throw new Error('finish.json: "crowdFrom" must be less than "crowdTo"');
+  if (cfg.crowdGapFrom > cfg.crowdGapTo)
+    throw new Error('finish.json: "crowdGapFrom" must not be more than "crowdGapTo"');
   return cfg;
 }
 

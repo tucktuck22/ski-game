@@ -56,7 +56,12 @@ export const LOW_LINE_STAND_BEFORE_RAMP = 500;
 const LOW_LINE_STAND_PAST_LIP = 20;
 
 /** Called once per tick with the state before and after it. Tests only watch. */
-export type RideObserver = (before: RunState, after: RunState) => void;
+/**
+ * Called after every tick with the state either side of it and the input that
+ * produced it. The input is there so a ride can be recorded and replayed through
+ * the real game (feature 009, tools/record-trace.ts).
+ */
+export type RideObserver = (before: RunState, after: RunState, input: RunInput) => void;
 
 export interface Ride {
   state: RunState;
@@ -232,7 +237,7 @@ export function ride(course: Course, pilot: Pilot, seed: number, onTick?: RideOb
 
     const before = s;
     s = step(s, input, course, tuning, scoring, derived);
-    onTick?.(before, s);
+    onTick?.(before, s, input);
 
     if (s.ledge >= 0) {
       ticksOnShelf++;
