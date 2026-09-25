@@ -141,10 +141,10 @@ celebrating with a cheer. The celebration still reads under reduced motion.
       riders' lines must be identical. Record any lead-time change near L in research.md
       R1. Then `npm run test:determinism`.
 - [x] T029 Run `npx prettier --check .`, `npm run lint` and `npx tsc --noEmit`.
-- [ ] T030 Build the play-pass artifact (`npm run build:artifact`), publish it to the
+- [x] T030 Build the play-pass artifact (`npm run build:artifact`), publish it to the
       play-pass artifact (https://claude.ai/artifact/Lp6Z4Pw6F4ZbsFbHLDzaUu), and
       republish the course map (`/course-map`). Hand over with quickstart §5's checklist.
-- [ ] T031 Record the maintainer's verdict verbatim in spec.md under "Playtest
+- [ ] T031 Record the maintainer's verdict verbatim in spec.md under "Playtest _Handed over 2026-09-25: build 22c7888, play-pass artifact version 4; verdict pending._
       findings" (SC-100). If they ask for changes, loop back to the relevant phase and
       repeat T030.
 
