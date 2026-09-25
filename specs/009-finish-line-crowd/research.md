@@ -25,7 +25,7 @@ The course files do not change.
   rules-version event for ground no run can ever reach.
 - On its final tick the simulation moves at most one tick's travel past L (under 8
   units at `speedMax` 7.5) before clamping. The drawn ease differs from the data by
-  `g·u²/(2·runoutEase)` there, under 0.2 units. Nothing in `src/sim` ever reads
+  `g·u²/(2·runoutEase)` there, under 0.25 units (the warm-up's data itself turns 0.30 → 0.32 at its line). Nothing in `src/sim` ever reads
   `groundY`.
 
 **Alternatives considered**:
@@ -199,3 +199,16 @@ build to the line.
 through the existing synth spy pattern, if one exists; otherwise that is stated. If
 Playwright's clock cannot step the loop deterministically in the build harness, this
 test fails and the gap is raised at review rather than skipped.
+
+## Implementation notes
+
+- **R1, as built (T006, T008).** The run-out is a copy of the course, `withRunout`,
+  carrying 4-unit points that follow the quadratic past the line. The renderer, the
+  camera, the reaction measure and the course map all draw from it; the simulation
+  rides the original. This took one argument at the view instead of a new parameter on
+  every ground lookup in the renderer.
+- **T009.** The course map summary is identical before and after, including every
+  lead time near the line. The camera seeing the drawn run-out moved no reading.
+- **F2's bound.** Past the line the drawn ground differs from the data by at most
+  0.256 units within one tick at `speedMax`. Most of that is the warm-up's own data
+  turning from 0.30 to 0.32 at its line.

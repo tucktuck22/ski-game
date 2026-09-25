@@ -117,13 +117,13 @@ equivalent.
 
 ## Risks
 
-| Risk                                                                             | Mitigation                                                                                                                                                     |
-| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The drawn run-out diverges from what the simulation reads on the final tick.     | The run-out starts easing only past L. Over the at most ~8 units the final tick can travel, it differs from the data by under 0.2 units (R1). F2 bounds it.    |
-| `lookDown` reading `groundY` moves reaction readings near the end of the course. | Only hazards within 213 units of L are affected (the rope at 11,900). B1 to B10 must still pass. The course map diff shows any change.                         |
-| The replay drifts from the pilot in the browser (timing or input sampling).      | The seed has no effect on the simulation (R8). If the replay cannot reach the line, the test fails loudly and the gap is stated; it is never silently skipped. |
-| The crowd reads as hazards.                                                      | Silhouettes stand behind the snow edge, feet hidden (FN-2). No `orange` anywhere in the crowd (P-4, F8).                                                       |
-| The shelf rider drops 50 units past the line and it reads as a fall.             | A ballistic drop with the orientation eased to the ground, landing clean (R2). The play pass judges it.                                                        |
+| Risk                                                                             | Mitigation                                                                                                                                                                                                             |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The drawn run-out diverges from what the simulation reads on the final tick.     | The run-out starts easing only past L. Over the at most ~8 units the final tick can travel, it differs from the data by under 0.25 units (the warm-up's data itself turns 0.30 → 0.32 at its line) (R1). F2 bounds it. |
+| `lookDown` reading `groundY` moves reaction readings near the end of the course. | Only hazards within 213 units of L are affected (the rope at 11,900). B1 to B10 must still pass. The course map diff shows any change.                                                                                 |
+| The replay drifts from the pilot in the browser (timing or input sampling).      | The seed has no effect on the simulation (R8). If the replay cannot reach the line, the test fails loudly and the gap is stated; it is never silently skipped.                                                         |
+| The crowd reads as hazards.                                                      | Silhouettes stand behind the snow edge, feet hidden (FN-2). No `orange` anywhere in the crowd (P-4, F8).                                                                                                               |
+| The shelf rider drops 50 units past the line and it reads as a fall.             | A ballistic drop with the orientation eased to the ground, landing clean (R2). The play pass judges it.                                                                                                                |
 
 ## Complexity Tracking
 

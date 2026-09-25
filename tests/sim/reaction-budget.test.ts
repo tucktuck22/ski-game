@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { cameraFor } from '../../src/render/draw.js';
 import { LookFollower } from '../../src/render/rampGeometry.js';
-import { parseCamera } from '../../src/data/load.js';
+import { parseCamera, parseFinish } from '../../src/data/load.js';
+import { withRunout } from '../../src/render/finish.js';
 import type { Course } from '../../src/sim/types.js';
 import { official, warmup } from './fixtures.js';
 import { ride, type Pilot } from './pilots.js';
@@ -39,11 +40,15 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const framing = parseCamera(JSON.parse(readFileSync(join(root, 'data/camera.json'), 'utf8')));
 // The camera as the game draws it: the look-down followed tick by tick (FR-261).
 // One follower per course; it restarts itself at the first tick of each ride.
+// Over the ground as drawn, run-out past the line included (feature 009), since
+// that is what the camera looks down at near the finish.
+const finishCfg = parseFinish(JSON.parse(readFileSync(join(root, 'data/finish.json'), 'utf8')));
 const followers = new Map<Course, LookFollower>();
 const camera = (s: Parameters<typeof cameraFor>[0], c: Course): { x: number; y: number } => {
+  const shown = withRunout(c, finishCfg);
   let f = followers.get(c);
-  if (!f) followers.set(c, (f = new LookFollower(c, framing)));
-  return cameraFor(s, c, framing, f.advance(s));
+  if (!f) followers.set(c, (f = new LookFollower(shown, framing)));
+  return cameraFor(s, shown, framing, f.advance(s));
 };
 
 /** FR-246, the maintainer's number. */

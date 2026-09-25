@@ -50,6 +50,7 @@ import insultsJson from '../data/insults.json';
 import audioJson from '../data/audio.json';
 import spritesJson from '../data/sprites.json';
 import cameraJson from '../data/camera.json';
+import finishJson from '../data/finish.json';
 
 type Backend = LocalDraftStore | DraftStore;
 
@@ -68,6 +69,7 @@ const data: GameData = assembleGameData({
   audio: audioJson,
   sprites: spritesJson,
   camera: cameraJson,
+  finish: finishJson,
 });
 
 // Validated up front: a bad URL otherwise surfaces as an opaque
@@ -736,6 +738,7 @@ async function startRun(kind: RunKind): Promise<void> {
     data.tuning,
     data.scoring,
     data.camera,
+    data.finish,
     snapshot.draft.courseSeed,
     kind,
     (report) => {

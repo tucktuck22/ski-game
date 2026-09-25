@@ -15,30 +15,30 @@ raise it; it breaks FR-264.
 
 ## Phase 1: Setup
 
-- [ ] T001 Record the before-state: run `npm run map` and copy
+- [x] T001 Record the before-state: run `npm run map` and copy
       `dist/course-map.summary.txt` to the scratchpad as `before-009.txt`. Run
       `npx vitest run` and note the pass count (quickstart §1).
-- [ ] T002 [P] Add FN-1 to FN-4 (research R5) to `assets/style-bible.md`, in a new
+- [x] T002 [P] Add FN-1 to FN-4 (research R5) to `assets/style-bible.md`, in a new
       "Finish" section after §3a. Cite P-4, P-6, T-3, L-0 and F-4 where each applies.
-- [ ] T003 [P] Create `data/finish.json` with the values in data-model.md and a
+- [x] T003 [P] Create `data/finish.json` with the values in data-model.md and a
       `$comment` explaining each, citing R1, R2, R3, R6 and R7.
 
 ## Phase 2: Foundational (blocks both stories)
 
-- [ ] T004 Add the `FinishConfig` interface and `parseFinish` to `src/data/load.ts`
+- [x] T004 Add the `FinishConfig` interface and `parseFinish` to `src/data/load.ts`
       (data-model.md validation rules), add `finish` to `GameData` and `assembleGameData`,
       and load `data/finish.json` in `src/main.ts`, next to `camera.json`.
-- [ ] T005 [P] Write `tests/unit/finish-config.test.ts` covering D1 and D2
+- [x] T005 [P] Write `tests/unit/finish-config.test.ts` covering D1 and D2
       (contracts/finish-data.md).
-- [ ] T006 Create `src/render/finish.ts` with `groundY(course, x, cfg)` (R1).
-- [ ] T007 [P] Write `tests/unit/finish-ground.test.ts` covering F1 and F2.
-- [ ] T008 Use `groundY` wherever the renderer draws or looks at ground: the terrain
+- [x] T006 Create `src/render/finish.ts` with `groundY(course, x, cfg)` (R1).
+- [x] T007 [P] Write `tests/unit/finish-ground.test.ts` covering F1 and F2.
+- [x] T008 Use `groundY` wherever the renderer draws or looks at ground: the terrain
       fill and edge, scenery, and the camera look-down (`lookDown` in
       `src/render/rampGeometry.ts`). Inside the course it is identical to `terrainYAt`, so
       nothing before L may change. Thread `FinishConfig` through `LookFollower` and
       `cameraFor` callers, the reaction measure in `tests/sim/reaction-budget.test.ts`, and
       `tools/course-map/build.ts`.
-- [ ] T009 Run `npx vitest run`. Every existing test must pass unmodified except where
+- [x] T009 Run `npx vitest run`. Every existing test must pass unmodified except where
       a signature gained the config. B1 to B10 must hold; any changed reading near L is
       expected (plan, Risks) and is recorded in research.md R1.
 

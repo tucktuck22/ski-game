@@ -17,7 +17,8 @@ import { ride, type Pilot } from '../../tests/sim/pilots.js';
 import { readings, worstPerHazard, type Reading } from '../../tests/sim/reaction.js';
 import { cameraFor } from '../../src/render/draw.js';
 import { isBooter, LookFollower, rampLift, rampRise } from '../../src/render/rampGeometry.js';
-import { parseCamera } from '../../src/data/load.js';
+import { parseCamera, parseFinish } from '../../src/data/load.js';
+import { withRunout } from '../../src/render/finish.js';
 import {
   CAMERA_X_OFFSET,
   INTERNAL_HEIGHT,
@@ -29,6 +30,7 @@ import { terrainYAt } from '../../src/sim/terrain.js';
 import type { Course, RunState } from '../../src/sim/types.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
+const finishCfg = parseFinish(JSON.parse(readFileSync(join(root, 'data/finish.json'), 'utf8')));
 const framing = parseCamera(JSON.parse(readFileSync(join(root, 'data/camera.json'), 'utf8')));
 
 const PILOTS: Pilot[] = ['tuck', 'stay-low', 'low-line'];
@@ -53,10 +55,14 @@ const SECTIONS: Record<string, { x0: number; x1: number; name: string; ask: stri
 
 const r1 = (n: number): number => Math.round(n * 10) / 10;
 
-/** The camera the game draws, followed tick by tick (FR-261). */
+/**
+ * The camera the game draws, followed tick by tick (FR-261), over the ground as
+ * drawn - run-out past the line included (feature 009).
+ */
 function cameraOf(course: Course): (s: RunState, c: Course) => { x: number; y: number } {
-  const f = new LookFollower(course, framing);
-  return (s, c) => cameraFor(s, c, framing, f.advance(s));
+  const shown = withRunout(course, finishCfg);
+  const f = new LookFollower(shown, framing);
+  return (s) => cameraFor(s, shown, framing, f.advance(s));
 }
 
 function trace(course: Course, pilot: Pilot) {

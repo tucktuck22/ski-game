@@ -14,6 +14,38 @@ export interface GameData {
   audio: AudioManifest;
   sprites: SpriteManifest;
   camera: CameraFraming;
+  finish: FinishConfig;
+}
+
+/**
+ * The finish: the hold, the drawn ground past the line, the gantry and the crowd.
+ * Feature 009; the reasoning is in data/finish.json beside the numbers. Drawing
+ * only - nothing here reaches the simulation (FR-264).
+ */
+export interface FinishConfig {
+  /** Ticks the finish holds on the mountain; the wipeout's length (FR-266). */
+  holdTicks: number;
+  /** The same under reduced motion. */
+  reducedHoldTicks: number;
+  /** Units past the line over which the drawn ground eases to flat. */
+  runoutEase: number;
+  /** The furthest the skier slides after touching down past the line. */
+  stopDistance: number;
+  /** The longest that slide lasts, in ticks; whichever brakes harder applies. */
+  stopWithinTicks: number;
+  /** The camera stops following once the line is this far inside the left edge. */
+  frameLead: number;
+  /** ...and follows again if the skier would pass this far into the frame. */
+  frameFollow: number;
+  /** The gantry's crossbar height above the piste at the line. */
+  gantryHeight: number;
+  /** The banner's width, centred on the line. */
+  bannerWidth: number;
+  /** The crowd's extent relative to the line; crowdFrom may be negative. */
+  crowdFrom: number;
+  crowdTo: number;
+  /** Units between crowd slots. */
+  crowdSpacing: number;
 }
 
 /**
@@ -188,6 +220,48 @@ export function parseCamera(raw: unknown): CameraFraming {
     lookRateGround: rate('lookRateGround'),
     lookRampTicks: read('lookRampTicks'),
   };
+}
+
+/** Parses data/finish.json. See FinishConfig and the file's own $comment. */
+export function parseFinish(raw: unknown): FinishConfig {
+  const o = raw as Record<string, unknown>;
+  const num = (key: keyof FinishConfig): number => {
+    const v = o?.[key];
+    if (typeof v !== 'number' || !Number.isFinite(v))
+      throw new Error(`finish.json: "${key}" must be a number`);
+    return v;
+  };
+  const read = (key: keyof FinishConfig): number => {
+    const v = num(key);
+    if (v < 0) throw new Error(`finish.json: "${key}" must not be negative, got ${v}`);
+    return v;
+  };
+  // A tick count of zero would end the finish before it was drawn; a fraction
+  // would never be reached exactly by a counter that adds one.
+  const ticks = (key: keyof FinishConfig): number => {
+    const v = read(key);
+    if (!Number.isInteger(v) || v === 0)
+      throw new Error(`finish.json: "${key}" must be a whole number of ticks above zero`);
+    return v;
+  };
+  const cfg: FinishConfig = {
+    holdTicks: ticks('holdTicks'),
+    reducedHoldTicks: ticks('reducedHoldTicks'),
+    runoutEase: read('runoutEase'),
+    stopDistance: read('stopDistance'),
+    stopWithinTicks: ticks('stopWithinTicks'),
+    frameLead: read('frameLead'),
+    frameFollow: read('frameFollow'),
+    gantryHeight: read('gantryHeight'),
+    bannerWidth: read('bannerWidth'),
+    crowdFrom: num('crowdFrom'),
+    crowdTo: read('crowdTo'),
+    crowdSpacing: read('crowdSpacing'),
+  };
+  if (cfg.crowdSpacing === 0) throw new Error('finish.json: "crowdSpacing" must be above zero');
+  if (cfg.crowdFrom >= cfg.crowdTo)
+    throw new Error('finish.json: "crowdFrom" must be less than "crowdTo"');
+  return cfg;
 }
 
 /**
@@ -423,12 +497,14 @@ export function assembleGameData(input: {
   audio: unknown;
   sprites: unknown;
   camera: unknown;
+  finish: unknown;
 }): GameData {
   const tuning = parseTuning(input.tuning);
   const scoring = parseScoring(input.scoring);
   const audio = parseAudio(input.audio);
   const sprites = parseSprites(input.sprites);
   const camera = parseCamera(input.camera);
+  const finish = parseFinish(input.finish);
   const warmup = parseCourse(input.warmup);
   const official = parseCourse(input.official);
   if (!Array.isArray(input.insults) || input.insults.length === 0)
@@ -449,5 +525,6 @@ export function assembleGameData(input: {
     audio,
     sprites,
     camera,
+    finish,
   };
 }

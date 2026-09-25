@@ -18,7 +18,8 @@ import { drawRun, resetSceneryCache, type SkierSkin } from '../render/draw.js';
 import { LookFollower } from '../render/rampGeometry.js';
 import { LeanState, PoseTimers, selectPose } from '../render/skierPose.js';
 import type { SpriteSheets } from '../render/sprites.js';
-import type { CameraFraming } from '../data/load.js';
+import type { CameraFraming, FinishConfig } from '../data/load.js';
+import { withRunout } from '../render/finish.js';
 import { LandingEffect } from '../render/landing.js';
 import { DeathSequence } from '../render/death.js';
 import { startLoop, type LoopHandle } from '../render/loop.js';
@@ -57,6 +58,8 @@ export class GameView {
   private readonly lean = new LeanState();
   /** The camera's look-down, followed per tick rather than per frame (FR-261). */
   private readonly look: LookFollower;
+  /** The course as drawn: `course` plus the run-out past the line. */
+  private readonly shown: Course;
   private resolveFinale: () => void = () => {};
   /**
    * Resolves when the mountain is finished being looked at.
@@ -74,6 +77,8 @@ export class GameView {
     private readonly scoring: Scoring,
     /** How far the camera looks down the steeps (data/camera.json, feature 008). */
     private readonly framing: CameraFraming,
+    /** The finish: the hold, the ground past the line, the crowd (feature 009). */
+    private readonly finishCfg: FinishConfig,
     seed: number,
     private readonly kind: RunKind,
     private readonly onEnd: (r: RunReport) => void,
@@ -108,7 +113,10 @@ export class GameView {
     this.derived = derive(tuning);
     this.state = initialState(course, tuning, seed);
     this.prevState = this.state;
-    this.look = new LookFollower(course, framing);
+    // Drawn from a copy carrying the run-out past the line; the simulation rides
+    // `course` and never sees it (feature 009, research R1).
+    this.shown = withRunout(course, finishCfg);
+    this.look = new LookFollower(this.shown, framing);
     this.look.advance(this.state);
     this.finale = new Promise<void>((resolve) => {
       this.resolveFinale = resolve;
@@ -237,7 +245,7 @@ export class GameView {
     drawRun(
       this.stage.ctx,
       this.state,
-      this.course,
+      this.shown,
       this.tuning,
       this.framing,
       this.look.current,
