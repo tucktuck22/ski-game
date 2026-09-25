@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-25
 
-**Status**: Clarified 2026-09-25
+**Status**: Accepted at play pass 2026-09-25 (build 22c7888)
 
 **Input**: User description: "when the player finishes the course it just cuts to black.
 We need to have a finish line w a celebration crowd"
@@ -247,3 +247,11 @@ sound on. With sound off, the celebration is still unmistakable on screen.
   the commit.
 - **Out of scope**: a podium, replays, confetti that affects play, crowds anywhere else
   on the course, and any change to scoring for finishing.
+
+## Playtest findings — 2026-09-25, build 22c7888
+
+**Verdict, in the maintainer's words:**
+
+> Looks good!
+
+**Reading**: accepted (SC-100). No changes requested. The feature is complete.

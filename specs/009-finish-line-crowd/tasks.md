@@ -144,7 +144,7 @@ celebrating with a cheer. The celebration still reads under reduced motion.
 - [x] T030 Build the play-pass artifact (`npm run build:artifact`), publish it to the
       play-pass artifact (https://claude.ai/artifact/Lp6Z4Pw6F4ZbsFbHLDzaUu), and
       republish the course map (`/course-map`). Hand over with quickstart §5's checklist.
-- [ ] T031 Record the maintainer's verdict verbatim in spec.md under "Playtest _Handed over 2026-09-25: build 22c7888, play-pass artifact version 4; verdict pending._
+- [x] T031 Record the maintainer's verdict verbatim in spec.md under "Playtest _Handed over 2026-09-25: build 22c7888, play-pass artifact version 4; verdict pending._
       findings" (SC-100). If they ask for changes, loop back to the relevant phase and
       repeat T030.
 
