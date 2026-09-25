@@ -25,6 +25,14 @@ describe('course map', () => {
     });
   }
 
+  it('marks the finish on both courses (FR-277)', () => {
+    expect(map).toMatch(/finish: \{\s*\/\/|finish: \{/);
+    expect(map).toContain('x: course.length');
+    const page = read('tools/course-map/map.html');
+    expect(page).toContain('course.finish');
+    expect(page).toContain("'FINISH'");
+  });
+
   it('keeps the placeholder the build fills', () => {
     expect(read('tools/course-map/map.html')).toMatch(/\/\*__MAP_DATA__\*\/\s*null/);
   });

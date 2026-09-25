@@ -133,14 +133,14 @@ celebrating with a cheer. The celebration still reads under reduced motion.
 
 ## Phase 5: Polish and cross-cutting
 
-- [ ] T026 [P] Mark the finish on the course map (FR-277, M1) in
+- [x] T026 [P] Mark the finish on the course map (FR-277, M1) in
       `tools/course-map/build.ts` and `map.html`. Extend `tests/unit/course-map.test.ts`.
-- [ ] T027 Extend C7 in `tests/unit/camera-framing.test.ts` so `src/sim/*` must not
+- [x] T027 Extend C7 in `tests/unit/camera-framing.test.ts` so `src/sim/*` must not
       import `src/render/finish.ts` (F7).
-- [ ] T028 Run `npm run map` and diff against `before-009.txt` (quickstart §1). The
+- [x] T028 Run `npm run map` and diff against `before-009.txt` (quickstart §1). The
       riders' lines must be identical. Record any lead-time change near L in research.md
       R1. Then `npm run test:determinism`.
-- [ ] T029 Run `npx prettier --check .`, `npm run lint` and `npx tsc --noEmit`.
+- [x] T029 Run `npx prettier --check .`, `npm run lint` and `npx tsc --noEmit`.
 - [ ] T030 Build the play-pass artifact (`npm run build:artifact`), publish it to the
       play-pass artifact (https://claude.ai/artifact/Lp6Z4Pw6F4ZbsFbHLDzaUu), and
       republish the course map (`/course-map`). Hand over with quickstart §5's checklist.

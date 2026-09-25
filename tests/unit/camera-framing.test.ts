@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { cameraFor } from '../../src/render/draw.js';
@@ -167,10 +167,17 @@ describe('camera framing (FR-257, FR-258, FR-259)', () => {
   it('C7: drawing only - the look-down cannot reach the simulation', () => {
     const src = readFileSync(join(root, 'src/render/rampGeometry.ts'), 'utf8');
     expect(src).not.toMatch(/from '\.\.\/sim\/step\.js'/);
-    const sim = ['step.ts', 'physics.ts', 'run.ts'].map((f) =>
-      readFileSync(join(root, 'src/sim', f), 'utf8'),
-    );
-    for (const f of sim) expect(f).not.toMatch(/render\//);
+    // Every file in src/sim, not a chosen few: feature 009's finish (render/
+    // finish.ts) is drawing only, and F7 needs no sim file to be able to reach it.
+    const simDir = join(root, 'src/sim');
+    const sim = readdirSync(simDir)
+      .filter((f) => f.endsWith('.ts'))
+      .map((f) => [f, readFileSync(join(simDir, f), 'utf8')] as const);
+    expect(sim.length).toBeGreaterThan(5);
+    for (const [name, f] of sim) {
+      expect(f, name).not.toMatch(/from '[^']*render\//);
+      expect(f, name).not.toMatch(/from '[^']*finish/);
+    }
   });
 });
 

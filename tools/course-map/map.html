@@ -997,6 +997,45 @@
         label(fmt(o.x), sx(o.x), top - 5, C.yellow);
       }
     }
+    // the finish: the crowd's stretches, the gantry and its banner (FR-277)
+    {
+      const f = course.finish;
+      if (f.x + f.crowdTo >= S.x0 && f.x + f.crowdFrom <= x1) {
+        ctx.fillStyle = alpha(C.cyan, 0.35);
+        for (const [a, b] of [
+          [f.crowdFrom, f.crowdGapFrom],
+          [f.crowdGapTo, f.crowdTo],
+        ]) {
+          for (let x = f.x + a; x <= f.x + b; x += 11) {
+            const gy = profileY(x, terrainY(x));
+            ctx.fillRect(sx(x), gy - 13 * k() * S.vex, Math.max(1, 4 * k()), 13 * k() * S.vex);
+          }
+        }
+        const foot = profileY(f.x, terrainY(f.x));
+        const top = profileY(f.x, terrainY(f.x) - f.gantryHeight);
+        ctx.fillStyle = C.snow;
+        ctx.fillRect(sx(f.x) - 1, top, 2, foot - top);
+        const bw = Math.max(12, f.bannerWidth * k());
+        const bh = Math.max(6, 14 * k() * S.vex);
+        const cells = 8;
+        for (let i = 0; i < cells; i++)
+          for (let j = 0; j < 2; j++) {
+            ctx.fillStyle = (i + j) % 2 ? C.ink : C.snow;
+            ctx.fillRect(
+              sx(f.x) - bw / 2 + (i * bw) / cells,
+              top + (j * bh) / 2,
+              bw / cells + 0.5,
+              bh / 2 + 0.5,
+            );
+          }
+        ctx.strokeStyle = C.cyan;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(sx(f.x) - bw / 2, top, bw, bh);
+        ctx.fillStyle = C.snow;
+        ctx.font = '600 13px "Big Shoulders Display", sans-serif';
+        ctx.fillText('FINISH', sx(f.x) + bw / 2 + 6, top + bh - 1);
+      }
+    }
     // pickups
     ctx.fillStyle = alpha(C.yellow, 0.55);
     for (const p of course.pickups) {
@@ -1306,6 +1345,18 @@
       mctx.beginPath();
       mctx.arc(X(kk.x), Yy(terrainY(kk.x)) - 3, kk.booter ? 2.6 : 1.6, 0, Math.PI * 2);
       mctx.fill();
+    }
+    // the finish flag
+    {
+      const fx = X(course.finish.x),
+        fy = Yy(terrainY(course.finish.x));
+      mctx.fillStyle = C.snow;
+      mctx.fillRect(fx - 0.5, fy - 14, 1, 14);
+      for (let i = 0; i < 3; i++)
+        for (let j = 0; j < 2; j++) {
+          mctx.fillStyle = (i + j) % 2 ? C.ink : C.snow;
+          mctx.fillRect(fx - 7 + i * 2.5, fy - 14 + j * 2.5, 2.5, 2.5);
+        }
     }
     const a = X(S.x0),
       z = X(S.x0 + S.span);

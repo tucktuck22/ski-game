@@ -132,9 +132,21 @@ function courseData(key: 'official' | 'warmup', course: Course) {
     rulesVersion: course.rulesVersion,
     length: course.length,
     sections: SECTIONS[key],
-    terrain: course.terrain,
+    // As drawn: the run-out past the line included (feature 009).
+    terrain: withRunout(course, finishCfg).terrain,
     grade,
     ledges: course.ledges,
+    // The finish as the game draws it (feature 009, FR-277): the gantry at the
+    // line and the crowd either side of the open snow where riders stop.
+    finish: {
+      x: course.length,
+      gantryHeight: finishCfg.gantryHeight,
+      bannerWidth: finishCfg.bannerWidth,
+      crowdFrom: finishCfg.crowdFrom,
+      crowdTo: finishCfg.crowdTo,
+      crowdGapFrom: finishCfg.crowdGapFrom,
+      crowdGapTo: finishCfg.crowdGapTo,
+    },
     kickers: course.kickers.map((k) => ({
       ...k,
       booter: isBooter(k),
