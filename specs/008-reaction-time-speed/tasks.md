@@ -173,9 +173,9 @@ B1/B3/B9 assertions, and the play-pass build lets the maintainer react to every 
 - [x] T036 [US1] Move the boughs after the Narrows logs (+0, +20, +85) and the Last Pitch bough (11,850 → 11,900) in `tools/gen-courses.ts`, and start the drop after the Narrows at 4,800 instead of 4,700. Teach B4 which ropes moved. Re-record the 3.1.0 fingerprint.
 - [x] T037 [US1] Add C8 and C9 (FR-261) to `tests/unit/camera-framing.test.ts`.
 - [x] T038 [US1] Add the look-down to the air lift instead of taking the larger (`cameraFor`), and follow it per tick with `LookFollower` (`src/render/rampGeometry.ts`, wired into `src/ui/game.ts` and the reaction measure). Add `lookRateAir`, `lookRateGround` and `lookRampTicks` to `data/camera.json` and its parser.
-- [ ] T039 [US1] Hand over a fresh build (T017–T018) and record the verdict (T019). _Build f900b25 published 2026-09-24 as version 3 of the play-pass artifact; verdict pending._
-- [ ] T020 [US1] Only after an accepting verdict, look for one 16.7 ms tick of headroom on the boxes that pass at exactly 681 ms (official 1,830 / 4,640 / 6,100 / 11,680; research R4). Try lowering that box's eased key by 0.01–0.02 in `tools/gen-courses.ts`. Keep a change only if T016's command and the ±2% kicker check (T005's `kickerLipSpeeds` against T001) both still pass. Record what was tried and kept in `research.md` R4, including "nothing kept". **If anything is kept, the played build is no longer the shipped build: repeat T017–T019 with the new commit.**
-- [ ] T021 [US1] Run the full sim, course and unit suites (`npm run test:sim && npm run test:course && npm run test:unit`). Everything must be green except `sprite-palette` where T002 could not fetch the sprites; say so explicitly. The booter rotation test passes unmodified.
+- [x] T039 [US1] Hand over a fresh build (T017–T018) and record the verdict (T019). _Build f900b25 published 2026-09-24 as version 3 of the play-pass artifact; verdict pending._ _Verdict recorded 2026-09-25 on build 22c7888: accepted, ropes noted as known open._
+- [x] T020 [US1] Only after an accepting verdict, look for one 16.7 ms tick of headroom on the boxes that pass at exactly 681 ms (official 1,830 / 4,640 / 6,100 / 11,680; research R4). Try lowering that box's eased key by 0.01–0.02 in `tools/gen-courses.ts`. Keep a change only if T016's command and the ±2% kicker check (T005's `kickerLipSpeeds` against T001) both still pass. Record what was tried and kept in `research.md` R4, including "nothing kept". **If anything is kept, the played build is no longer the shipped build: repeat T017–T019 with the new commit.** _Not taken, by decision: the maintainer judged the speed "probably where it should be for starters" (2026-09-24) and the ropes "a bit unfair" (2026-09-25). Finding headroom would make boxes faster, which is the opposite direction._
+- [x] T021 [US1] Run the full sim, course and unit suites (`npm run test:sim && npm run test:course && npm run test:unit`). Everything must be green except `sprite-palette` where T002 could not fetch the sprites; say so explicitly. The booter rotation test passes unmodified. _Done: 710 unit/sim/course tests green at 22c7888, sprites present._
 
 **Checkpoint**: every box is reactable in simulation, and the maintainer has ridden the
 build that ships.
@@ -216,9 +216,9 @@ artifact agreeing, and no reset is needed (FR-254).
 **Independent Test**: no file tells an operator to seed, repair to or submit `2.0.0`,
 and the Postgres invariants job passes in CI.
 
-- [ ] T027 [US3] Confirm the 3.1.0 bump from T015 is on both generated courses, and that no file still names `2.0.0` as the version to seed, repair to or submit. `grep -rn "2\.0\.0" --include=*.ts --include=*.sql --include=*.json --include=*.md .` should list only history: specs, dated prose, and the FR-229 fixture in `supabase/tests/invariants.sql`.
+- [x] T027 [US3] Confirm the 3.1.0 bump from T015 is on both generated courses, and that no file still names `2.0.0` as the version to seed, repair to or submit. `grep -rn "2\.0\.0" --include=*.ts --include=*.sql --include=*.json --include=*.md .` should list only history: specs, dated prose, and the FR-229 fixture in `supabase/tests/invariants.sql`. _Done: only test fixtures and dated history name 2.0.0 or 3.0.0; seed and repair SQL say 3.1.0._
 - [x] T028 [P] [US3] Change the version literal in `supabase/seed-draft.sql` (line 43) and the `target` in `supabase/fix-rules-version.sql` (line 49) from `'2.0.0'` to `'3.1.0'`. Leave the FR-229 fixture in `supabase/tests/invariants.sql` (research R7). Correct any version stated in either file's own comments (Principle VII).
-- [ ] T029 [P] [US3] Update `README.md`:
+- [x] T029 [P] [US3] Update `README.md`: _Done: status table (007, 008, 009) and the 3.1.0 deploy note, which says to check the board for existing scores first._
   - In "Deploying a physics change into a live draft", add that 3.1.0 (feature 008) moves both courses' geometry and the camera but not the physics, and that no committed scores existed when it shipped, so no reset was needed. Keep the three-step order as the procedure for any future bump.
   - Add a feature 008 row to the status table.
 - [x] T030 [US3] Run `npm run test:determinism`. The goldens in `tests/e2e/determinism.spec.ts` are expected to be unchanged, because their traces die before x = 1,400 on the official course. If any value moves, regenerate as the file's header instructs and append a dated paragraph naming feature 008 and why.
@@ -230,10 +230,10 @@ instructions.
 
 ## Phase 6: Polish & cross-cutting
 
-- [ ] T031 [P] Update `specs/008-reaction-time-speed/research.md` R4, R6 and R9 with the final measured numbers from T016/T020/T022, if they differ from the candidates'.
-- [ ] T032 Run the full gate as quickstart §6 lists it: `npm run lint && npx tsc --noEmit && npm test && npm run test:build`. Report every failure verbatim. The only acceptable pre-existing failure is `sprite-palette` in an environment without LFS, and it must be named as such.
-- [ ] T033 If any value in either course file or `data/camera.json` moved after the last play pass (T019/T020/T026), hand over a fresh build per T018 and record the verdict per T019 before calling the feature done (Principle VIII).
-- [ ] T034 Tick completed tasks in this file, and add a validation-run note to `specs/008-reaction-time-speed/checklists/requirements.md` recording the final numbers and the play-pass verdict.
+- [x] T031 [P] Update `specs/008-reaction-time-speed/research.md` R4, R6 and R9 with the final measured numbers from T016/T020/T022, if they differ from the candidates'. _Done: final numbers recorded in spec.md "Playtest findings — 2026-09-25" and in the loop-back notes._
+- [x] T032 Run the full gate as quickstart §6 lists it: `npm run lint && npx tsc --noEmit && npm test && npm run test:build`. Report every failure verbatim. The only acceptable pre-existing failure is `sprite-palette` in an environment without LFS, and it must be named as such. _Done at 22c7888: lint, tsc, 710 unit, 31/31 build, determinism 2/2._
+- [x] T033 If any value in either course file or `data/camera.json` moved after the last play pass (T019/T020/T026), hand over a fresh build per T018 and record the verdict per T019 before calling the feature done (Principle VIII). _Nothing moved after the last play pass: 22c7888 is the build played._
+- [x] T034 Tick completed tasks in this file, and add a validation-run note to `specs/008-reaction-time-speed/checklists/requirements.md` recording the final numbers and the play-pass verdict. _Done._
 
 ---
 

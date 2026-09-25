@@ -99,3 +99,7 @@ Medium findings F1–F3, G1 and E1 are applied across the spec, plan, contracts 
 tasks. The full test suite passes with both candidate courses installed (559/562). The
 three failures are the LFS sprite tests and the frozen-file guard, which the tasks
 retarget.
+
+## Validation run — 2026-09-25
+
+Build 22c7888 accepted at play pass (spec.md, "Playtest findings — 2026-09-25"). Full gate green: lint, tsc, 710 unit/sim/course, 31/31 built-artifact, determinism 2/2. Known open: rope fairness, not named, with measured candidates recorded in spec.md.

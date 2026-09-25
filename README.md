@@ -13,17 +13,20 @@ baseline is the evergreen mobile web, no game engine, with a 2022-era mid-range 
 as reference hardware and binding performance budgets.
 
 **Shredpocalypse '86** is a web-based 2D side-on skiing platformer whose final
-leaderboard is the bed-selection draft order for an eight-person ski trip. Six
+leaderboard is the bed-selection draft order for an eight-person ski trip. Nine
 features are specified, and the game has been in players' hands since feature 001:
 
-| #                                            | What it added                                                   |
-| -------------------------------------------- | --------------------------------------------------------------- |
-| [001](specs/001-shredpocalypse-bed-draft/)   | The game, the draft, the leaderboard, and the one official run  |
-| [002](specs/002-alpine-two-track-restyle/)   | The two-track mountain and the 1986 restyle                     |
-| [003](specs/003-recorded-music-tracks/)      | Two recorded music tracks and the gesture gate that starts them |
-| [004](specs/004-skier-sprite-animation/)     | A drawn skier whose pose says what he is doing                  |
-| [005](specs/005-tutorial-and-boundary-rope/) | A coached first run, and a boundary rope you can pick out       |
-| [006](specs/006-slope-driven-speed/)         | The mountain sets your speed: gravity against friction and drag |
+| #                                            | What it added                                                                 |
+| -------------------------------------------- | ----------------------------------------------------------------------------- |
+| [001](specs/001-shredpocalypse-bed-draft/)   | The game, the draft, the leaderboard, and the one official run                |
+| [002](specs/002-alpine-two-track-restyle/)   | The two-track mountain and the 1986 restyle                                   |
+| [003](specs/003-recorded-music-tracks/)      | Two recorded music tracks and the gesture gate that starts them               |
+| [004](specs/004-skier-sprite-animation/)     | A drawn skier whose pose says what he is doing                                |
+| [005](specs/005-tutorial-and-boundary-rope/) | A coached first run, and a boundary rope you can pick out                     |
+| [006](specs/006-slope-driven-speed/)         | The mountain sets your speed: gravity against friction and drag               |
+| [007](specs/007-best-of-three-official/)     | Three official attempts, and the best one counts                              |
+| [008](specs/008-reaction-time-speed/)        | Time to see the box: eased approaches and a camera that looks down the steeps |
+| [009](specs/009-finish-line-crowd/)          | A finish line, a celebrating crowd, and no more cut to black                  |
 
 _Status corrected 2026-09-12 under feature 005's FR-212. It read "Planned, not yet
 built" with "no game code exists yet" long after the game had shipped and been
@@ -187,6 +190,18 @@ organizer who resets exactly as instructed and still cannot post a single run.
 
 Everything above the reset is reversible. Step 1 is not, which is why it is
 step 1.
+
+**3.1.0** ([feature 008](specs/008-reaction-time-speed/spec.md)) moves both
+courses' geometry and the camera, not the physics. It is a minor bump, but the
+first-commit freeze treats every version change alike: a draft whose first score
+was posted under 3.0.0 refuses 3.1.0 runs. So check the board first:
+
+- **No official scores yet:** deploy and you are done. The draft adopts 3.1.0 from
+  its first run.
+- **Scores already posted:** the three steps above apply, in that order.
+
+Feature 009's finish line changes nothing a run can reach and needs no version of
+its own.
 
 **The keep-alive workflow is not optional.** A free Supabase project pauses
 after 7 days without database activity and needs a manual restore, which would

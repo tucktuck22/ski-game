@@ -435,3 +435,28 @@ feature is done, so this is not an accepting verdict for T020. Measured afterwar
   the look-down no longer grows in the air. The Last Pitch rope goes ~800 → 550 ms and
   4,945 goes 567 → 533 ms. Both are still above 2.0.0 (383 and 333).
 - Boxes are unchanged: 781 / 731 / 681 / 681 / 981 / 731 ms. All suites pass.
+
+## Playtest findings — 2026-09-25, build 22c7888
+
+This build carried the loop-back fixes (T035 to T038) together with feature 009's
+finish line. The verdict on them, in the maintainer's words:
+
+> Reaction time is okay. Some of the ropes are still a bit unfair but we can be good
+> for now
+
+**Reading**: accepted for now. The feature ships.
+
+**Known open, not fixed**: "some of the ropes are still a bit unfair". Which ropes was
+not named. The measured candidates on the shipped build, for whoever picks this up:
+
+| Rope   | After box | Landing → rope (worst) | Lead time (worst) |
+| ------ | --------: | ---------------------: | ----------------: |
+| 3,820  |     3,600 |                 300 ms |            767 ms |
+| 4,360  |     4,120 |                 333 ms |            733 ms |
+| 4,945  |     4,640 |                 400 ms |        **533 ms** |
+| 11,900 |    11,680 |                 317 ms |        **550 ms** |
+
+The two lowest lead times, 4,945 and 11,900, are the likeliest. Both sit on the steep
+ground where a tucked rider is fastest, so the 213-unit view ahead runs out soonest.
+The pair floor (B10, 300 ms) is met everywhere, but 3,820 sits exactly on it. Start
+the next round with `/course-map` and ask which ropes they were.
