@@ -189,3 +189,35 @@ mkdirSync(join(root, 'dist'), { recursive: true });
 const out = join(root, 'dist/course-map.html');
 writeFileSync(out, html);
 console.log(`${out}  ${Math.round(html.length / 1024)} KiB`);
+
+/**
+ * The same numbers as text, for a before/after diff in a change description.
+ * Written beside the page and printed. `.claude/skills/course-map` diffs two of these.
+ */
+const status = (ms: number, budget: number): string =>
+  ms < budget ? 'BELOW' : ms < budget * 1.1 ? 'tight' : 'ok';
+const lines: string[] = [`course map @ ${commit}, rules ${official.rulesVersion}`];
+for (const c of data.courses) {
+  lines.push('', `== ${c.id} (${c.length} units)`);
+  for (const p of c.pilots)
+    lines.push(
+      `rider ${p.pilot.padEnd(9)} ${p.outcome.padEnd(10)} ${(p.ticks / 60).toFixed(2).padStart(6)} s  score ${p.score}  shelves ${p.shelves}`,
+    );
+  for (const r of [...c.worst].sort((a, z) => a.x - z.x))
+    lines.push(
+      `${r.kind.padEnd(4)} ${String(r.x).padStart(6)}  ${String(r.ms).padStart(5)} ms  ${r.pilot.padEnd(9)}${r.kind === 'box' ? `  ${status(r.ms, BUDGET_MS)}` : ''}`,
+    );
+  const pairs = new Map<string, (typeof c.pairs)[number]>();
+  for (const p of c.pairs) {
+    const key = `${p.box}->${p.rope}`;
+    const prev = pairs.get(key);
+    if (!prev || p.ms < prev.ms) pairs.set(key, p);
+  }
+  for (const [key, p] of pairs)
+    lines.push(
+      `pair ${key.padStart(13)}  ${String(p.ms).padStart(5)} ms  ${p.pilot.padEnd(9)}  ${status(p.ms, ROPE_AFTER_BOX_MS)}`,
+    );
+}
+const summary = lines.join('\n') + '\n';
+writeFileSync(join(root, 'dist/course-map.summary.txt'), summary);
+process.stdout.write(summary);
