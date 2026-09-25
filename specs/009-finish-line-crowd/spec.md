@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-25
 
-**Status**: Draft
+**Status**: Clarified 2026-09-25
 
 **Input**: User description: "when the player finishes the course it just cuts to black.
 We need to have a finish line w a celebration crowd"
@@ -37,7 +37,15 @@ Two rules in the style bible bear on this directly:
 
 ## Clarifications
 
-_None yet. See the open questions under Requirements._
+### Session 2026-09-25
+
+- Q: How is the crowd drawn, given P-6 keeps skin for the player alone? → A:
+  Silhouettes in palette colours, backlit, with no skin. P-6 is unchanged, and the
+  player stays the one figure drawn as a person. (FR-275)
+- Q: Does the crowd react the same to every finish, or more for a better run? → A:
+  The same celebration for every finish. A bigger reaction for a personal best or a
+  new first place is left for later; it would need the board at the moment of
+  finishing, which may be offline. (FR-276)
 
 ## User Scenarios & Testing _(mandatory)_
 
@@ -181,13 +189,12 @@ sound on. With sound off, the celebration is still unmistakable on screen.
   asset with a provenance record (A-5, O-1).
 - **FR-274**: With reduced motion on, the celebration MUST still be recognisable. It
   MUST NOT use flashing, screen shake, or movement faster than FR-057 allows.
-- **FR-275**: The crowd MUST be drawn [NEEDS CLARIFICATION: how the crowd is drawn given
-  P-6, which keeps skin for the player alone. Silhouettes in palette colours with no
-  skin (P-6 unchanged), or people with skin (P-6 amended to admit the crowd), or
-  people whose faces are covered by goggles, hats and scarves (P-6 unchanged)?]
-- **FR-276**: The celebration MUST [NEEDS CLARIFICATION: whether the crowd reacts the
-  same to every finish, or reacts more for a better run, such as a personal best or a
-  score that takes first place on the board.]
+- **FR-275**: The crowd MUST be drawn as backlit silhouettes in palette colours, with
+  no skin anywhere in it. P-6 is unchanged: the player remains the one figure drawn as
+  a person, and the crowd reads by its shapes (heads, raised arms, flags, poles).
+  The player's skier MUST stay distinguishable from the crowd at a glance.
+- **FR-276**: The celebration MUST be the same for every finish, whatever the run's
+  score, kind or rank. It MUST NOT depend on the board or on a network connection.
 
 #### Tools
 
