@@ -5,19 +5,19 @@ reach `RunState`, a score or the rules version (FR-264).
 
 ## FinishConfig (`data/finish.json`)
 
-| Field                  | Value     | Meaning                                                                                                |
-| ---------------------- | --------- | ------------------------------------------------------------------------------------------------------ |
-| `holdTicks`            | 156       | Length of the hold, in simulation ticks. Equals the wipeout's (FR-266).                                |
-| `reducedHoldTicks`     | 54        | The same, under reduced motion.                                                                        |
-| `runoutEase`           | 160       | Units past L over which the drawn ground eases to flat (R1).                                           |
-| `stopDistance`         | 200       | The furthest the skier slides after touching down (R2).                                                |
-| `stopWithinTicks`      | 90        | The longest the slide lasts. Whichever of the two brakes harder applies.                               |
-| `frameLead`            | 60        | The camera holds with L this far inside the frame's left edge (R7).                                    |
-| `frameFollow`          | 240       | The camera resumes following if the skier would pass this far into the frame.                          |
-| `gantryHeight`         | 100       | The gantry's crossbar height above the piste at L. Must clear the tallest shelf plus a standing skier. |
-| `bannerWidth`          | 60        | The banner's width, centred on L.                                                                      |
-| `crowdFrom`, `crowdTo` | −120, 420 | The crowd's extent relative to L.                                                                      |
-| `crowdSpacing`         | 9         | Units between crowd slots.                                                                             |
+| Field                  | Value     | Meaning                                                                                                                                                                                |
+| ---------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holdTicks`            | 156       | Length of the hold, in simulation ticks. Equals the wipeout's (FR-266).                                                                                                                |
+| `reducedHoldTicks`     | 54        | The same, under reduced motion.                                                                                                                                                        |
+| `runoutEase`           | 160       | Units past L over which the drawn ground eases to flat (R1).                                                                                                                           |
+| `stopDistance`         | 200       | The furthest the skier slides after touching down (R2).                                                                                                                                |
+| `stopWithinTicks`      | 90        | The skier is stopped this many ticks after crossing the line, time in the air included; no slide is shorter than 20 ticks. Whichever of this and `stopDistance` brakes harder applies. |
+| `frameLead`            | 60        | The camera holds with L this far inside the frame's left edge (R7).                                                                                                                    |
+| `frameFollow`          | 240       | The camera resumes following if the skier would pass this far into the frame.                                                                                                          |
+| `gantryHeight`         | 100       | The gantry's crossbar height above the piste at L. Must clear the tallest shelf plus a standing skier.                                                                                 |
+| `bannerWidth`          | 60        | The banner's width, centred on L.                                                                                                                                                      |
+| `crowdFrom`, `crowdTo` | −120, 420 | The crowd's extent relative to L.                                                                                                                                                      |
+| `crowdSpacing`         | 9         | Units between crowd slots.                                                                                                                                                             |
 
 **Validation** (`parseFinish`):
 
@@ -57,7 +57,7 @@ airborne --(y reaches groundY)--> braking --(vx reaches 0)--> stopped
   (every ledge ends at or before L). Otherwise it starts `braking`.
 - `airborne`: `vy += gravity`, and the orientation eases towards the ground's slope,
   taking at least 8 ticks.
-- `braking`: `vx -= brake` with `brake = max(vx²/(2·stopDistance), vx/stopWithinTicks)`,
+- `braking`: `vx -= brake` with `brake = max(vx²/(2·stopDistance), vx/max(stopWithinTicks − ticksSinceCrossing, 20))`,
   set once at touchdown; `y = groundY(x)`.
 - `stopped`: holds position; the pose is standing.
 - `done` once `skipped`, or once `tick ≥ holdTicks` (or `reducedHoldTicks`).

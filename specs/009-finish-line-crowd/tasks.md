@@ -54,24 +54,24 @@ the results arrive by panel wipe.
 
 ### Tests (write first; they fail until the implementation lands)
 
-- [ ] T010 [P] [US1] Write `tests/unit/finish-sequence.test.ts`: F3 from every
+- [x] T010 [P] [US1] Write `tests/unit/finish-sequence.test.ts`: F3 from every
       measuring pilot's final state on both courses (use `ride` from
       `tests/sim/pilots.ts`), F4 with synthetic shelf and mid-rotation states, F5 against
       synthetic `KeyboardEvent`/`PointerEvent` objects, F10 and F11.
-- [ ] T011 [P] [US1] Write `tests/sim/finish-visible.test.ts`: F6 (SC-094). For every
+- [x] T011 [P] [US1] Write `tests/sim/finish-visible.test.ts`: F6 (SC-094). For every
       measuring pilot on both courses, from the first tick with x ≥ L − 213, the banner
       rectangle is inside the frame given by `cameraFor` with a `LookFollower`.
 
 ### Implementation
 
-- [ ] T012 [US1] Implement `FinishSequence` in `src/render/finish.ts` (data-model.md
+- [x] T012 [US1] Implement `FinishSequence` in `src/render/finish.ts` (data-model.md
       phases): `start(final: RunState, motion)`, `advance()`, `skip()`, `done`, `skier()`
       returning a drawable state, `cameraX(L)` per R7, and snow spray particles that are
       off under reduced motion.
-- [ ] T013 [US1] Draw the gantry and the checkered strip in `src/render/draw.ts`
+- [x] T013 [US1] Draw the gantry and the checkered strip in `src/render/draw.ts`
       (FN-1). The gantry is visible whenever L is in frame, on both courses; the strip
       lies on the piste and on any ledge whose `x1` ≥ L.
-- [ ] T014 [US1] Drive the sequence from `src/ui/game.ts`:
+- [x] T014 [US1] Drive the sequence from `src/ui/game.ts`:
   - On the finishing tick, `finish.start(state, motion)` replaces the immediate
     `resolveFinale()`.
   - `isRunning` stays true while the sequence is active, and `tick()` advances it
@@ -80,14 +80,14 @@ the results arrive by panel wipe.
   - Resolve the finale when done.
   - Arm a skip listener that ignores `repeat` key events (R4).
   - `onEnd` fires on the finishing tick exactly as today (FR-267).
-- [ ] T015 [P] [US1] Create `src/ui/finished.ts`, the FINISH overlay mirroring
+- [x] T015 [P] [US1] Create `src/ui/finished.ts`, the FINISH overlay mirroring
       `src/ui/youDied.ts`, with `role="status"` and the reduced-motion variant. Add styles
       to `src/ui/style.css`. Show it from `src/main.ts` through a new `onFinish` callback
       from `GameView`, as `onDeath` does.
-- [ ] T016 [US1] Add the results panel wipe (FN-4, FR-269) in `src/ui/style.css` and
+- [x] T016 [US1] Add the results panel wipe (FN-4, FR-269) in `src/ui/style.css` and
       apply its class in `endRun` in `src/main.ts`, instant under reduced motion. Leave
       `endRun`'s order untouched: commit first, then `await finale`.
-- [ ] T017 [US1] Make T010 and T011 pass. Run the whole unit, sim and course suite.
+- [x] T017 [US1] Make T010 and T011 pass. Run the whole unit, sim and course suite.
 
 ### Built-artifact evidence
 

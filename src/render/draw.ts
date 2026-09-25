@@ -15,10 +15,11 @@ import { terrainYAt, surfaceYAt, iceIndexAt, slopeAt } from '../sim/terrain.js';
 import { PALETTE, type PaletteToken } from './palette.js';
 import { CAMERA_X_OFFSET, INTERNAL_HEIGHT, INTERNAL_WIDTH } from './stage.js';
 import { AIR_LIFT_MAX, cameraAirLift, lookDown, rampLift, rampRise } from './rampGeometry.js';
-import type { CameraFraming } from '../data/load.js';
+import type { CameraFraming, FinishConfig } from '../data/load.js';
 import type { MotionSettings } from './reducedMotion.js';
 import type { Shake } from './landing.js';
 import type { Tumble } from './death.js';
+import { gantryOf, SPRAY_LIFE, type FinishSequence, type SprayParticle } from './finish.js';
 import { FULL_MOTION } from './reducedMotion.js';
 import type { SpriteSheets } from './sprites.js';
 import type { PoseKey } from './skierPose.js';
@@ -849,6 +850,7 @@ export function drawRun(
   tuning: Tuning,
   framing: CameraFraming,
   look: number,
+  finish: FinishFrame,
   motion: MotionSettings = FULL_MOTION,
   shake: Shake = { x: 0, y: 0 },
   flashAlpha = 0,
@@ -856,6 +858,9 @@ export function drawRun(
   skin: SkierSkin | null = null,
 ): void {
   const cam = cameraFor(state, course, framing, look);
+  // During the finish the camera stops following at the line and holds the
+  // gantry and the crowd in frame (feature 009, research R7).
+  if (finish.seq?.started) cam.x = finish.seq.cameraX();
   // The kick is applied to the CAMERA, not to the finished frame. Translating
   // the buffer afterwards would drag the sky with it and leave a bare strip at
   // the edge; moving the camera shakes the world inside a frame that still
@@ -957,6 +962,9 @@ export function drawRun(
     else drawDeadfall(ctx, px, o.width, groundY, tuning.standHeight);
   }
 
+  drawFinish(ctx, course, cam, finish.cfg);
+  if (finish.seq) drawSpray(ctx, cam, finish.seq.sprayParticles());
+
   drawSkier(ctx, state, course, tuning, cam, motion, tumble, skin);
 
   // FR-111's whiteout, over everything and after the skier. Capped well below a
@@ -964,6 +972,82 @@ export function drawRun(
   if (flashAlpha > 0) {
     ctx.fillStyle = rgba('snow', flashAlpha);
     ctx.fillRect(0, 0, INTERNAL_WIDTH, INTERNAL_HEIGHT);
+  }
+}
+
+/** What the renderer needs to draw the finish (feature 009). */
+export interface FinishFrame {
+  cfg: FinishConfig;
+  /** The sequence after the line, or null while the run is still running. */
+  seq: FinishSequence | null;
+}
+
+/**
+ * The finish gantry and the checkered line across the snow (FN-1).
+ *
+ * The post stands on the piste at the line and the banner hangs from its
+ * crossbar, checkered `ink` and `snow` with a `cyan` border. There are no
+ * words in the world (L-0): at 320x180 lettering would eat the frame, and the
+ * overlay says FINISH. Nothing here is `orange`, because the finish is not a
+ * hazard (P-4). The strip lies across every surface that reaches the line: the
+ * piste, and the last shelf where it ends there.
+ */
+function drawFinish(
+  ctx: CanvasRenderingContext2D,
+  course: Course,
+  cam: Camera,
+  cfg: FinishConfig,
+): void {
+  const g = gantryOf(course, cfg);
+  if (g.bannerRight - cam.x < 0 || g.bannerLeft - cam.x > INTERNAL_WIDTH) return;
+  const px = Math.round(g.x - cam.x);
+
+  // Checkered strip on the snow: 2 rows of 3-unit checks, on each surface at the line.
+  const surfaces = [
+    g.footY,
+    ...course.ledges.filter((l) => l.x1 >= g.x && l.x0 <= g.x).map((l) => g.footY - l.height),
+  ];
+  for (const sy of surfaces) {
+    const y = Math.round(sy - cam.y);
+    for (let i = 0; i < 2; i++)
+      for (let j = 0; j < 2; j++) {
+        ctx.fillStyle = css((i + j) % 2 ? 'ink' : 'snow');
+        ctx.fillRect(px - 3 + i * 3, y - 1 + j, 3, 1);
+      }
+  }
+
+  // The post, outlined, from the piste to the crossbar.
+  const foot = Math.round(g.footY - cam.y);
+  const top = Math.round(g.topY - cam.y);
+  ctx.fillStyle = css('ink');
+  ctx.fillRect(px - 2, top, 4, foot - top);
+  ctx.fillStyle = css('snow');
+  ctx.fillRect(px - 1, top + 1, 2, foot - top - 1);
+
+  // The banner: a cyan frame around 4-unit ink/snow checks.
+  const bl = Math.round(g.bannerLeft - cam.x);
+  const bw = Math.round(g.bannerRight - g.bannerLeft);
+  const bt = Math.round(g.bannerTop - cam.y);
+  const bh = Math.round(g.bannerBottom - g.bannerTop);
+  ctx.fillStyle = css('cyan');
+  ctx.fillRect(bl, bt, bw, bh);
+  for (let cx = 0; cx < bw - 2; cx += 4)
+    for (let cy = 0; cy < bh - 2; cy += 4) {
+      ctx.fillStyle = css(((cx + cy) / 4) % 2 ? 'ink' : 'snow');
+      ctx.fillRect(bl + 1 + cx, bt + 1 + cy, Math.min(4, bw - 2 - cx), Math.min(4, bh - 2 - cy));
+    }
+}
+
+/** Snow thrown off the skis as he brakes past the line. Empty under reduced motion. */
+function drawSpray(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  particles: readonly SprayParticle[],
+): void {
+  for (const p of particles) {
+    const age = SPRAY_LIFE - p.life;
+    ctx.fillStyle = rgba('snow', Math.max(0, p.life / SPRAY_LIFE));
+    ctx.fillRect(Math.round(p.x - cam.x + age * 0.6), Math.round(p.y - cam.y - age * 0.4), 1, 1);
   }
 }
 

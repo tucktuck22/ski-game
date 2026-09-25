@@ -48,7 +48,8 @@ are one clean arrival: no bounce, no tumble, no score.
    always clean. A minimum of 8 ticks applies when the landing is sooner.
 2. **On the snow**, follow `groundY` and decelerate uniformly. At first contact the
    rate is set to whichever stops the skier sooner: within `stopDistance` (200) units,
-   or within `stopWithinTicks` (90) ticks. So `a = max(v²/(2·200), v/90)`.
+   or by `stopWithinTicks` (90) ticks after the crossing, counting any time in the air.
+   So `a = max(v²/(2·200), v/max(90 − t_air, 20))`.
    - A spray of snow particles comes off the skis while braking. It is removed under
      reduced motion.
    - The pose is the standing pose once below 1 u/tick.

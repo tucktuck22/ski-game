@@ -350,6 +350,94 @@ th {
 }
 
 /* ---------------------------------------------------------------------------
+   The finish (feature 009, FR-265). Style bible LT-3 and FN-1 to FN-4.
+
+   FINISH! is a shout, so it is the game's sound-effect lettering - `yellow` on
+   `ink` with a hard `magenta` drop - on a band that fades out at both ends like
+   the wipeout's, so the gantry and the crowd stay in view behind it. It sits in
+   the upper third, clear of the skier coasting to a stop below.
+   --------------------------------------------------------------------------- */
+
+.finished {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12%;
+  pointer-events: none;
+}
+
+.finished-band {
+  width: 100%;
+  padding: 2.5% 0;
+  display: flex;
+  justify-content: center;
+  background: linear-gradient(
+    to right,
+    rgba(11, 6, 22, 0) 0%,
+    rgba(11, 6, 22, 0.88) 22%,
+    rgba(11, 6, 22, 0.88) 78%,
+    rgba(11, 6, 22, 0) 100%
+  );
+  animation: finished-in 360ms cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.finished-text {
+  font-size: clamp(28px, 8vw, 64px);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--yellow);
+  text-shadow:
+    2px 2px 0 var(--magenta),
+    0 0 14px rgba(255, 210, 63, 0.35);
+  white-space: nowrap;
+}
+
+@keyframes finished-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* FR-274 and T-5: reduced motion keeps the word and drops the pop. */
+.finished-still .finished-band {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .finished-band {
+    animation: none;
+  }
+}
+
+/* FN-4, F-4: the results panel arrives by a horizontal panel wipe, never a cut
+   and never a fade. Instant under reduced motion. */
+.panel.wipe-in {
+  animation: panel-wipe 300ms steps(10, end) both;
+}
+
+@keyframes panel-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel.wipe-in {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    The wipeout screen (FR-131). Style bible LT-7.
 
    The staging is borrowed — wide-tracked capitals on a band across the middle,

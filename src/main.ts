@@ -28,6 +28,7 @@ import { GameView, type RunReport } from './ui/game.js';
 import { popTrickBadge } from './ui/trickBadge.js';
 import { mountCoachingBadge } from './ui/coachingBadge.js';
 import { showYouDied } from './ui/youDied.js';
+import { showFinished } from './ui/finished.js';
 import { Synth } from './audio/synth.js';
 import { MusicPlayer } from './audio/music.js';
 import { SpriteSheets } from './render/sprites.js';
@@ -748,6 +749,7 @@ async function startRun(kind: RunKind): Promise<void> {
     () => showYouDied(app, motion),
     sprites,
     (cue) => coaching?.set(cue),
+    () => showFinished(app, motion),
   );
   game.start();
 
@@ -848,8 +850,11 @@ async function endRun(report: RunReport): Promise<void> {
   // to the transaction.
   music.setContext('frontEnd');
 
+  // FN-4, F-4: the results arrive by a panel wipe after either ending, and at
+  // once when the player has asked for less motion.
+  const wipe = resolveMotion().shake ? ' wipe-in' : '';
   app.innerHTML = `
-    <div class="panel">
+    <div class="panel${wipe}">
       <h2 class="sfx">${headline}</h2>
       ${report.outcome === 'wiped_out' ? `<p class="subtitle">${escapeHtml(insult)}</p>` : ''}
       <p style="font-size:22px;color:var(--yellow)">${report.score.toLocaleString()}</p>
