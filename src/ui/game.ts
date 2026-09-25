@@ -10,13 +10,16 @@ import { derive, initialState, step, type DerivedTuning } from '../sim/step.js';
 import { slopeAt } from '../sim/terrain.js';
 import { TAU } from '../sim/trig.js';
 import { finalScore } from '../sim/scoring.js';
-import { createStage, type Stage } from '../render/stage.js';
+import { CAMERA_X_OFFSET, createStage, type Stage } from '../render/stage.js';
 import { applyCrt, resetCrt } from '../render/filters/crt.js';
 import { resolveMotion, type MotionSettings } from '../render/reducedMotion.js';
 import { cueAt, type Cue } from '../render/coachingCue.js';
 import { drawRun, resetSceneryCache, type SkierSkin } from '../render/draw.js';
+import { LookFollower } from '../render/rampGeometry.js';
 import { LeanState, PoseTimers, selectPose } from '../render/skierPose.js';
 import type { SpriteSheets } from '../render/sprites.js';
+import type { CameraFraming, FinishConfig } from '../data/load.js';
+import { FinishSequence, isNewPress, withRunout } from '../render/finish.js';
 import { LandingEffect } from '../render/landing.js';
 import { DeathSequence } from '../render/death.js';
 import { startLoop, type LoopHandle } from '../render/loop.js';
@@ -42,7 +45,7 @@ export class GameView {
   private prevState: RunState;
   private finished = false;
   private readonly motion: MotionSettings;
-  private skipListener: (() => void) | null = null;
+  private skipListener: ((e: Event) => void) | null = null;
   private readonly landing = new LandingEffect();
   private readonly death = new DeathSequence();
   /**
@@ -53,6 +56,12 @@ export class GameView {
    */
   private readonly poseTimers = new PoseTimers();
   private readonly lean = new LeanState();
+  /** The camera's look-down, followed per tick rather than per frame (FR-261). */
+  private readonly look: LookFollower;
+  /** The course as drawn: `course` plus the run-out past the line. */
+  private readonly shown: Course;
+  /** What happens after the line (feature 009). Idle until a run finishes. */
+  private readonly finish: FinishSequence;
   private resolveFinale: () => void = () => {};
   /**
    * Resolves when the mountain is finished being looked at.
@@ -68,6 +77,10 @@ export class GameView {
     private readonly course: Course,
     private readonly tuning: Tuning,
     private readonly scoring: Scoring,
+    /** How far the camera looks down the steeps (data/camera.json, feature 008). */
+    private readonly framing: CameraFraming,
+    /** The finish: the hold, the ground past the line, the crowd (feature 009). */
+    private readonly finishCfg: FinishConfig,
     seed: number,
     private readonly kind: RunKind,
     private readonly onEnd: (r: RunReport) => void,
@@ -92,6 +105,8 @@ export class GameView {
      * official course, which never finds a cue - is unaffected.
      */
     private readonly onCue: (cue: Cue | null) => void = () => {},
+    /** Fired once when a run crosses the line, so the caller can letter it (FR-265). */
+    private readonly onFinish: () => void = () => {},
   ) {
     const motion = resolveMotion();
     this.motion = motion;
@@ -102,6 +117,12 @@ export class GameView {
     this.derived = derive(tuning);
     this.state = initialState(course, tuning, seed);
     this.prevState = this.state;
+    // Drawn from a copy carrying the run-out past the line; the simulation rides
+    // `course` and never sees it (feature 009, research R1).
+    this.shown = withRunout(course, finishCfg);
+    this.look = new LookFollower(this.shown, framing);
+    this.look.advance(this.state);
+    this.finish = new FinishSequence(this.shown, finishCfg, tuning.gravity, CAMERA_X_OFFSET);
     this.finale = new Promise<void>((resolve) => {
       this.resolveFinale = resolve;
     });
@@ -111,11 +132,16 @@ export class GameView {
     this.loop = startLoop({
       // The loop outlives the simulation. Once the run has ended the tick stops
       // advancing state and only drives the wipeout's timing, which is what
-      // keeps the frame on the mountain instead of cutting away from it.
-      isRunning: () => !this.finished,
+      // keeps the frame on the mountain instead of cutting away from it. A
+      // finish keeps the TICK running instead, because its sequence advances
+      // per simulation tick rather than per frame (feature 009, research R3).
+      isRunning: () => !this.finished || this.finish.active,
       tick: () => this.tick(),
       render: () => {
-        if (this.finished) {
+        // The wipeout's beat, and only the wipeout's: a DeathSequence that never
+        // started reports itself done, so a finish reaching this branch would end
+        // its own hold on the first frame. The finish resolves from finishTick().
+        if (this.finished && this.state.outcome === 'wiped_out') {
           this.death.advance();
           if (this.death.done) this.resolveFinale();
         }
@@ -142,7 +168,37 @@ export class GameView {
     window.addEventListener('pointerdown', skip);
   }
 
+  /**
+   * Only a new press cuts the finish short (FR-268, research R4). Most players
+   * are holding tuck as they cross the line, and the key repeats a browser sends
+   * for a held key are not a request to skip.
+   */
+  private armFinishSkip(): void {
+    const skip = (e: Event): void => {
+      if (!isNewPress(e as KeyboardEvent)) return;
+      this.finish.skip();
+      this.resolveFinale();
+      window.removeEventListener('keydown', skip);
+      window.removeEventListener('pointerdown', skip);
+    };
+    this.skipListener = skip;
+    window.addEventListener('keydown', skip);
+    window.addEventListener('pointerdown', skip);
+  }
+
+  /** After the line: the finish advances, the simulation does not. */
+  private finishTick(): void {
+    this.finish.advance();
+    const skier = this.finish.skier();
+    if (skier) this.look.advance(skier);
+    if (this.finish.done) this.resolveFinale();
+  }
+
   private tick(): void {
+    if (this.finished) {
+      this.finishTick();
+      return;
+    }
     const input: RunInput = this.sampler.sample();
     this.prevState = this.state;
     this.state = step(this.state, input, this.course, this.tuning, this.scoring, this.derived);
@@ -161,6 +217,7 @@ export class GameView {
     // field the simulation had to carry (FR-164, FR-168).
     this.poseTimers.advance(this.prevState, this.state);
     this.lean.update(slopeAt(this.course.terrain, this.state.x));
+    this.look.advance(this.state);
 
     // A trick is paid in the tick the skier lands: rotationAccum is converted to
     // score and cleared. Reading the transition here rather than adding a field
@@ -197,7 +254,11 @@ export class GameView {
         this.onDeath();
         this.armSkip();
       } else {
-        this.resolveFinale();
+        // FR-265: hold on the mountain. onEnd below still fires on this tick,
+        // so the commit is exactly as early as it was (FR-267).
+        this.finish.start(this.state, this.motion);
+        this.onFinish();
+        this.armFinishSkip();
       }
       this.onEnd({
         outcome: this.state.outcome,
@@ -216,20 +277,29 @@ export class GameView {
    */
   private skin(): SkierSkin | null {
     if (this.sheets === null) return null;
+    const drawn = this.drawn();
     return {
       sheets: this.sheets,
-      pose: selectPose(this.state, this.poseTimers, this.lean.bucket),
-      tick: this.state.tick,
+      pose: selectPose(drawn, this.poseTimers, this.lean.bucket),
+      tick: drawn.tick,
     };
+  }
+
+  /** The skier to draw: the run's, or past the line the finish's. */
+  private drawn(): RunState {
+    return this.finish.skier() ?? this.state;
   }
 
   private render(): void {
     // Interpolation reads the previous state; rendering never mutates either.
     drawRun(
       this.stage.ctx,
-      this.state,
-      this.course,
+      this.drawn(),
+      this.shown,
       this.tuning,
+      this.framing,
+      this.look.current,
+      { cfg: this.finishCfg, seq: this.finish.started ? this.finish : null },
       this.motion,
       this.landing.shake(),
       this.landing.flashAlpha(),

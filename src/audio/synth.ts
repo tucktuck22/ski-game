@@ -133,6 +133,35 @@ export class Synth {
     osc.stop(at + dur + 0.02);
   }
 
+  /**
+   * A crowd's roar from the noise voice (A-2): band-limited noise that swells and
+   * dies over `dur` seconds, with a ragged edge of claps on top. Feature 009.
+   */
+  private swell(at: number, dur: number, level: number): void {
+    const ctx = this.ctx;
+    const master = this.master;
+    if (!ctx || !master) return;
+    const frames = Math.floor(ctx.sampleRate * dur);
+    const buffer = ctx.createBuffer(1, frames, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let low = 0;
+    for (let i = 0; i < frames; i++) {
+      const u = i / frames;
+      // Rises fast, holds, falls away: a cheer, not a hiss.
+      const env = Math.min(1, u * 8) * (1 - u) ** 1.5;
+      // A one-pole low-pass takes the edge off white noise, so it reads as voices.
+      low += 0.18 * (Math.random() * 2 - 1 - low);
+      const clap = Math.random() < 0.0009 ? Math.random() * 0.8 : 0;
+      data[i] = (low * 2.2 + clap) * env;
+    }
+    const src = ctx.createBufferSource();
+    const gain = ctx.createGain();
+    src.buffer = buffer;
+    gain.gain.value = level;
+    src.connect(gain).connect(master);
+    src.start(at);
+  }
+
   private bass(at: number, freq: number): void {
     const ctx = this.ctx;
     const master = this.master;
@@ -166,7 +195,7 @@ export class Synth {
 
   /** A-4 / FR-058: every audio cue has a visible equivalent, so this is colour
    *  for the ear only - never the sole carrier of information. */
-  cue(kind: 'launch' | 'land' | 'pickup' | 'wipeout'): void {
+  cue(kind: 'launch' | 'land' | 'pickup' | 'wipeout' | 'finish'): void {
     if (!this.ctx || this.muted) return;
     const t = this.ctx.currentTime;
     switch (kind) {
@@ -182,6 +211,16 @@ export class Synth {
       case 'wipeout':
         this.noise(t, 0.3);
         this.bass(t, 40);
+        break;
+      case 'finish':
+        // Feature 009, FR-273: a rising three-note fanfare on the pulse lead,
+        // and the crowd underneath it. The FINISH lettering and the crowd on
+        // screen are its visible equivalent (A-4).
+        this.pulse(t, 523, 0.12);
+        this.pulse(t + 0.12, 659, 0.12);
+        this.pulse(t + 0.24, 784, 0.32);
+        this.bass(t + 0.24, 98);
+        this.swell(t + 0.05, 2.2, 0.35);
         break;
     }
   }

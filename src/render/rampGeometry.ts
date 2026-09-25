@@ -11,9 +11,11 @@
  * Nothing here touches the DOM or the simulation. drawRun only ever reads run
  * state, so none of this can reach determinism.
  */
-import type { Course, Kicker, Tuning } from '../sim/types.js';
+import type { Course, Kicker, RunState, Tuning } from '../sim/types.js';
+import type { CameraFraming } from '../data/load.js';
 import { terrainYAt } from '../sim/terrain.js';
 import { terminalSpeedAtGradient } from '../sim/slopeResponse.js';
+import { INTERNAL_HEIGHT, PLAYER_LOOKAHEAD } from './stage.js';
 
 /**
  * How far up the frame the skier rides per unit of air beneath him, and the
@@ -66,6 +68,109 @@ export const AIR_LIFT_MAX = 92;
 /** The camera's vertical offset for a skier `h` units above the piste. */
 export const cameraAirLift = (h: number): number =>
   h <= 0 ? 0 : Math.min(h * AIR_LIFT, AIR_LIFT_MAX);
+
+/**
+ * How far the camera drops to show the slope ahead on steep ground. Feature 008.
+ *
+ * The skier sits 60% of the way down the frame, which leaves 72 units below him.
+ * Every device is promised 213 units of course ahead (PLAYER_LOOKAHEAD), but on
+ * ground steeper than about 0.41 the piste that far ahead is more than 72 below
+ * him - so a log was still under the bottom edge when it was close enough to
+ * see, and on the Narrows a player lost up to a third of the time the lookahead
+ * was meant to buy (specs/008-reaction-time-speed/research.md R2). This drops the
+ * view by exactly enough to show the piste across that 213 units, plus a margin,
+ * and never more: it only makes visible what the horizontal lookahead already
+ * promises, so every device still sees the same course (FR-257).
+ *
+ * Capped at AIR_LIFT_MAX, the ceiling the booters' headroom is already held to.
+ * The camera adds it to the air lift and holds the sum to that same ceiling, so
+ * the skier's head never leaves the frame (FR-258) and neither term's motion is
+ * ever discarded (FR-261; see cameraFor).
+ *
+ * On the piste beneath an upper shelf it is capped again, so the shelf's top edge
+ * stays inside the frame - the shelf reading as a choice outranks seeing a
+ * little further down (research R3). That cap blends in over `shelfEaseIn` before
+ * the shelf and out over the same distance after it, so it never snaps.
+ *
+ * Pure: a function of the course and an x. The piste is continuous, so this is
+ * too, and the camera cannot jump because of it.
+ */
+export function lookDown(
+  course: Course,
+  x: number,
+  onPiste: boolean,
+  framing: CameraFraming,
+): number {
+  const drop = terrainYAt(course.terrain, x + PLAYER_LOOKAHEAD) - terrainYAt(course.terrain, x);
+  const below = INTERNAL_HEIGHT * 0.4;
+  let look = Math.min(Math.max(drop - below + framing.lookMargin, 0), AIR_LIFT_MAX);
+  if (!onPiste) return look;
+
+  const ease = framing.shelfEaseIn;
+  for (const l of course.ledges) {
+    if (x < l.x0 - ease || x >= l.x1 + ease) continue;
+    const cap = INTERNAL_HEIGHT * 0.6 - l.height - framing.shelfMargin;
+    // 0 outside the shelf's reach, 1 across it, linear in between.
+    const weight =
+      ease <= 0 ? 1 : x < l.x0 ? (x - (l.x0 - ease)) / ease : x >= l.x1 ? 1 - (x - l.x1) / ease : 1;
+    look = Math.min(look, AIR_LIFT_MAX + (cap - AIR_LIFT_MAX) * weight);
+  }
+  return Math.max(look, 0);
+}
+
+/**
+ * The look-down as the camera actually shows it: `lookDown`, followed at a
+ * limited rate. Feature 008, FR-261.
+ *
+ * `lookDown` is a pure function of x, and on the ground that is all it needs.
+ * In the air it is not: landing the small booter, the piste 213 ahead reaches the
+ * big booter's steep run-in four ticks before touchdown, just as the air lift runs
+ * out, and the camera's descent doubled in a tick. The ground looked as if it fell
+ * away under a player timing his landing. So in the air it never grows, and
+ * settles by at most `lookRateAir` a tick; on the snow it follows the target at up
+ * to `lookRateGround`, which spreads that change over the roll-out instead.
+ *
+ * Advanced once per SIMULATION tick, never per frame, so the view is the same on
+ * every display (FR-257). Deterministic: it reads only the states it is given. It
+ * restarts at the target whenever the tick does not follow on from the last one,
+ * which is what a new run looks like.
+ */
+export class LookFollower {
+  private value = 0;
+  private lastTick = Number.NaN;
+  /** Ticks on the snow before this one; 0 in the air and on touchdown. */
+  private groundedFor = Number.POSITIVE_INFINITY;
+
+  constructor(
+    private readonly course: Course,
+    private readonly framing: CameraFraming,
+  ) {}
+
+  advance(state: RunState): number {
+    const target = lookDown(this.course, state.x, state.ledge < 0, this.framing);
+    if (state.tick !== this.lastTick + 1) {
+      this.value = target;
+    } else {
+      // In the air it may settle but never grow: growing there adds to a fall the
+      // air lift was absorbing, which is exactly the lurch. On the snow the
+      // skier's own descent is slow, and that is where it catches up.
+      // Nor on the tick of touchdown, which still carries the last of the fall,
+      // and after it the rate builds over `lookRampTicks` while the landing settles.
+      const settled = Math.min(this.groundedFor / Math.max(this.framing.lookRampTicks, 1), 1);
+      const up = this.framing.lookRateGround * settled;
+      const down = state.grounded ? this.framing.lookRateGround : this.framing.lookRateAir;
+      this.value += Math.min(Math.max(target - this.value, -down), up);
+    }
+    this.lastTick = state.tick;
+    this.groundedFor = state.grounded ? this.groundedFor + 1 : 0;
+    return this.value;
+  }
+
+  /** The look-down as of the last tick advanced. */
+  get current(): number {
+    return this.value;
+  }
+}
 
 /** A booter is a wedge you ride ALONG. A pop ramp is a lip you unweight off. */
 export const isBooter = (k: Kicker): boolean => (k.launchAngle ?? 90) < 90;

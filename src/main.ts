@@ -28,6 +28,7 @@ import { GameView, type RunReport } from './ui/game.js';
 import { popTrickBadge } from './ui/trickBadge.js';
 import { mountCoachingBadge } from './ui/coachingBadge.js';
 import { showYouDied } from './ui/youDied.js';
+import { showFinished } from './ui/finished.js';
 import { Synth } from './audio/synth.js';
 import { MusicPlayer } from './audio/music.js';
 import { SpriteSheets } from './render/sprites.js';
@@ -49,6 +50,8 @@ import officialJson from '../data/courses/official.json';
 import insultsJson from '../data/insults.json';
 import audioJson from '../data/audio.json';
 import spritesJson from '../data/sprites.json';
+import cameraJson from '../data/camera.json';
+import finishJson from '../data/finish.json';
 
 type Backend = LocalDraftStore | DraftStore;
 
@@ -66,6 +69,8 @@ const data: GameData = assembleGameData({
   insults: insultsJson,
   audio: audioJson,
   sprites: spritesJson,
+  camera: cameraJson,
+  finish: finishJson,
 });
 
 // Validated up front: a bad URL otherwise surfaces as an opaque
@@ -150,6 +155,18 @@ let snapshot: DraftSnapshot;
 // killed module initialisation and rendered a blank page. See safeStorage.ts.
 let myEntryId: string | null = null;
 let game: GameView | null = null;
+/*
+ * Test seam (feature 009, research R8): the tick of the run on screen, so a
+ * browser test can replay a recorded ride through the real game one tick at a
+ * time. Read-only, and defined only under automation - `navigator.webdriver` is
+ * true in a driven browser and false in every player's - so it cannot change a
+ * run and no player's page carries it.
+ */
+if (navigator.webdriver) {
+  Object.defineProperty(window, '__shredRunTick', {
+    get: (): number | null => game?.currentState.tick ?? null,
+  });
+}
 /**
  * The attempt number the in-flight official run is spending (FR-234).
  *
@@ -733,6 +750,8 @@ async function startRun(kind: RunKind): Promise<void> {
     course,
     data.tuning,
     data.scoring,
+    data.camera,
+    data.finish,
     snapshot.draft.courseSeed,
     kind,
     (report) => {
@@ -742,6 +761,7 @@ async function startRun(kind: RunKind): Promise<void> {
     () => showYouDied(app, motion),
     sprites,
     (cue) => coaching?.set(cue),
+    () => showFinished(app, motion),
   );
   game.start();
 
@@ -777,7 +797,7 @@ async function endRun(report: RunReport): Promise<void> {
   const insult = data.insults[Math.floor(Math.random() * data.insults.length)] as string;
   // FR-058: the cue has a visible equivalent - the headline and the insult -
   // so audio is never the only channel carrying the outcome.
-  synth.cue(report.outcome === 'finished' ? 'land' : 'wipeout');
+  synth.cue(report.outcome === 'finished' ? 'finish' : 'wipeout');
   const headline = report.outcome === 'finished' ? 'FINISHED' : 'WIPEOUT';
 
   if (report.kind === 'practice') {
@@ -842,8 +862,11 @@ async function endRun(report: RunReport): Promise<void> {
   // to the transaction.
   music.setContext('frontEnd');
 
+  // FN-4, F-4: the results arrive by a panel wipe after either ending, and at
+  // once when the player has asked for less motion.
+  const wipe = resolveMotion().shake ? ' wipe-in' : '';
   app.innerHTML = `
-    <div class="panel">
+    <div class="panel${wipe}">
       <h2 class="sfx">${headline}</h2>
       ${report.outcome === 'wiped_out' ? `<p class="subtitle">${escapeHtml(insult)}</p>` : ''}
       <p style="font-size:22px;color:var(--yellow)">${report.score.toLocaleString()}</p>

@@ -174,6 +174,37 @@ to be looked at.
 
 ---
 
+## 3b. The finish (rules FN-*)
+
+Feature 009. Finishing is the good ending, and it gets the same moment on the
+mountain that a wipeout does (FR-131, FR-265).
+
+- **FN-1** — The finish is a gantry: a `snow` post with an `ink` outline standing
+  on the piste at the course's length, tall enough to clear the highest shelf and a
+  standing skier. From its crossbar hangs a banner of 4-unit `ink`/`snow` checks with
+  a 1-unit `cyan` border. A 6-unit checkered strip lies across the snow at the line,
+  on the piste and on any shelf that reaches it. There are no words in the world
+  (L-0); the lettering is the overlay's. Nothing at the finish is `orange`: the
+  finish is not a hazard (P-4).
+- **FN-2** — The crowd is backlit silhouettes: `ink` figures with a 1-unit `cyan`
+  rim along their upper edges (bloom-eligible, T-3). About one in five carries a
+  flag in `yellow` or `cyan`. They stand behind the snow edge with their feet
+  hidden, so no figure ever reads as standing on the racing line. They are shorter
+  than the player (11 to 14 units against 16), so they read as further away. There
+  is no `skin` anywhere in the crowd (P-6: the player stays the one figure drawn as a
+  person), no `orange` (P-4), and no `magenta`, which is the player (P-4). Figures are
+  placed by a hash of their slot, like the scenery, so the crowd never re-rolls.
+- **FN-3** — Idle, the crowd stands with its arms down and sways slowly, at 0.5 Hz
+  or less. At the crossing the arms go up and the figures hop: at most 3 units, at
+  1.5 to 2.5 Hz, each with its own phase. Flags wave and a few hats are thrown.
+  Under reduced motion the arms and flags go up and nothing else moves: no hop, no
+  sway, no thrown hats. A cheering crowd is recognisable standing still.
+- **FN-4** — The results panel arrives by a horizontal panel wipe (F-4) of 300 ms,
+  after either ending, and appears instantly under reduced motion. The cut it
+  replaces was neither a wipe nor a fade.
+
+---
+
 ## 4. Lettering (rules LT-*)
 
 - **LT-1** — Titles are chrome: `snow` core, `cyan` upper bevel, `magenta` lower
