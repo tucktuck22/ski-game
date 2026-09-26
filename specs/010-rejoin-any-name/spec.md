@@ -93,14 +93,14 @@ A player who picked a name on this device and did not back out opens the draft a
 - **FR-305**: A device MUST remember the name its player last selected across browser sessions, and resume it automatically on return (FR-010), until the player backs out or the name is removed.
 - **FR-306**: A device MUST NOT resume as a name that has been removed from the draft; it MUST show the roster instead.
 - **FR-307**: Run limits (practice runs, official attempts) and the committed score MUST continue to belong to the name, not to the device or session. Selecting a name from several devices MUST NOT multiply the runs available to it.
-- **FR-308**: The roster and leaderboard MUST NOT present any name as unavailable because it has been selected before.
-- **FR-309**: Recovering from a wrong or stranded selection MUST NOT require the organizer. Any organizer control whose only purpose was to free a claimed name is no longer needed for this.
+- **FR-308**: The draft MUST NOT hold any notion of a name being claimed, taken, or owned. No roster, leaderboard, or organizer view may show a name as claimed or unclaimed, and nothing may treat a name as unavailable because it has been selected before.
+- **FR-309**: Recovering from a wrong or stranded selection MUST NOT require the organizer. The organizer's RELEASE control MUST be removed, since there is nothing left for it to release.
 
 This feature supersedes FR-008's "exactly one unclaimed name" restriction, FR-012 (claim races) and FR-092 (release only until commit) from feature 001, where they conflict with the requirements above.
 
 ### Key Entities
 
-- **Roster name (entry)**: a competitor in the draft. It owns its practice runs used, official attempts used, and best committed score. It may be removed by the organizer. It no longer has an owner that excludes others.
+- **Roster name (entry)**: a competitor in the draft. It owns its practice runs used, official attempts used, and best committed score. It may be removed by the organizer. It has no owner and no claimed state.
 - **Device selection**: which name this device is currently playing as. It is local to the device, survives the browser closing, and is cleared by backing out or by the name's removal.
 
 ## Success Criteria _(mandatory)_
@@ -116,6 +116,6 @@ This feature supersedes FR-008's "exactly one unclaimed name" restriction, FR-01
 
 - The honor system remains the security model (feature 001: "The honor system is the security model"). Nothing stops one player from selecting another player's name. The group accepts this, as it already accepted that anyone could claim any unclaimed name.
 - "Back out" is the existing "NOT YOU?" control, now available after a score is committed as well. It only affects the device it is pressed on.
-- Whether a name has ever been selected may still be shown on the leaderboard as information, for example to tell a name nobody has played from one in progress. It is never used to stop anyone from selecting that name.
-- The organizer's release control no longer serves a purpose. Removing it or leaving it as a no-op is decided in planning; either satisfies FR-309.
+- Claiming and releasing are removed as concepts, not merely relaxed (maintainer decision, 2026-09-26). Selecting a name is a choice this device makes and nothing else sees. A name with no runs yet reads as not started, not as unclaimed.
+- Sign-in or any per-person identity is out of scope. It is the right answer for a less casual setting, where a person's entry should be theirs alone, and would be a separate feature that replaces the honor system rather than amending it.
 - Same-device resume across sessions uses whatever local memory the device already offers. If that memory is unavailable (private browsing, cleared site data), the player re-selects from the roster, which FR-300 and FR-301 guarantee will work.
