@@ -75,9 +75,14 @@ function attemptCell(e: RankedEntry, final: boolean, officialAttempts: number): 
   return stillGoing ? `${outcome} — BEST OF ${used} SO FAR` : `${outcome} — ${used}`;
 }
 
-/** FR-040: status for every roster member, not only those who scored. */
+/**
+ * FR-040: status for every roster member, not only those who scored.
+ *
+ * A name with no runs of either kind is NOT STARTED. It used to be CLAIMED or
+ * UNCLAIMED, but a name is never owned (feature 010, FR-308), and "unclaimed"
+ * told everyone else the other names were off limits.
+ */
 function statusOf(e: RankedEntry, officialAttempts: number): string {
-  if (!e.claimed) return 'UNCLAIMED';
   // An attempt spent with no score is an abandoned one (FR-233). Saying only
   // "PRACTISING" there would be wrong: he is in the competition and down an
   // attempt, which is exactly the state the board must not hide.
@@ -89,7 +94,7 @@ function statusOf(e: RankedEntry, officialAttempts: number): string {
   // player who has used all three is waiting to go official, not mid-practice.
   if (e.practiceRunsUsed >= 3) return 'READY — NOT YET OFFICIAL';
   if (e.practiceRunsUsed > 0) return `PRACTISING (${e.practiceRunsUsed}/3)`;
-  return 'CLAIMED';
+  return 'NOT STARTED';
 }
 
 export function escapeHtml(s: string): string {

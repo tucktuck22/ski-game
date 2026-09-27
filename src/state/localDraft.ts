@@ -61,7 +61,6 @@ export class LocalDraftStore {
       id,
       name: trimmed,
       origin: 'self_created',
-      claimed: true,
       practiceRunsUsed: 0,
       officialAttemptsUsed: 0,
       removed: false,
@@ -79,7 +78,6 @@ export class LocalDraftStore {
       id,
       name,
       origin: 'organizer',
-      claimed: false,
       practiceRunsUsed: 0,
       officialAttemptsUsed: 0,
       removed: false,
@@ -89,15 +87,6 @@ export class LocalDraftStore {
     });
     this.notify();
     return id;
-  }
-
-  async claimEntry(id: string): Promise<{ ok: true } | { ok: false; reason: string }> {
-    const e = this.entries.get(id);
-    if (!e) return { ok: false, reason: 'No such name.' };
-    if (e.claimed) return { ok: false, reason: 'Someone else just claimed that name.' };
-    this.entries.set(id, { ...e, claimed: true });
-    this.notify();
-    return { ok: true };
   }
 
   async recordPracticeRun(id: string, used: number): Promise<void> {
@@ -160,12 +149,6 @@ export class LocalDraftStore {
     this.notify();
   }
 
-  async releaseClaim(id: string): Promise<void> {
-    const e = this.entries.get(id);
-    if (e && !this.commits.has(id)) this.entries.set(id, { ...e, claimed: false });
-    this.notify();
-  }
-
   /** FR-074: the entry stays visible as removed rather than disappearing. */
   async removeEntry(id: string, _discardedScore: number | null): Promise<void> {
     const e = this.entries.get(id);
@@ -178,7 +161,6 @@ export class LocalDraftStore {
     for (const [id, e] of this.entries) {
       this.entries.set(id, {
         ...e,
-        claimed: false,
         practiceRunsUsed: 0,
         officialAttemptsUsed: 0,
       });

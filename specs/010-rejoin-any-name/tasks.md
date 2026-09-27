@@ -22,8 +22,8 @@ description: 'Task list for feature 010: Rejoin Any Name'
 
 ## Phase 1: Setup
 
-- [X] T001 Record the before-state. Run `npx tsc --noEmit`, `npm run lint`, `npm run test:unit`, `npm run test:shared` and `npm run test:build`, and note each pass count in the scratchpad as `before-010.txt`. Anything already red is recorded, not fixed here.
-- [X] T002 Rename the roster selector `data-claim` → `data-pick`, with no behaviour change (research R8). In `src/main.ts` rename the attribute in `renderRoster()` (`data-claim="${e.id}"`) and in `wire()` (`[data-claim]`, `b.dataset['claim']` → `b.dataset['pick']`). Then run `grep -rl "data-claim" tests | xargs sed -i 's/data-claim/data-pick/g'`. That covers `tests/e2e-build/*.spec.ts`, `tests/e2e-shared/*.ts`, `tests/e2e/us1-claim-and-commit.spec.ts`, `tests/e2e/us3-organizer.spec.ts` and `tests/e2e/claim-identity.spec.ts`. Confirm `grep -rn "data-claim" src tests` is empty and `npm run test:build` still passes.
+- [x] T001 Record the before-state. Run `npx tsc --noEmit`, `npm run lint`, `npm run test:unit`, `npm run test:shared` and `npm run test:build`, and note each pass count in the scratchpad as `before-010.txt`. Anything already red is recorded, not fixed here.
+- [x] T002 Rename the roster selector `data-claim` → `data-pick`, with no behaviour change (research R8). In `src/main.ts` rename the attribute in `renderRoster()` (`data-claim="${e.id}"`) and in `wire()` (`[data-claim]`, `b.dataset['claim']` → `b.dataset['pick']`). Then run `grep -rl "data-claim" tests | xargs sed -i 's/data-claim/data-pick/g'`. That covers `tests/e2e-build/*.spec.ts`, `tests/e2e-shared/*.ts`, `tests/e2e/us1-claim-and-commit.spec.ts`, `tests/e2e/us3-organizer.spec.ts` and `tests/e2e/claim-identity.spec.ts`. Confirm `grep -rn "data-claim" src tests` is empty and `npm run test:build` still passes.
 
 **Checkpoint**: same behaviour, new selector, suites green as in T001.
 
@@ -43,7 +43,7 @@ None. There is no shared prerequisite beyond T002. The claim model is removed in
 
 ### Tests (write first; they MUST fail on the current code)
 
-- [ ] T003 [US1] Create `tests/e2e-shared/rejoin.spec.ts` using `mockPostgrest`, `fixture`, `DRAFT_ID` and `ENTRY_ID` from `tests/e2e-shared/postgrest.ts`. Add four tests:
+- [X] T003 [US1] Create `tests/e2e-shared/rejoin.spec.ts` using `mockPostgrest`, `fixture`, `DRAFT_ID` and `ENTRY_ID` from `tests/e2e-shared/postgrest.ts`. Add four tests:
   1. **The reported bug (FR-300, FR-301)**: `fixture({ entry: { ...fixture().entry, claimed_at: '2026-09-25T20:00:00Z', practice_runs_used: 2 } })`. Go to `/?draft=${DRAFT_ID}` and click `#drop-in`. Expect `button[data-pick]` with text `Tucker` to be visible, click it, and expect `#practice` to contain `1 left`.
   2. **Committed score carried (FR-302)**: seed `official_attempts_used: 1` plus one `scores` row (`entry_id: ENTRY_ID`, `attempt_no: 1`, `score: 41234`, `outcome: 'finished'`, `commit_at`), with `claimed_at` set. After picking, expect `#official` to contain `2 left` and the leaderboard to contain `41,234`.
   3. **No write on pick or back-out (contract draft-store.md)**: as in test 1, pick `Tucker`, then click `#not-me` (accept any dialog, since the old code shows one). Expect `f.patches` to equal `[]`.
@@ -51,12 +51,12 @@ None. There is no shared prerequisite beyond T002. The claim model is removed in
 
   Put a header comment on the file citing spec 010 FR-300/301 and naming the bug in the maintainer's words: "I can't come back in a subsequent session once I've already claimed myself once".
 
-- [ ] T004 [US1] Prove T003 is aimed at the bug. Run `npm run test:shared -- rejoin` on the current `src/` (after T002, before T007). Confirm test 1 FAILS: `Tucker` is not listed, because `renderRoster()` filters `!e.claimed`. Record the failure line in the scratchpad `before-010.txt`. Do not proceed if it passes.
-- [ ] T005 [P] [US1] In `tests/unit/leaderboard.test.ts`:
+- [X] T004 [US1] Prove T003 is aimed at the bug. Run `npm run test:shared -- rejoin` on the current `src/` (after T002, before T007). Confirm test 1 FAILS: `Tucker` is not listed, because `renderRoster()` filters `!e.claimed`. Record the failure line in the scratchpad `before-010.txt`. Do not proceed if it passes.
+- [X] T005 [P] [US1] In `tests/unit/leaderboard.test.ts`:
   - change the FR-055 word list (line ~72) from `'UNCLAIMED'` to `'NOT STARTED'`;
   - add a test asserting that `renderLeaderboard` output for a mix of fresh, practising and committed entries never matches `/\bUN?CLAIMED\b/` (FR-308);
   - remove the `claimed:` property from the `e()` factory and from the `Zach` entry at line ~29.
-- [ ] T006 [P] [US1] In `tests/unit/organizer.test.ts`:
+- [X] T006 [P] [US1] In `tests/unit/organizer.test.ts`:
   - replace the test `'offers RELEASE only for a claimed but uncommitted entry'` (line ~59) with `'offers no RELEASE control, for any entry (FR-309)'`, asserting that `renderOrganizer` output contains no `data-release` for fresh, practising and committed entries;
   - assert that the State cell reads `NO SCORE YET` without a score and `COMMITTED 41,234` with one;
   - assert that the output never matches `/\bUN?CLAIMED\b/`;
@@ -64,8 +64,8 @@ None. There is no shared prerequisite beyond T002. The claim model is removed in
 
 ### Implementation
 
-- [ ] T007 [US1] Remove `claimed: boolean` from `EntryView` in `src/state/ordering.ts`. Then run `npx tsc --noEmit` and keep its error list as the checklist for T008–T015.
-- [ ] T008 [P] [US1] In `src/state/supabase.ts`:
+- [X] T007 [US1] Remove `claimed: boolean` from `EntryView` in `src/state/ordering.ts`. Then run `npx tsc --noEmit` and keep its error list as the checklist for T008–T015.
+- [X] T008 [P] [US1] In `src/state/supabase.ts`:
   - delete `claimEntry()` (lines ~221–233) and its FR-012 doc comment;
   - delete `releaseClaim()` (lines ~324–330);
   - in `createEntry()`, drop `claimed_at: new Date().toISOString()` from the insert and change its doc comment to "FR-070: self-serve creation; the caller adopts the new entry as this device's pick";
@@ -73,19 +73,19 @@ None. There is no shared prerequisite beyond T002. The claim model is removed in
 
   `select('*')` stays. `claimed_at` still arrives and is ignored.
 
-- [ ] T009 [P] [US1] In `src/state/localDraft.ts`:
+- [X] T009 [P] [US1] In `src/state/localDraft.ts`:
   - delete `claimEntry()` and `releaseClaim()`;
   - remove `claimed:` from `createEntry()`, `seedOrganizerEntry()` and `resetDraft()`.
-- [ ] T010 [P] [US1] In `src/ui/leaderboard.ts` `statusOf()`: delete `if (!e.claimed) return 'UNCLAIMED';`, and change the final `return 'CLAIMED';` to `return 'NOT STARTED';`. Update the doc comment: "NOT STARTED" is a name with no runs of either kind (research R7).
-- [ ] T011 [P] [US1] In `src/ui/organizer.ts`:
+- [X] T010 [P] [US1] In `src/ui/leaderboard.ts` `statusOf()`: delete `if (!e.claimed) return 'UNCLAIMED';`, and change the final `return 'CLAIMED';` to `return 'NOT STARTED';`. Update the doc comment: "NOT STARTED" is a name with no runs of either kind (research R7).
+- [X] T011 [P] [US1] In `src/ui/organizer.ts`:
   - remove `releaseClaim` from `OrganizerActions`;
   - in `rowFor()`, change the State cell to `${committed ? \`COMMITTED ${e.score!.toLocaleString()}\` : 'NO SCORE YET'}`and delete the`data-release` button.
-- [ ] T012 [US1] In `src/main.ts`, update the roster and pick:
+- [X] T012 [US1] In `src/main.ts`, update the roster and pick:
   - `renderRoster()`: filter only `!e.removed`. Rename the local `unclaimed` to `names`. Delete the `'<em>Every name is claimed.</em>'` fallback, using `''` instead.
   - `wire()` `[data-pick]` handler: make it synchronous. Set `myEntryId = id`, `rosterError = ''`, and `safeSession.set(\`claim:${DRAFT_ID}\`, id)`(storage moves in T023), then call`render()`. No `backend.claimEntry`call, no`await refresh()`, no error branch.
   - add a short comment citing FR-301: picking is device-local, so there is nothing to refuse.
-- [ ] T013 [US1] In `src/main.ts` `reconcileIdentity()`, change the keep condition to `if (mine !== undefined && !mine.removed) return;`. Rewrite the function's doc comment: shared storage still decides whether the entry exists (FR-091 as amended, FR-306), and a release no longer exists. Keep the mid-run early return and its comment.
-- [ ] T014 [US1] In `src/main.ts`, remove the last claim calls:
+- [X] T013 [US1] In `src/main.ts` `reconcileIdentity()`, change the keep condition to `if (mine !== undefined && !mine.removed) return;`. Rewrite the function's doc comment: shared storage still decides whether the entry exists (FR-091 as amended, FR-306), and a release no longer exists. Keep the mid-run early return and its comment.
+- [X] T014 [US1] In `src/main.ts`, remove the last claim calls:
   - delete the `[data-release]` wiring block (lines ~628–631);
   - replace the `notMe.onclick` body with `forgetIdentity(); render();`. No `confirm()`, no `backend` call, no try/catch.
   - rewrite the doc comment above it. The old one explained why the claim is released rather than forgotten; now forgetting is the whole action, because there is no claim (FR-304, research R5).
@@ -93,9 +93,9 @@ None. There is no shared prerequisite beyond T002. The claim model is removed in
 
   `#not-me` is still hidden after a committed score here; US2 changes that.
 
-- [ ] T015 [P] [US1] Remove `claimed:` from the entry factories in `tests/unit/ordering.test.ts` (line ~11) and `tests/unit/run-economy.test.ts` (line ~23).
-- [ ] T016 [US1] Run `npx tsc --noEmit`, `npm run lint` and `npm run test:unit`. All clean, with no exceptions: after T008–T015 nothing references `claimed`, `claimEntry` or `releaseClaim`. If `tsc` still reports one, fix it in the file it names, never by stubbing the removed method back.
-- [ ] T017 [US1] Run `npm run test:shared -- rejoin`. All four T003 tests pass. Then run the full `npm run test:shared` and `npm run test:build` to show nothing else broke.
+- [X] T015 [P] [US1] Remove `claimed:` from the entry factories in `tests/unit/ordering.test.ts` (line ~11) and `tests/unit/run-economy.test.ts` (line ~23).
+- [X] T016 [US1] Run `npx tsc --noEmit`, `npm run lint` and `npm run test:unit`. All clean, with no exceptions: after T008–T015 nothing references `claimed`, `claimEntry` or `releaseClaim`. If `tsc` still reports one, fix it in the file it names, never by stubbing the removed method back.
+- [X] T017 [US1] Run `npm run test:shared -- rejoin`. All four T003 tests pass. Then run the full `npm run test:shared` and `npm run test:build` to show nothing else broke.
 
 **Checkpoint**: MVP, shippable. The reported bug is fixed on the wire and in the UI, the claim concept is gone, and the build is green. NOT YOU? is instant and local, but still hidden once a name has a committed score (US2). Same-device resume after the browser closes is US3.
 

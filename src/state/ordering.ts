@@ -28,7 +28,6 @@ export interface EntryView {
   id: string;
   name: string;
   origin: 'organizer' | 'self_created';
-  claimed: boolean;
   practiceRunsUsed: number;
   /**
    * How many of this name's official attempts are spent (FR-231, FR-235).

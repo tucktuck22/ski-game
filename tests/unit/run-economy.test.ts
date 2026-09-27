@@ -20,7 +20,6 @@ const entry = (over: Partial<EntryView> = {}): EntryView => ({
   id: 'e',
   name: 'Dave',
   origin: 'organizer',
-  claimed: true,
   practiceRunsUsed: 0,
   officialAttemptsUsed: 0,
   removed: false,

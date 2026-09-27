@@ -7,7 +7,6 @@ const ATTEMPTS = 3;
 const e = (o: Partial<EntryView> & { name: string }): EntryView => ({
   id: o.name,
   origin: 'organizer',
-  claimed: true,
   practiceRunsUsed: 3,
   officialAttemptsUsed: 0,
   removed: false,
@@ -26,7 +25,7 @@ describe('leaderboard view (SC-010)', () => {
       commitAt: '2026-09-01T10:00:00Z',
       outcome: 'wiped_out',
     }),
-    e({ name: 'Zach', origin: 'self_created', claimed: false, practiceRunsUsed: 0 }),
+    e({ name: 'Zach', origin: 'self_created', practiceRunsUsed: 0 }),
     e({ name: 'Al', practiceRunsUsed: 1 }),
   ];
 
@@ -69,8 +68,19 @@ describe('leaderboard view (SC-010)', () => {
   it('does not convey status by colour alone (FR-055)', () => {
     const html = renderLeaderboard(entries, true, ATTEMPTS);
     // Every state has a word, not just a class.
-    for (const word of ['FINISHED', 'WIPED OUT', 'FORFEIT', 'UNCLAIMED', 'PRACTISING']) {
+    for (const word of ['FINISHED', 'WIPED OUT', 'FORFEIT', 'NOT STARTED', 'PRACTISING']) {
       expect(html).toContain(word);
+    }
+  });
+
+  /**
+   * Feature 010, FR-308: a name is never claimed or unclaimed. It has runs or
+   * it has not. "UNCLAIMED" read as "free to take", which implied every other
+   * name was not.
+   */
+  it('never presents a name as claimed or unclaimed (FR-308)', () => {
+    for (const final of [false, true]) {
+      expect(renderLeaderboard(entries, final, ATTEMPTS)).not.toMatch(/\bUN?CLAIMED\b/);
     }
   });
 
