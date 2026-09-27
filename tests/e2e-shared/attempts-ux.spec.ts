@@ -69,7 +69,7 @@ test.describe('a bad connection never stops a run (FR-234, research R2)', () => 
     await mockPostgrest(page, f);
     await page.goto(`/?draft=${DRAFT_ID}`);
     await page.locator('#drop-in').click();
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     // Wait for the claim to settle first — otherwise the abort below catches the
     // claim's own PATCH and the player panel never appears, which would make
     // this test fail for a reason that has nothing to do with what it asserts.

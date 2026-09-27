@@ -50,7 +50,7 @@ test('E1: a finished run holds on the mountain, lettered, then wipes to the resu
 
   await page.clock.install();
   await dropIn(page, './');
-  await page.locator('button[data-claim]').first().click();
+  await page.locator('button[data-pick]').first().click();
   await expect(page.locator('#practice')).toBeVisible();
 
   // Stop time before the run exists, so every tick is taken by hand.

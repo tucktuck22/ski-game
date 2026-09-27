@@ -40,7 +40,7 @@ test.describe('a run survives a sprite sheet that cannot load', () => {
     });
 
     await dropIn(page, './');
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await page.locator('#practice').click();
 
     await expect(page.locator('#screen')).toBeVisible();
@@ -54,7 +54,7 @@ test.describe('a run survives a sprite sheet that cannot load', () => {
 
   test('an official run still commits its score (SC-056)', async ({ page }) => {
     await dropIn(page, './');
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await page.locator('#official').click();
     await expect(page.locator('h2.title')).toContainText('THIS IS THE ONE');
     await page.locator('#go').click();
@@ -70,7 +70,7 @@ test.describe('a run survives a sprite sheet that cannot load', () => {
 
   test('the run is not delayed waiting for a sheet that will never arrive', async ({ page }) => {
     await dropIn(page, './');
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
 
     const started = Date.now();
     await page.locator('#practice').click();
@@ -91,7 +91,7 @@ test.describe('a run survives a sprite sheet that cannot load', () => {
     page.on('pageerror', (e) => thrown.push(e.message));
 
     await dropIn(page, './');
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await page.locator('#practice').click();
     await expect(page.locator('#screen')).toBeVisible();
     await expect(page.locator('.sfx')).toBeVisible({ timeout: 120_000 });

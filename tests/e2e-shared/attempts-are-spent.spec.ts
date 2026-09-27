@@ -128,7 +128,7 @@ test.describe('an official attempt is spent at its start, whatever the commit do
 
     await page.goto(`/?draft=${f.entry['draft_id'] as string}`);
     await page.locator('#drop-in').click();
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await startOfficialAttempt(page);
     await page.locator('#go').click();
     // Part-way down, and then the session simply ends.

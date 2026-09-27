@@ -26,7 +26,7 @@ test.describe('US3: organizer', () => {
   test('removing a committed entry names the score being discarded (FR-074)', async ({ page }) => {
     // Commit a score first.
     await dropIn(page, '/?organizer=test-secret');
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await page.locator('#official').click();
     await page.locator('#go').click();
     await expect(page.locator('.sfx')).toBeVisible({ timeout: 90_000 });

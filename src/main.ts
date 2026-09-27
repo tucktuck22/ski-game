@@ -408,7 +408,7 @@ function renderRoster(): string {
     <div class="row">
       ${
         unclaimed
-          .map((e) => `<button data-claim="${e.id}">${escapeHtml(e.name)}</button>`)
+          .map((e) => `<button data-pick="${e.id}">${escapeHtml(e.name)}</button>`)
           .join('') || '<em>Every name is claimed.</em>'
       }
     </div>
@@ -478,9 +478,9 @@ function renderRejection(reason: string): string {
 }
 
 function wire(): void {
-  app.querySelectorAll<HTMLButtonElement>('[data-claim]').forEach((b) => {
+  app.querySelectorAll<HTMLButtonElement>('[data-pick]').forEach((b) => {
     b.onclick = async (): Promise<void> => {
-      const id = b.dataset['claim'] as string;
+      const id = b.dataset['pick'] as string;
       const r = await backend.claimEntry(id);
       if (r.ok) {
         myEntryId = id;

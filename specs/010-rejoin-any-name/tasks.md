@@ -9,6 +9,7 @@ description: 'Task list for feature 010: Rejoin Any Name'
 **Tests**: Required. The constitution's Definition of Done item 2 and Principle VI apply, and the plan's first step is to reproduce the reported bug before fixing it.
 
 **Stop rules**:
+
 - Nothing in `src/sim/` or `data/` changes.
 - No SQL is executable-changed. Only comments may change in `supabase/` (research R3). If a task seems to need a migration, stop and raise it.
 
@@ -21,8 +22,8 @@ description: 'Task list for feature 010: Rejoin Any Name'
 
 ## Phase 1: Setup
 
-- [ ] T001 Record the before-state. Run `npx tsc --noEmit`, `npm run lint`, `npm run test:unit`, `npm run test:shared` and `npm run test:build`, and note each pass count in the scratchpad as `before-010.txt`. Anything already red is recorded, not fixed here.
-- [ ] T002 Rename the roster selector `data-claim` → `data-pick`, with no behaviour change (research R8). In `src/main.ts` rename the attribute in `renderRoster()` (`data-claim="${e.id}"`) and in `wire()` (`[data-claim]`, `b.dataset['claim']` → `b.dataset['pick']`). Then run `grep -rl "data-claim" tests | xargs sed -i 's/data-claim/data-pick/g'`. That covers `tests/e2e-build/*.spec.ts`, `tests/e2e-shared/*.ts`, `tests/e2e/us1-claim-and-commit.spec.ts`, `tests/e2e/us3-organizer.spec.ts` and `tests/e2e/claim-identity.spec.ts`. Confirm `grep -rn "data-claim" src tests` is empty and `npm run test:build` still passes.
+- [X] T001 Record the before-state. Run `npx tsc --noEmit`, `npm run lint`, `npm run test:unit`, `npm run test:shared` and `npm run test:build`, and note each pass count in the scratchpad as `before-010.txt`. Anything already red is recorded, not fixed here.
+- [X] T002 Rename the roster selector `data-claim` → `data-pick`, with no behaviour change (research R8). In `src/main.ts` rename the attribute in `renderRoster()` (`data-claim="${e.id}"`) and in `wire()` (`[data-claim]`, `b.dataset['claim']` → `b.dataset['pick']`). Then run `grep -rl "data-claim" tests | xargs sed -i 's/data-claim/data-pick/g'`. That covers `tests/e2e-build/*.spec.ts`, `tests/e2e-shared/*.ts`, `tests/e2e/us1-claim-and-commit.spec.ts`, `tests/e2e/us3-organizer.spec.ts` and `tests/e2e/claim-identity.spec.ts`. Confirm `grep -rn "data-claim" src tests` is empty and `npm run test:build` still passes.
 
 **Checkpoint**: same behaviour, new selector, suites green as in T001.
 
@@ -30,7 +31,7 @@ description: 'Task list for feature 010: Rejoin Any Name'
 
 ## Phase 2: Foundational
 
-None. There is no shared prerequisite beyond T002. The claim model is removed inside US1, because removing it *is* the fix.
+None. There is no shared prerequisite beyond T002. The claim model is removed inside US1, because removing it _is_ the fix.
 
 ---
 
@@ -49,6 +50,7 @@ None. There is no shared prerequisite beyond T002. The claim model is removed in
   4. **Counts follow the name to a later session (FR-307)**: in one browser context, pick `Tucker`, click `#official` then `#go` (the attempt is spent when the run starts, FR-234), and close that context mid-run. In a second, fresh `browser.newContext()` with `mockPostgrest` on the same fixture object, pick `Tucker`. Expect `#official` to contain `2 left`.
 
   Put a header comment on the file citing spec 010 FR-300/301 and naming the bug in the maintainer's words: "I can't come back in a subsequent session once I've already claimed myself once".
+
 - [ ] T004 [US1] Prove T003 is aimed at the bug. Run `npm run test:shared -- rejoin` on the current `src/` (after T002, before T007). Confirm test 1 FAILS: `Tucker` is not listed, because `renderRoster()` filters `!e.claimed`. Record the failure line in the scratchpad `before-010.txt`. Do not proceed if it passes.
 - [ ] T005 [P] [US1] In `tests/unit/leaderboard.test.ts`:
   - change the FR-055 word list (line ~72) from `'UNCLAIMED'` to `'NOT STARTED'`;
@@ -70,16 +72,17 @@ None. There is no shared prerequisite beyond T002. The claim model is removed in
   - in `snapshot()`'s mapping, drop `claimed: e.claimed_at !== null`.
 
   `select('*')` stays. `claimed_at` still arrives and is ignored.
+
 - [ ] T009 [P] [US1] In `src/state/localDraft.ts`:
   - delete `claimEntry()` and `releaseClaim()`;
   - remove `claimed:` from `createEntry()`, `seedOrganizerEntry()` and `resetDraft()`.
 - [ ] T010 [P] [US1] In `src/ui/leaderboard.ts` `statusOf()`: delete `if (!e.claimed) return 'UNCLAIMED';`, and change the final `return 'CLAIMED';` to `return 'NOT STARTED';`. Update the doc comment: "NOT STARTED" is a name with no runs of either kind (research R7).
 - [ ] T011 [P] [US1] In `src/ui/organizer.ts`:
   - remove `releaseClaim` from `OrganizerActions`;
-  - in `rowFor()`, change the State cell to `${committed ? \`COMMITTED ${e.score!.toLocaleString()}\` : 'NO SCORE YET'}` and delete the `data-release` button.
+  - in `rowFor()`, change the State cell to `${committed ? \`COMMITTED ${e.score!.toLocaleString()}\` : 'NO SCORE YET'}`and delete the`data-release` button.
 - [ ] T012 [US1] In `src/main.ts`, update the roster and pick:
   - `renderRoster()`: filter only `!e.removed`. Rename the local `unclaimed` to `names`. Delete the `'<em>Every name is claimed.</em>'` fallback, using `''` instead.
-  - `wire()` `[data-pick]` handler: make it synchronous. Set `myEntryId = id`, `rosterError = ''`, and `safeSession.set(\`claim:${DRAFT_ID}\`, id)` (storage moves in T023), then call `render()`. No `backend.claimEntry` call, no `await refresh()`, no error branch.
+  - `wire()` `[data-pick]` handler: make it synchronous. Set `myEntryId = id`, `rosterError = ''`, and `safeSession.set(\`claim:${DRAFT_ID}\`, id)`(storage moves in T023), then call`render()`. No `backend.claimEntry`call, no`await refresh()`, no error branch.
   - add a short comment citing FR-301: picking is device-local, so there is nothing to refuse.
 - [ ] T013 [US1] In `src/main.ts` `reconcileIdentity()`, change the keep condition to `if (mine !== undefined && !mine.removed) return;`. Rewrite the function's doc comment: shared storage still decides whether the entry exists (FR-091 as amended, FR-306), and a release no longer exists. Keep the mid-run early return and its comment.
 - [ ] T014 [US1] In `src/main.ts`, remove the last claim calls:
@@ -89,6 +92,7 @@ None. There is no shared prerequisite beyond T002. The claim model is removed in
   - rewrite the two stale comments in `forgetIdentity()` (lines ~351 and ~357: "the claim itself is released by whoever…", "whoever claims a name next"). The new wording: this is the whole of backing out; nothing shared changes; the commit banner is cleared so the next person to pick a name on this device is not greeted with someone else's result.
 
   `#not-me` is still hidden after a committed score here; US2 changes that.
+
 - [ ] T015 [P] [US1] Remove `claimed:` from the entry factories in `tests/unit/ordering.test.ts` (line ~11) and `tests/unit/run-economy.test.ts` (line ~23).
 - [ ] T016 [US1] Run `npx tsc --noEmit`, `npm run lint` and `npm run test:unit`. All clean, with no exceptions: after T008–T015 nothing references `claimed`, `claimEntry` or `releaseClaim`. If `tsc` still reports one, fix it in the file it names, never by stubbing the removed method back.
 - [ ] T017 [US1] Run `npm run test:shared -- rejoin`. All four T003 tests pass. Then run the full `npm run test:shared` and `npm run test:build` to show nothing else broke.
@@ -130,12 +134,10 @@ None. There is no shared prerequisite beyond T002. The claim model is removed in
 
 ### Tests
 
-- [ ] T021 [US3] Add to `tests/e2e-build/pick-name.spec.ts`:
-  5. **Resume after the browser closed (FR-305)**: pick the first name, `page.close()`, then `const p2 = await context.newPage()` in the same `BrowserContext` and `dropIn(p2, './')`. Expect `You are <name>` without clicking any `button[data-pick]`. A new page keeps `localStorage` but starts with empty `sessionStorage`, which is the browser-restart case. A plain `page.reload()` would NOT do: `sessionStorage` survives a reload, so the test would pass on the broken code.
-  6. **Back-out is remembered (US3 scenario 2)**: pick, `#not-me`, close the page, open a new page in the same context, `dropIn`. Expect `#new-name` to be visible and no `You are`.
-  7. **Removal drops the pick (FR-306)**: on `./?organizer=test-secret`, drop in and pick the first name. With `page.on('dialog', d => d.accept())`, click that row's `[data-remove]` in the organizer panel. Expect `#new-name` to be visible, and the name not to be among `button[data-pick]`.
+- [ ] T021 [US3] Add to `tests/e2e-build/pick-name.spec.ts`: 5. **Resume after the browser closed (FR-305)**: pick the first name, `page.close()`, then `const p2 = await context.newPage()` in the same `BrowserContext` and `dropIn(p2, './')`. Expect `You are <name>` without clicking any `button[data-pick]`. A new page keeps `localStorage` but starts with empty `sessionStorage`, which is the browser-restart case. A plain `page.reload()` would NOT do: `sessionStorage` survives a reload, so the test would pass on the broken code. 6. **Back-out is remembered (US3 scenario 2)**: pick, `#not-me`, close the page, open a new page in the same context, `dropIn`. Expect `#new-name` to be visible and no `You are`. 7. **Removal drops the pick (FR-306)**: on `./?organizer=test-secret`, drop in and pick the first name. With `page.on('dialog', d => d.accept())`, click that row's `[data-remove]` in the organizer panel. Expect `#new-name` to be visible, and the name not to be among `button[data-pick]`.
 
   Run it before T023 and confirm test 5 FAILS (the new page shows the roster). Do not proceed if it passes.
+
 - [ ] T022 [P] [US3] In `tests/unit/safe-storage.test.ts` (lines ~59–62), change the example key from `'claim:draft-1'` to `'pick:draft-1'`, and add the same set/get/remove round-trip for `safeLocal`.
 
 ### Implementation
@@ -145,6 +147,7 @@ None. There is no shared prerequisite beyond T002. The claim model is removed in
   - replace all three `safeSession.set(\`claim:${DRAFT_ID}\`, …)` calls (the pick handler, `#add-name`), the `safeSession.remove` in `forgetIdentity()`, and `myEntryId = safeSession.get(\`claim:${DRAFT_ID}\`)` at startup (line ~934).
 
   Add one comment at the startup read: FR-010/FR-305. This is local storage on purpose; session storage ended with the tab, which was half of the reported bug.
+
 - [ ] T024 [US3] Run `npm run test:build -- pick-name`: all seven tests pass. Also run `npm run test:shared`: `attempts-ux.spec.ts` still passes. Update that file's comment at lines ~36–38, which describes `claim:<draft>` in session storage, to say `pick:<draft>` in local storage.
 
 **Checkpoint**: all three stories complete.

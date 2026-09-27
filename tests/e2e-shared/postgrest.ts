@@ -129,7 +129,7 @@ export async function mockPostgrest(
 export async function takeOfficialRun(page: Page): Promise<void> {
   await page.goto(`/?draft=${DRAFT_ID}`);
   await page.locator('#drop-in').click();
-  await page.locator('button[data-claim]').first().click();
+  await page.locator('button[data-pick]').first().click();
   await startOfficialAttempt(page);
   await page.locator('#go').click();
   await page.locator('.sfx').waitFor({ timeout: 90_000 });

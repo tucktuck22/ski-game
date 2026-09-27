@@ -19,7 +19,7 @@ test.describe('US1: claim, practise, commit', () => {
     // FR-041: the board says plainly what rank 1 wins.
     await expect(page.locator('.subtitle').first()).toContainText('bed order');
 
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await expect(page.locator('#practice')).toContainText('3 left');
     expect(errors).toEqual([]);
   });
@@ -28,7 +28,7 @@ test.describe('US1: claim, practise, commit', () => {
     page,
   }) => {
     await dropIn(page);
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await page.locator('#practice').click();
     await expect(page.locator('#screen')).toBeVisible();
 
@@ -47,7 +47,7 @@ test.describe('US1: claim, practise, commit', () => {
     page,
   }) => {
     await dropIn(page);
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await page.locator('#official').click();
 
     const panel = page.locator('.panel');
@@ -63,7 +63,7 @@ test.describe('US1: claim, practise, commit', () => {
 
   test('an attempt commits irreversibly, and two attempts remain (FR-238)', async ({ page }) => {
     await dropIn(page);
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await page.locator('#official').click();
     await page.locator('#go').click();
 
@@ -89,7 +89,7 @@ test.describe('US1: claim, practise, commit', () => {
 
   test('spending every attempt ends the competition and opens free play', async ({ page }) => {
     await dropIn(page);
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
 
     for (let attempt = 1; attempt <= 3; attempt++) {
       await expect(page.locator('#official')).toContainText(`${4 - attempt} left`);
@@ -122,7 +122,7 @@ test.describe('US1: claim, practise, commit', () => {
 
   test('a duplicate name is refused (FR-003)', async ({ page }) => {
     await dropIn(page);
-    const existing = await page.locator('button[data-claim]').first().textContent();
+    const existing = await page.locator('button[data-pick]').first().textContent();
     await page.locator('#new-name').fill(existing!.trim().toLowerCase());
     await page.locator('#add-name').click();
     await expect(page.locator('#roster-error')).toContainText('already on the roster');

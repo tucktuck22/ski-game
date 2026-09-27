@@ -25,7 +25,7 @@ interface RunResult {
  */
 async function practiceRun(page: Page): Promise<RunResult> {
   await dropIn(page, './');
-  await page.locator('button[data-claim]').first().click();
+  await page.locator('button[data-pick]').first().click();
   await page.locator('#practice').click();
   await expect(page.locator('#screen')).toBeVisible();
 

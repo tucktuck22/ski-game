@@ -20,22 +20,25 @@ All decisions below were made against the code as of `29ab3bc`. The Technical Co
 **Rationale**: It survives the browser closing (FR-305), it is already wrapped for private mode and blocked storage, and it is scoped to this origin and draft. The new key name means a stale `claim:<draftId>` in `sessionStorage` is simply ignored: there's nothing to migrate, because `sessionStorage` never outlives a session anyway.
 
 **Alternatives rejected**:
-- *Keep `sessionStorage`*. That is the defect.
-- *IndexedDB*. Asynchronous, and more machinery than one string needs.
-- *A cookie*. It would be sent to the static host on every request, for no benefit.
+
+- _Keep `sessionStorage`_. That is the defect.
+- _IndexedDB_. Asynchronous, and more machinery than one string needs.
+- _A cookie_. It would be sent to the static host on every request, for no benefit.
 
 ## R3. What happens to `roster_entry.claimed_at` in the database
 
 **Decision**: Leave the column in the schema. The client stops reading and writing it. No migration is shipped. A comment in `supabase/setup.sql` and `0001_init.sql`'s column list marks it retired by feature 010.
 
 **Rationale**:
+
 - **Principle VII.** Every operator step is a deliverable under test, and setup is where this project has spent almost all of its defect budget. A client-only change needs no SQL pasted into anyone's project.
 - **Deploy-order safety.** GitHub Pages deploys the client automatically; migrations are pasted by hand. With the column left in place, old and new clients both work against either state of the database, in any order.
 - **Principle II.** No schema change means no migration round-trip obligation and no risk to a live draft's scores.
 - **Harmless leftovers.** `organizer_reset_draft` still nulls it, and the invariants test still checks that it is null after a reset. Both remain true and cost nothing.
 
 **Alternatives rejected**:
-- *Drop the column in migration 0006.* It is cleaner at rest, but it adds a manual operator step, a round-trip test, and a grant change in `0002_policies`/`setup.sql`. It also breaks any still-cached old client mid-draft: its `claimEntry` PATCH would fail, and it would strand the player exactly as today. It can be done later as a pure cleanup once no old client can be in the field. Logged as a follow-up, not part of this feature.
+
+- _Drop the column in migration 0006._ It is cleaner at rest, but it adds a manual operator step, a round-trip test, and a grant change in `0002_policies`/`setup.sql`. It also breaks any still-cached old client mid-draft: its `claimEntry` PATCH would fail, and it would strand the player exactly as today. It can be done later as a pure cleanup once no old client can be in the field. Logged as a follow-up, not part of this feature.
 
 ## R4. Reconciling identity against shared storage (FR-091)
 
@@ -49,19 +52,20 @@ All decisions below were made against the code as of `29ab3bc`. The Technical Co
 
 **Rationale**: Backing out now changes nothing outside this device, so there is nothing to confirm and nothing that can fail over the network. The old confirmation said "Anyone can claim that name after you do". That's no longer true and would be misleading. A mistaken back-out is undone by tapping the name again.
 
-**Alternatives rejected**: *Keep a confirm dialog.* It guards an action that costs one tap to reverse.
+**Alternatives rejected**: _Keep a confirm dialog._ It guards an action that costs one tap to reverse.
 
 ## R6. Two devices on one name
 
 **Finding**: Run counts live in shared storage, per name, so a player who moves between devices or sessions carries them along and cannot reset them (FR-307). That is what this feature relies on.
 
-What the counts are *not* is safe against two devices playing the same name at the same moment. `recordPracticeRun` and `startOfficialAttempt` (`src/state/supabase.ts:267`) both write an absolute count computed from the device's own, possibly stale, view, and the last write wins. Two devices can both start "attempt 2", and the counter can even move backwards. Only the unique index on `(draft_id, entry_id, attempt_no)` keeps recorded scores at the allowance; the second device's run then ends in a refused score.
+What the counts are _not_ is safe against two devices playing the same name at the same moment. `recordPracticeRun` and `startOfficialAttempt` (`src/state/supabase.ts:267`) both write an absolute count computed from the device's own, possibly stale, view, and the last write wins. Two devices can both start "attempt 2", and the counter can even move backwards. Only the unique index on `(draft_id, entry_id, attempt_no)` keeps recorded scores at the allowance; the second device's run then ends in a refused score.
 
 **Decision**: Out of scope (maintainer, 2026-09-27: an unlikely edge case). Stated in the spec's edge cases, not fixed. A real fix would move the counter into an atomic database update, which is a migration and an operator step (see R3). This behaviour predates this feature, since FR-011 always allowed one name on several devices.
 
 ## R7. What replaces "CLAIMED" / "UNCLAIMED" on the boards
 
 **Decision**:
+
 - **Leaderboard** (`statusOf`, `src/ui/leaderboard.ts:79`): an entry with no practice runs and no official attempts reads `NOT STARTED`. The branch returning `CLAIMED` goes the same way. Every other status is unchanged.
 - **Organizer table** (`src/ui/organizer.ts:63`): the State column shows `COMMITTED <score>` or `NO SCORE YET`. The RELEASE button is removed (FR-309).
 
@@ -76,6 +80,7 @@ What the counts are *not* is safe against two devices playing the same name at t
 ## R9. Where the new behavior is proven (Principle VI)
 
 **Decision**: Two layers, both run in CI.
+
 1. **`tests/e2e-shared/rejoin.spec.ts`** (runs under `npm run test:shared` in the `smoke` job). This is the reported bug, reproduced faithfully. The mocked PostgREST fixture holds state across page loads, so the test can:
    - seed an entry whose `claimed_at` is already set (a claim from an earlier session), then open a fresh browser context and assert the name is offered and selectable, with its counts intact;
    - assert that picking a name and backing out send no `roster_entry` PATCH at all;
@@ -89,6 +94,7 @@ What the counts are *not* is safe against two devices playing the same name at t
 ## R10. Governing-spec amendments (Principle I)
 
 Feature 001's spec is amended in the same change set:
+
 - **FR-008**: "claim exactly one unclaimed roster name… claimed names MUST be shown as claimed" → players select any roster name. Creating an entry selects it for its creator.
 - **FR-012**: withdrawn (there are no races without claims).
 - **FR-021**: "Run counts, claims, and committed scores" → "Run counts and committed scores".

@@ -30,7 +30,7 @@ test.describe('US6: presentation and accessibility', () => {
     await expect(page.locator('#motion')).toContainText('REDUCED MOTION');
 
     // The critical part: the run must still be playable AND scoreable.
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await page.locator('#practice').click();
     await expect(page.locator('#screen')).toBeVisible();
     await expect(page.locator('.sfx')).toBeVisible({ timeout: 90_000 });
@@ -51,7 +51,7 @@ test.describe('US6: presentation and accessibility', () => {
     page,
   }) => {
     await dropIn(page);
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await page.locator('#practice').click();
     await expect(page.locator('.sfx')).toBeVisible({ timeout: 90_000 });
     const headline = await page.locator('.sfx').textContent();
@@ -66,7 +66,7 @@ test.describe('US6: presentation and accessibility', () => {
     // tests/sim/golden.test.ts pins down — so this needs no input at all to
     // produce a death.
     await dropIn(page);
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await page.locator('#practice').click();
     await expect(page.locator('#screen')).toBeVisible();
 
@@ -86,7 +86,7 @@ test.describe('US6: presentation and accessibility', () => {
 
   test('a wipeout can be skipped by anyone who has seen it before', async ({ page }) => {
     await dropIn(page);
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await page.locator('#practice').click();
     await expect(page.locator('.you-died')).toBeVisible({ timeout: 90_000 });
     await page.keyboard.press('Enter');

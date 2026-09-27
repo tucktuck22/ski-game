@@ -26,7 +26,7 @@ test.describe('the title screen', () => {
     await expect(page.locator('h1.title-wordmark')).toContainText('SHREDPOCALYPSE');
     await expect(page.locator('#drop-in')).toBeVisible();
     // The board must not be reachable behind it.
-    await expect(page.locator('button[data-claim]')).toHaveCount(0);
+    await expect(page.locator('button[data-pick]')).toHaveCount(0);
 
     await page.waitForLoadState('networkidle');
     expect(audio, 'audio was fetched before the player asked for it').toEqual([]);
@@ -44,7 +44,7 @@ test.describe('the title screen', () => {
     // Exactly one action. Not a click to start sound and another to enter.
     await page.locator('#drop-in').click();
 
-    await expect(page.locator('button[data-claim]').first()).toBeVisible();
+    await expect(page.locator('button[data-pick]').first()).toBeVisible();
     await expect
       .poll(() => audio.filter((u) => u.includes('look-out-below')).length, {
         timeout: 15_000,
@@ -59,7 +59,7 @@ test.describe('the title screen', () => {
     await page.goto('./');
     const started = Date.now();
     await page.locator('#drop-in').click();
-    await expect(page.locator('button[data-claim]').first()).toBeVisible();
+    await expect(page.locator('button[data-pick]').first()).toBeVisible();
 
     // Entry must not have waited on a fetch that was never going to succeed.
     expect(Date.now() - started, 'entry waited on the music').toBeLessThan(5_000);
@@ -71,7 +71,7 @@ test.describe('the title screen', () => {
     // to press rather than an unknown number of tabs to find it.
     await expect(page.locator('#drop-in')).toBeFocused();
     await page.keyboard.press('Enter');
-    await expect(page.locator('button[data-claim]').first()).toBeVisible();
+    await expect(page.locator('button[data-pick]').first()).toBeVisible();
   });
 
   test('the title card is drawn, not downloaded (SC-051)', async ({ page }) => {

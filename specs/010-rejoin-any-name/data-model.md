@@ -4,16 +4,16 @@ This feature makes no schema change (research R3). It removes one field from the
 
 ## Roster entry (`EntryView`, `src/state/ordering.ts`)
 
-| Field                  | Change      | Notes                                                                                        |
-| ---------------------- | ----------- | -------------------------------------------------------------------------------------------- |
-| `id`                   | unchanged   |                                                                                              |
-| `name`                 | unchanged   |                                                                                              |
-| `origin`               | unchanged   | `organizer` \| `self_created`                                                                |
-| ~~`claimed`~~          | **removed** | No reader may remain (FR-308). The TypeScript compiler finds every one.                      |
-| `practiceRunsUsed`     | unchanged   | Belongs to the name, not the device (FR-307)                                                 |
-| `officialAttemptsUsed` | unchanged   | Spent at run start, in shared storage (FR-234, FR-307)                                       |
-| `removed`              | unchanged   | Now the only reason a device drops its selection (FR-306)                                    |
-| `score`, `commitAt`, `outcome` | unchanged | Best attempt                                                                            |
+| Field                          | Change      | Notes                                                                   |
+| ------------------------------ | ----------- | ----------------------------------------------------------------------- |
+| `id`                           | unchanged   |                                                                         |
+| `name`                         | unchanged   |                                                                         |
+| `origin`                       | unchanged   | `organizer` \| `self_created`                                           |
+| ~~`claimed`~~                  | **removed** | No reader may remain (FR-308). The TypeScript compiler finds every one. |
+| `practiceRunsUsed`             | unchanged   | Belongs to the name, not the device (FR-307)                            |
+| `officialAttemptsUsed`         | unchanged   | Spent at run start, in shared storage (FR-234, FR-307)                  |
+| `removed`                      | unchanged   | Now the only reason a device drops its selection (FR-306)               |
+| `score`, `commitAt`, `outcome` | unchanged   | Best attempt                                                            |
 
 **Validation**: none new. Name uniqueness and the roster cap are unchanged.
 
@@ -35,12 +35,12 @@ NOT STARTED ──practice──▶ PRACTISING (n/3) ──3 used──▶ READY
 
 ## Device selection (new home)
 
-| Property | Before                                   | After                          |
-| -------- | ---------------------------------------- | ------------------------------ |
-| Storage  | `sessionStorage` via `safeSession`       | `localStorage` via `safeLocal` |
-| Key      | `claim:<draftId>`                        | `pick:<draftId>`               |
-| Value    | entry id                                 | entry id                       |
-| Lifetime | until the tab closes                     | until backed out, or the entry is removed or gone |
+| Property | Before                             | After                                             |
+| -------- | ---------------------------------- | ------------------------------------------------- |
+| Storage  | `sessionStorage` via `safeSession` | `localStorage` via `safeLocal`                    |
+| Key      | `claim:<draftId>`                  | `pick:<draftId>`                                  |
+| Value    | entry id                           | entry id                                          |
+| Lifetime | until the tab closes               | until backed out, or the entry is removed or gone |
 
 **Transitions**:
 

@@ -40,7 +40,7 @@ test.describe('a run survives music that cannot load', () => {
     });
 
     await dropIn(page, './');
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
 
     await page.locator('#official').click();
     await expect(page.locator('h2.title')).toContainText('THIS IS THE ONE');
@@ -63,7 +63,7 @@ test.describe('a run survives music that cannot load', () => {
 
   test('a run is not delayed waiting for music that will never arrive', async ({ page }) => {
     await dropIn(page, './');
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
 
     const started = Date.now();
     await page.locator('#practice').click();
@@ -92,7 +92,7 @@ test.describe('a run survives music that 404s', () => {
     page.on('pageerror', (e) => thrown.push(e.message));
 
     await dropIn(page, './');
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await page.locator('#practice').click();
     await expect(page.locator('#screen')).toBeVisible();
     await expect(page.locator('.sfx')).toBeVisible({ timeout: 120_000 });

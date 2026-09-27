@@ -55,7 +55,7 @@ test.describe('claimed identity follows shared storage, not this device', () => 
     await expect(row).toContainText('UNCLAIMED');
     // Self-created entries are not deleted by a release - FR-073 keeps them on
     // the board, attributed - so the name is back in the pool rather than gone.
-    await expect(page.locator('[data-claim]', { hasText: 'Rando' })).toBeVisible();
+    await expect(page.locator('[data-pick]', { hasText: 'Rando' })).toBeVisible();
   });
 });
 
@@ -71,7 +71,7 @@ test.describe('a player can go back and pick again (FR-011)', () => {
     page.on('dialog', (d) => void d.accept());
     await dropIn(page);
 
-    const first = page.locator('[data-claim]').first();
+    const first = page.locator('[data-pick]').first();
     const name = ((await first.textContent()) ?? '').trim();
     await first.click();
     await expect(board(page)).toContainText(`You are ${name}`);
@@ -81,7 +81,7 @@ test.describe('a player can go back and pick again (FR-011)', () => {
     await expect(page.locator('#new-name')).toBeVisible();
     // Released, not merely forgotten. Forgetting locally would leave the name
     // claimed by nobody: the same dead end, approached from the other side.
-    await expect(page.locator('[data-claim]', { hasText: name })).toBeVisible();
+    await expect(page.locator('[data-pick]', { hasText: name })).toBeVisible();
   });
 
   test('the confirmation says the name goes back to everyone', async ({ page }) => {
@@ -91,7 +91,7 @@ test.describe('a player can go back and pick again (FR-011)', () => {
       await d.dismiss();
     });
     await dropIn(page);
-    await page.locator('[data-claim]').first().click();
+    await page.locator('[data-pick]').first().click();
     await page.locator('#not-me').click();
 
     await expect.poll(() => dialogText).toContain('Anyone can claim that name');
@@ -103,12 +103,12 @@ test.describe('a player can go back and pick again (FR-011)', () => {
     page.on('dialog', (d) => void d.accept());
     await dropIn(page);
 
-    const names = await page.locator('[data-claim]').allTextContents();
+    const names = await page.locator('[data-pick]').allTextContents();
     const [wrong, right] = [names[0]!.trim(), names[1]!.trim()];
 
-    await page.locator('[data-claim]', { hasText: wrong }).click();
+    await page.locator('[data-pick]', { hasText: wrong }).click();
     await page.locator('#not-me').click();
-    await page.locator('[data-claim]', { hasText: right }).click();
+    await page.locator('[data-pick]', { hasText: right }).click();
 
     await expect(board(page)).toContainText(`You are ${right}`);
     await expect(board(page)).not.toContainText(`You are ${wrong}`);
@@ -116,7 +116,7 @@ test.describe('a player can go back and pick again (FR-011)', () => {
 
   test('after the first committed attempt the claim is permanent (FR-092)', async ({ page }) => {
     await dropIn(page);
-    await page.locator('[data-claim]').first().click();
+    await page.locator('[data-pick]').first().click();
     await expect(page.locator('#not-me')).toBeVisible();
 
     await page.locator('#official').click();
