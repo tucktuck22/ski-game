@@ -172,8 +172,11 @@ None. There is no shared prerequisite beyond T002. The claim model is removed in
   _Result, 2026-09-27_: no live code remains. The only hits are the comments recording what was removed (`src/ui/leaderboard.ts` `statusOf`, the pick handler in `src/main.ts`) and the tests asserting absence (`[data-release]` count 0, `not.toMatch(/UN?CLAIMED/)`). "Returns nothing" was too strict for those; they stay deliberately.
 
 - [x] T030 Run the full CI-equivalent suite: `npx tsc --noEmit && npm run lint && npm run test:unit && npm run test:sim && npm run test:course && npm run test:shared && npm run test:build`. Compare the counts to `before-010.txt`. Expected changes: +4 shared, +7 build, and a net change in unit tests. There must be no new failures. Name the commands and the environment (the cloud container, Chromium) in the commit message, per DoD item 7.
-- [ ] T031 Push with `git push -u origin claude/exciting-hawking-ad4qz9`. Then check every CI job on the pushed commit (lint/typecheck/unit, smoke incl. `test:shared` and `test:build`, three-engine determinism, storage invariants) and confirm each is green, checked rather than assumed (DoD item 8). A red job is fixed before T032, not reported as done.
-- [ ] T032 Update `specs/010-rejoin-any-name/spec.md` **Status** to "Implemented, awaiting play pass". Ask the maintainer for the quickstart manual check: steps 1–3 on the deployed build, or on `npm run build:artifact` if they want it before merge. Record their findings under a new "Play pass" heading in the spec, in their words (DoD item 6).
+- [x] T031 Push with `git push -u origin claude/exciting-hawking-ad4qz9`. Then check every CI job on the pushed commit (lint/typecheck/unit, smoke incl. `test:shared` and `test:build`, three-engine determinism, storage invariants) and confirm each is green, checked rather than assumed (DoD item 8). A red job is fixed before T032, not reported as done.
+
+  _Result, 2026-09-27_: CI run 36333864466 on `b22a0aa`: all four jobs green (lint/typecheck/unit/sim/course; built artifact incl. `test:build` and `test:shared`; three-engine determinism; storage invariants). The three earlier pushes on this branch (`105190d`, `3f83cd6`, `652785c`) failed `prettier --check` on the unformatted 010 design docs; fixed in `1edae1d`.
+
+- [x] T032 Update `specs/010-rejoin-any-name/spec.md` **Status** to "Implemented, awaiting play pass". Ask the maintainer for the quickstart manual check: steps 1–3 on the deployed build, or on `npm run build:artifact` if they want it before merge. Record their findings under a new "Play pass" heading in the spec, in their words (DoD item 6).
 
 ---
 

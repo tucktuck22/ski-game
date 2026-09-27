@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-26
 
-**Status**: Draft
+**Status**: Implemented, awaiting play pass (CI green on `b22a0aa`)
 
 **Input**: User description: "when I, as a player, assign myself to a name, leave, and then come back in a subsequent session, I can't pick my name because it has been claimed. We do not need to have any kind of restrictions around claiming. Users should just be able to select themselves and back out if they errantly pick the wrong player. The failure mode here is that I can't come back in a subsequent session once I've already claimed myself once"
 
@@ -119,3 +119,7 @@ This feature supersedes FR-008's "exactly one unclaimed name" restriction, FR-01
 - Claiming and releasing are removed as concepts, not merely relaxed (maintainer decision, 2026-09-26). Selecting a name is a choice this device makes and nothing else sees. A name with no runs yet reads as not started, not as unclaimed.
 - Sign-in or any per-person identity is out of scope. It is the right answer for a less casual setting, where a person's entry should be theirs alone, and would be a separate feature that replaces the honor system rather than amending it.
 - Same-device resume across sessions uses whatever local memory the device already offers. If that memory is unavailable (private browsing, cleared site data), the player re-selects from the roster, which FR-300 and FR-301 guarantee will work.
+
+## Play pass
+
+_Pending._ The maintainer runs the quickstart's manual check (steps 1–3) on the deployed build and records findings here, in their own words.
