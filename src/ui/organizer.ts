@@ -12,7 +12,6 @@ import { escapeHtml } from './leaderboard.js';
 
 export interface OrganizerActions {
   setDeadline(iso: string): Promise<void>;
-  releaseClaim(entryId: string): Promise<void>;
   removeEntry(entryId: string, discardedScore: number | null): Promise<void>;
   resetDraft(): Promise<void>;
 }
@@ -60,9 +59,8 @@ function rowFor(e: EntryView): string {
     <tr>
       <td>${escapeHtml(e.name)}</td>
       <td>${e.origin === 'organizer' ? 'you' : 'themselves'}</td>
-      <td>${committed ? `COMMITTED ${e.score!.toLocaleString()}` : e.claimed ? 'CLAIMED' : 'UNCLAIMED'}</td>
+      <td>${committed ? `COMMITTED ${e.score!.toLocaleString()}` : 'NO SCORE YET'}</td>
       <td>
-        ${e.claimed && !committed ? `<button data-release="${e.id}" style="min-height:36px">RELEASE</button>` : ''}
         <button data-remove="${e.id}" data-score="${e.score ?? ''}" class="${committed ? 'danger' : ''}" style="min-height:36px">REMOVE</button>
       </td>
     </tr>`;

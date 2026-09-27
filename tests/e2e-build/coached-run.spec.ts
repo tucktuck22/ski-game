@@ -43,7 +43,7 @@ const over = (page: Page) =>
 
 async function startPractice(page: Page): Promise<void> {
   await dropIn(page, './');
-  await page.locator('button[data-claim]').first().click();
+  await page.locator('button[data-pick]').first().click();
   await expect(page.locator('#practice')).toBeVisible();
   await page.locator('#practice').click();
   await expect(page.locator('#screen')).toBeVisible();
@@ -164,7 +164,7 @@ test.describe('the coached first run', () => {
     // courses start at x=0, so without the run-kind branch in main.ts an
     // official run is coached through a descent that counts.
     await dropIn(page, './');
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await page.locator('#official').click();
     await expect(page.locator('h2.title')).toContainText('THIS IS THE ONE');
     await page.locator('#go').click();

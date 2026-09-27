@@ -37,7 +37,7 @@ test.describe('a wipeout on attempt 1 does not end the draft (SC-081, FR-238)', 
 
     await page.goto(`/?draft=${DRAFT_ID}`);
     await page.locator('#drop-in').click();
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
 
     // Under the old rule this screen would have been the end of it. It is not:
     // the wipeout cost one attempt of three.

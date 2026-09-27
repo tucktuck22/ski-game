@@ -52,7 +52,7 @@ grant select on roster_entry to anon, authenticated;
 grant insert on roster_entry to anon, authenticated;
 
 -- Players may move only their own run counters. Name, origin and removal are
--- organizer territory; claimed_at is how a claim is taken (FR-012).
+-- organizer territory; claimed_at is retired (feature 010) and kept only so no migration is needed.
 grant update (claimed_at, practice_runs_used, abandoned_official_runs,
               official_status, official_run_started_at)
   on roster_entry to anon, authenticated;

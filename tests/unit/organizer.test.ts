@@ -10,7 +10,6 @@ import type { EntryView } from '../../src/state/ordering.js';
 
 const e = (o: Partial<EntryView> & { name: string; id: string }): EntryView => ({
   origin: 'organizer',
-  claimed: false,
   practiceRunsUsed: 0,
   officialAttemptsUsed: 0,
   removed: false,
@@ -56,24 +55,29 @@ describe('organizer removal (FR-074, FR-075)', () => {
     expect(RENAME_REFUSAL).toContain('did not happen');
   });
 
-  it('offers RELEASE only for a claimed but uncommitted entry', () => {
+  /**
+   * Feature 010, FR-309: there are no claims, so there is nothing to release.
+   * A player who picked the wrong name backs out on his own device.
+   */
+  it('offers no RELEASE control, for any entry (FR-309)', () => {
     const html = renderOrganizer(
       [
-        e({ id: '1', name: 'Claimed', claimed: true }),
+        e({ id: '1', name: 'Fresh' }),
+        e({ id: '2', name: 'Practising', practiceRunsUsed: 2 }),
         e({
-          id: '2',
+          id: '3',
           name: 'Committed',
-          claimed: true,
-          score: 500,
+          officialAttemptsUsed: 1,
+          score: 41234,
           commitAt: '2026-09-01T00:00:00Z',
         }),
-        e({ id: '3', name: 'Unclaimed' }),
       ],
       '2026-09-10T23:00:00Z',
     );
-    expect(html).toContain('data-release="1"');
-    expect(html).not.toContain('data-release="2"');
-    expect(html).not.toContain('data-release="3"');
+    expect(html).not.toContain('data-release');
+    expect(html).not.toMatch(/\bUN?CLAIMED\b/);
+    expect(html).toContain('NO SCORE YET');
+    expect(html).toContain('COMMITTED 41,234');
   });
 
   it('shows who added each entry, so a stranger stands out (FR-073)', () => {

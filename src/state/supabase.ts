@@ -165,7 +165,6 @@ export class DraftStore {
         id: e.id as string,
         name: e.name as string,
         origin: e.origin as 'organizer' | 'self_created',
-        claimed: e.claimed_at !== null,
         practiceRunsUsed: e.practice_runs_used as number,
         officialAttemptsUsed: (e.official_attempts_used as number | null) ?? 0,
         removed: e.removed_at !== null,
@@ -194,7 +193,7 @@ export class DraftStore {
     };
   }
 
-  /** FR-070: self-serve creation, claimed in the same action (FR-008). */
+  /** FR-070: self-serve creation; the caller adopts the new entry as this device's pick. */
   async createEntry(
     name: string,
   ): Promise<{ ok: true; id: string } | { ok: false; reason: string }> {
@@ -204,7 +203,6 @@ export class DraftStore {
         draft_id: this.draftId,
         name: name.trim(),
         origin: 'self_created',
-        claimed_at: new Date().toISOString(),
       })
       .select('id')
       .single();
@@ -216,20 +214,6 @@ export class DraftStore {
       return { ok: false, reason: error.message };
     }
     return { ok: true, id: data.id as string };
-  }
-
-  /** FR-012: first confirmed claim wins; the loser is told plainly. */
-  async claimEntry(entryId: string): Promise<{ ok: true } | { ok: false; reason: string }> {
-    const { data, error } = await this.db
-      .from('roster_entry')
-      .update({ claimed_at: new Date().toISOString() })
-      .eq('id', entryId)
-      .is('claimed_at', null)
-      .select('id');
-    if (error) return { ok: false, reason: error.message };
-    if (!data || data.length === 0)
-      return { ok: false, reason: 'Someone else just claimed that name.' };
-    return { ok: true };
   }
 
   /** Only a COMPLETED practice run increments the counter (FR-066). */
@@ -318,14 +302,6 @@ export class DraftStore {
       p_secret: this.organizerSecret,
       p_deadline: iso,
     });
-    if (error) throw error;
-  }
-
-  async releaseClaim(entryId: string): Promise<void> {
-    const { error } = await this.db
-      .from('roster_entry')
-      .update({ claimed_at: null })
-      .eq('id', entryId);
     if (error) throw error;
   }
 

@@ -43,7 +43,7 @@ create table roster_entry (
   name                     text not null,
   -- FR-073: the leaderboard shows who was on the original list and who added themselves.
   origin                   text not null check (origin in ('organizer', 'self_created')),
-  claimed_at               timestamptz,
+  claimed_at               timestamptz,  -- retired by feature 010: never read or written by the client
   practice_runs_used       int  not null default 0 check (practice_runs_used between 0 and 3),
   official_status          text not null default 'unused' check (official_status in ('unused', 'committed')),
   -- FR-065: abandonment is permitted, but it is never private.
@@ -204,7 +204,7 @@ grant select on roster_entry to anon, authenticated;
 grant insert on roster_entry to anon, authenticated;
 
 -- Players may move only their own run counters. Name, origin and removal are
--- organizer territory; claimed_at is how a claim is taken (FR-012).
+-- organizer territory; claimed_at is retired (feature 010) and kept only so no migration is needed.
 grant update (claimed_at, practice_runs_used, abandoned_official_runs,
               official_status, official_run_started_at)
   on roster_entry to anon, authenticated;

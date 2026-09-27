@@ -51,7 +51,7 @@ test.describe('quickstart scenario table', () => {
   }) => {
     const urls = trackRequests(page);
     await dropIn(page, './');
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await expect.poll(() => front(urls).length, { timeout: 15_000 }).toBe(1);
 
     // Board -> THIS IS THE ONE -> board. FR-139 / SC-042.
@@ -70,7 +70,7 @@ test.describe('quickstart scenario table', () => {
   }) => {
     const urls = trackRequests(page);
     await dropIn(page, './');
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     await expect.poll(() => front(urls).length, { timeout: 15_000 }).toBe(1);
 
     await page.locator('#practice').click();

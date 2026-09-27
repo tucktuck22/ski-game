@@ -33,10 +33,9 @@ test.describe('the attempt count is legible on the smallest reference phone (SC-
     const f = fixture();
     await mockPostgrest(page, f);
 
-    // Claim through the UI rather than pre-seeding claimed_at: the app reads
-    // `claim:<draft>` from session storage to know which entry is THIS device's
-    // (main.ts:894), so a row claimed by nobody in particular shows no player
-    // panel at all.
+    // Pick through the UI: the app reads `pick:<draft>` from local storage to
+    // know which entry is THIS device's (feature 010), so without a pick there
+    // is no player panel at all.
     await takeOfficialRun(page);
 
     const official = page.locator('#official');
@@ -69,7 +68,7 @@ test.describe('a bad connection never stops a run (FR-234, research R2)', () => 
     await mockPostgrest(page, f);
     await page.goto(`/?draft=${DRAFT_ID}`);
     await page.locator('#drop-in').click();
-    await page.locator('button[data-claim]').first().click();
+    await page.locator('button[data-pick]').first().click();
     // Wait for the claim to settle first — otherwise the abort below catches the
     // claim's own PATCH and the player panel never appears, which would make
     // this test fail for a reason that has nothing to do with what it asserts.

@@ -56,10 +56,28 @@ describe('safeStorage survives a browser that denies storage', () => {
     const { safeSession } = await import('../../src/state/safeStorage.js');
 
     expect(safeSession.available).toBe(true);
-    safeSession.set('claim:draft-1', 'entry-9');
-    expect(safeSession.get('claim:draft-1')).toBe('entry-9');
-    safeSession.remove('claim:draft-1');
-    expect(safeSession.get('claim:draft-1')).toBeNull();
+    safeSession.set('pick:draft-1', 'entry-9');
+    expect(safeSession.get('pick:draft-1')).toBe('entry-9');
+    safeSession.remove('pick:draft-1');
+    expect(safeSession.get('pick:draft-1')).toBeNull();
+  });
+
+  // Feature 010, FR-305: the device's pick lives in local storage so it
+  // outlives the tab. Same wrapper, same guarantees.
+  it('reads and writes local storage the same way', async () => {
+    const backing = new Map<string, string>();
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => backing.get(k) ?? null,
+      setItem: (k: string, v: string) => void backing.set(k, v),
+      removeItem: (k: string) => void backing.delete(k),
+    });
+    const { safeLocal } = await import('../../src/state/safeStorage.js');
+
+    expect(safeLocal.available).toBe(true);
+    safeLocal.set('pick:draft-1', 'entry-9');
+    expect(safeLocal.get('pick:draft-1')).toBe('entry-9');
+    safeLocal.remove('pick:draft-1');
+    expect(safeLocal.get('pick:draft-1')).toBeNull();
   });
 });
 

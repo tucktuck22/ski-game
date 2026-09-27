@@ -37,7 +37,7 @@ import { resolveMotion, setMotion, REDUCED_MOTION } from './render/reducedMotion
 import { deadlineState, canStartOfficialRun, formatRemaining } from './state/deadline.js';
 import { organizerSecretFromUrl } from './state/links.js';
 import { renderOrganizer, removalConfirmationText } from './ui/organizer.js';
-import { safeSession } from './state/safeStorage.js';
+import { safeLocal } from './state/safeStorage.js';
 import { showFatalError, installGlobalErrorHandlers, describeError } from './ui/errorBoundary.js';
 import { titleScene } from './ui/title.js';
 import { explainRejection } from './ui/commitFailure.js';
@@ -318,43 +318,41 @@ async function refresh(): Promise<void> {
 }
 
 /**
- * FR-021: shared storage decides who you are. This device only remembers.
+ * FR-091 (as amended by feature 010), FR-306: shared storage decides whether
+ * the name this device picked still exists. The device only remembers the pick.
  *
- * The session key exists for FR-010 - resume on the same device without
- * re-selecting - and was being treated as the answer rather than as a hint.
- * So when the organizer released a claim, which the spec names as the fix for
- * "a player claims the wrong name", the release landed in shared storage and
- * the released player's own screen never noticed. He was still "You are
- * <name>", still holding his practice runs, still able to take the official run
- * that had just been taken back from him. The organizer watched the row flip to
- * UNCLAIMED and nothing whatsoever happened to the one person it was aimed at.
+ * There are no claims any more, so nothing can be taken back from a player
+ * except the entry itself. When the organizer removes it, this device must not
+ * carry on as a name that is no longer on the board - still holding its
+ * practice runs, still able to start an official attempt against it.
  *
- * Re-checked against every snapshot, so a release reaches the player on his
+ * Re-checked against every snapshot, so a removal reaches the player on his
  * next refresh - the realtime subscription, or the 15s poll behind it.
  */
 function reconcileIdentity(): void {
   if (myEntryId === null) return;
   // Not mid-run. A run already under way was legitimately started, and pulling
   // the player's identity out from under it drops him onto the roster during
-  // his own wipeout and bins the score without a word. A release that lands
+  // his own wipeout and bins the score without a word. A removal that lands
   // during a run is applied when he comes back to the board, which is late
   // rather than wrong - and FR-074 removal is the organizer's answer to a score
   // he did not want, not a silent discard here.
   if (game) return;
   const mine = snapshot.entries.find((e) => e.id === myEntryId);
-  if (mine !== undefined && mine.claimed && !mine.removed) return;
+  if (mine !== undefined && !mine.removed) return;
   forgetIdentity();
 }
 
 /**
- * Drops this device's memory of who it is. Never touches shared storage: the
- * claim itself is released by whoever is entitled to release it.
+ * Drops this device's memory of who it is. This is the whole of backing out
+ * (FR-304): nothing in shared storage changes, because a pick was never
+ * recorded there.
  */
 function forgetIdentity(): void {
   myEntryId = null;
-  safeSession.remove(`claim:${DRAFT_ID}`);
+  safeLocal.remove(`pick:${DRAFT_ID}`);
   // A commit result belongs to the player it was about. Left standing it would
-  // greet whoever claims a name next with somebody else's confirmed score.
+  // greet whoever picks a name next on this device with somebody else's result.
   commitStatus = 'idle';
   commitMessage = '';
   playerError = '';
@@ -402,15 +400,12 @@ function render(): void {
 }
 
 function renderRoster(): string {
-  const unclaimed = snapshot.entries.filter((e) => !e.claimed && !e.removed);
+  // FR-300: every name that has not been removed, whoever picked it before.
+  const names = snapshot.entries.filter((e) => !e.removed);
   return `
     <p>Pick your name:</p>
     <div class="row">
-      ${
-        unclaimed
-          .map((e) => `<button data-claim="${e.id}">${escapeHtml(e.name)}</button>`)
-          .join('') || '<em>Every name is claimed.</em>'
-      }
+      ${names.map((e) => `<button data-pick="${e.id}">${escapeHtml(e.name)}</button>`).join('')}
     </div>
     <p style="margin-top:16px">Not on the list? Add yourself:</p>
     <div class="row">
@@ -423,18 +418,14 @@ function renderRoster(): string {
 
 function renderPlayer(me: NonNullable<ReturnType<typeof myEntry>>): string {
   const a = availability(me, !canStartOfficialRun(deadline()), data.tuning.officialAttempts);
+  // NOT YOU? is always offered (FR-303). Backing out only forgets the pick on
+  // this device, so it is safe at any time, even after the name has a score: the
+  // score stays on the board under the name. Mid-run it is out of reach anyway,
+  // because render() does not paint while a run owns the screen.
   return `
     <p>
       You are <strong style="color:var(--magenta)">${escapeHtml(me.name)}</strong>.
-      ${
-        // Only before the official run. After it the claim is permanent - the
-        // score is already on the board under this name, and the spec's answer
-        // to a wrong name at that point is organizer removal, not a swap.
-        // availability() already explains the committed state just below.
-        me.score === null
-          ? `<button id="not-me" style="min-height:36px;padding:6px 10px">NOT YOU?</button>`
-          : ''
-      }
+      <button id="not-me" style="min-height:36px;padding:6px 10px">NOT YOU?</button>
     </p>
     <div class="stack">
       <div class="row">
@@ -478,18 +469,16 @@ function renderRejection(reason: string): string {
 }
 
 function wire(): void {
-  app.querySelectorAll<HTMLButtonElement>('[data-claim]').forEach((b) => {
-    b.onclick = async (): Promise<void> => {
-      const id = b.dataset['claim'] as string;
-      const r = await backend.claimEntry(id);
-      if (r.ok) {
-        myEntryId = id;
-        rosterError = '';
-        safeSession.set(`claim:${DRAFT_ID}`, id);
-      } else {
-        rosterError = r.reason;
-      }
-      await refresh();
+  // FR-301: picking a name is this device's choice and nobody else's business.
+  // Nothing is written and nothing is checked, so there is nothing to refuse.
+  // It used to be an exclusive claim, and a name claimed in an earlier session
+  // could never be picked again - not even by the person who claimed it.
+  app.querySelectorAll<HTMLButtonElement>('[data-pick]').forEach((b) => {
+    b.onclick = (): void => {
+      myEntryId = b.dataset['pick'] as string;
+      rosterError = '';
+      safeLocal.set(`pick:${DRAFT_ID}`, myEntryId);
+      render();
     };
   });
 
@@ -501,7 +490,7 @@ function wire(): void {
       if (r.ok) {
         myEntryId = r.id;
         rosterError = '';
-        safeSession.set(`claim:${DRAFT_ID}`, r.id);
+        safeLocal.set(`pick:${DRAFT_ID}`, r.id);
       } else {
         rosterError = r.reason;
       }
@@ -510,43 +499,18 @@ function wire(): void {
   }
 
   /**
-   * FR-011: a player must be able to re-select his name from the roster. There
-   * was no way back - the first name tapped became this device's identity for
-   * good, and a mis-tap could only be undone by an organizer who had to be told
-   * about it first.
+   * FR-303/FR-304: back out of a name picked by mistake and choose again.
    *
-   * The claim is released rather than merely forgotten. Forgetting it locally
-   * would leave the name claimed by nobody, which is the same dead end from the
-   * other side: still unpickable, still needing the organizer.
-   *
-   * Honour system, as everywhere else here - anyone holding the link can claim
-   * any free name (spec.md, "The honor system is the security model").
+   * Forgetting the pick on this device is the whole action. There is no claim
+   * to release, so nothing in shared storage changes, nothing can fail over the
+   * network, and there is nothing to confirm: a back-out made by mistake is
+   * undone by tapping the name again (feature 010, research R5).
    */
   const notMe = app.querySelector<HTMLButtonElement>('#not-me');
   if (notMe)
-    notMe.onclick = async (): Promise<void> => {
-      const me = myEntry();
-      if (!me) return;
-      if (
-        !confirm(
-          `Put ${me.name} back on the list and pick again?\n\n` +
-            'Anyone can claim that name after you do, including you. Practice runs ' +
-            'already used stay with the name, not with you.',
-        )
-      )
-        return;
-      try {
-        await backend.releaseClaim(me.id);
-      } catch {
-        // Keep the identity. Forgetting it here would strand him: the name is
-        // still claimed in shared storage, so the roster would not offer it
-        // back and he would be nobody until someone else intervened.
-        playerError = 'Could not reach the draft to give the name back. Try again in a moment.';
-        render();
-        return;
-      }
+    notMe.onclick = (): void => {
       forgetIdentity();
-      await refresh();
+      render();
     };
 
   const bind = (sel: string, kind: RunKind): void => {
@@ -622,12 +586,6 @@ function wireOrganizer(): void {
       // is being destroyed is somebody's bed pick.
       if (!confirm(removalConfirmationText(entry?.name ?? 'this entry', score))) return;
       await attempt('The removal', () => backend.removeEntry(id, score));
-    };
-  });
-
-  app.querySelectorAll<HTMLButtonElement>('[data-release]').forEach((b) => {
-    b.onclick = async (): Promise<void> => {
-      await attempt('The release', () => backend.releaseClaim(b.dataset['release'] as string));
     };
   });
 
@@ -931,7 +889,10 @@ async function bootstrap(): Promise<void> {
   }
 
   backend = makeBackend();
-  myEntryId = safeSession.get(`claim:${DRAFT_ID}`);
+  // FR-010/FR-305: local storage on purpose. This was session storage, which
+  // ends with the tab - half of the reported bug: a player who closed the game
+  // and came back was nobody on this device (feature 010).
+  myEntryId = safeLocal.get(`pick:${DRAFT_ID}`);
 
   if (isLocal) {
     for (const n of ['Tucker', 'Dave', 'Sam', 'Al', 'Zach', 'Marty', 'Rob', 'Cheeks']) {

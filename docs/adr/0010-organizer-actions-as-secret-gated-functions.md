@@ -6,6 +6,11 @@
 **Relates to**: [ADR-0004](0004-accept-client-reported-scores.md);
 [ADR-0007](0007-keep-the-free-database-awake.md); FR-006, FR-007, FR-074, FR-018
 
+> **Note, 2026-09-27**: Feature 010 (`specs/010-rejoin-any-name/`) removed claim
+> release, along with claiming itself. Three organizer actions remain: remove an
+> entry, change the deadline, and reset the draft. The decision below is
+> unaffected; the release path it describes no longer exists.
+
 ## Context
 
 The organizer panel offers four actions: release a claim, remove an entry, change

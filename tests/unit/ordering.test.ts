@@ -8,7 +8,6 @@ import {
 
 const entry = (over: Partial<EntryView> & { id: string; name: string }): EntryView => ({
   origin: 'organizer',
-  claimed: true,
   practiceRunsUsed: 3,
   officialAttemptsUsed: 0,
   removed: false,
