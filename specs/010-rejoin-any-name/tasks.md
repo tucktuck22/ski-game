@@ -156,7 +156,7 @@ None. There is no shared prerequisite beyond T002. The claim model is removed in
 
 ## Phase 6: Polish and cross-cutting
 
-- [ ] T025 [P] Amend `specs/001-shredpocalypse-bed-draft/spec.md` per research R10 (Principle I: same change set):
+- [x] T025 [P] Amend `specs/001-shredpocalypse-bed-draft/spec.md` per research R10 (Principle I: same change set):
   - **FR-008**: players select any roster name; creating an entry selects it for its creator; no name is shown as claimed.
   - **FR-012**: `~~struck~~` with "Withdrawn by feature 010: there are no claims to race."
   - **FR-021**: drop "claims".
@@ -164,11 +164,14 @@ None. There is no shared prerequisite beyond T002. The claim model is removed in
   - **FR-092**: "Superseded by feature 010 FR-303/FR-304."
   - **The honor-system assumption (line ~366)**: "anyone can select any name, including someone else's".
   - **The two Q&A entries at lines ~33–47**: append "Superseded by feature 010 (claims removed)."
-- [ ] T026 [P] Add a status note at the top of `docs/adr/0010-organizer-actions-as-secret-gated-functions.md`: "Feature 010 (2026-09) removed claim release; three organizer actions remain."
-- [ ] T027 [P] Comment-only SQL edits (research R3). On the `claimed_at` column line in `supabase/setup.sql` (~46) and `supabase/migrations/0001_init.sql` (~22), append `-- retired by feature 010: never read or written by the client`. On the grant comment in `setup.sql` (~207) and `supabase/migrations/0002_policies.sql` (~55), replace "claimed_at is how a claim is taken (FR-012)" with "claimed_at is retired (feature 010) and kept only so no migration is needed". Change no statements.
-- [ ] T028 [P] Rename the title of `tests/e2e/us1-claim-and-commit.spec.ts`'s describe block and first test to "pick, practise, commit" / "a player picks a name…". Leave the filename unchanged to keep history.
-- [ ] T029 Run the full-sweep check from quickstart: `grep -rnE "claimEntry|releaseClaim|data-claim|data-release|UNCLAIMED|claim:\\$" src tests` returns nothing. Then `grep -rn "claimed" src` returns nothing. `claimed_at` may remain only in `tests/e2e-shared/` fixtures, where it mirrors the real row, and in `supabase/`.
-- [ ] T030 Run the full CI-equivalent suite: `npx tsc --noEmit && npm run lint && npm run test:unit && npm run test:sim && npm run test:course && npm run test:shared && npm run test:build`. Compare the counts to `before-010.txt`. Expected changes: +4 shared, +7 build, and a net change in unit tests. There must be no new failures. Name the commands and the environment (the cloud container, Chromium) in the commit message, per DoD item 7.
+- [x] T026 [P] Add a status note at the top of `docs/adr/0010-organizer-actions-as-secret-gated-functions.md`: "Feature 010 (2026-09) removed claim release; three organizer actions remain."
+- [x] T027 [P] Comment-only SQL edits (research R3). On the `claimed_at` column line in `supabase/setup.sql` (~46) and `supabase/migrations/0001_init.sql` (~22), append `-- retired by feature 010: never read or written by the client`. On the grant comment in `setup.sql` (~207) and `supabase/migrations/0002_policies.sql` (~55), replace "claimed_at is how a claim is taken (FR-012)" with "claimed_at is retired (feature 010) and kept only so no migration is needed". Change no statements.
+- [x] T028 [P] Rename the title of `tests/e2e/us1-claim-and-commit.spec.ts`'s describe block and first test to "pick, practise, commit" / "a player picks a name…". Leave the filename unchanged to keep history.
+- [x] T029 Run the full-sweep check from quickstart: `grep -rnE "claimEntry|releaseClaim|data-claim|data-release|UNCLAIMED|claim:\\$" src tests` returns nothing. Then `grep -rn "claimed" src` returns nothing. `claimed_at` may remain only in `tests/e2e-shared/` fixtures, where it mirrors the real row, and in `supabase/`.
+
+  _Result, 2026-09-27_: no live code remains. The only hits are the comments recording what was removed (`src/ui/leaderboard.ts` `statusOf`, the pick handler in `src/main.ts`) and the tests asserting absence (`[data-release]` count 0, `not.toMatch(/UN?CLAIMED/)`). "Returns nothing" was too strict for those; they stay deliberately.
+
+- [x] T030 Run the full CI-equivalent suite: `npx tsc --noEmit && npm run lint && npm run test:unit && npm run test:sim && npm run test:course && npm run test:shared && npm run test:build`. Compare the counts to `before-010.txt`. Expected changes: +4 shared, +7 build, and a net change in unit tests. There must be no new failures. Name the commands and the environment (the cloud container, Chromium) in the commit message, per DoD item 7.
 - [ ] T031 Push with `git push -u origin claude/exciting-hawking-ad4qz9`. Then check every CI job on the pushed commit (lint/typecheck/unit, smoke incl. `test:shared` and `test:build`, three-engine determinism, storage invariants) and confirm each is green, checked rather than assumed (DoD item 8). A red job is fixed before T032, not reported as done.
 - [ ] T032 Update `specs/010-rejoin-any-name/spec.md` **Status** to "Implemented, awaiting play pass". Ask the maintainer for the quickstart manual check: steps 1–3 on the deployed build, or on `npm run build:artifact` if they want it before merge. Record their findings under a new "Play pass" heading in the spec, in their words (DoD item 6).
 

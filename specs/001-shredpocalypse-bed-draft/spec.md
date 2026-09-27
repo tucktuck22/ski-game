@@ -37,7 +37,8 @@
   UNCLAIMED, and the released player's screen never re-read it: still his name,
   still his practice runs, still able to take the official run that had just
   been taken back. Resolved by FR-091 — claimed identity is re-checked against
-  every snapshot.
+  every snapshot. _Superseded by feature 010: claims and release were removed;
+  FR-091 now covers removal only._
 
 - **Q: A player taps the wrong name. What can he do?**
   A: Before this, nothing — and the organizer's remedy did not work either, so
@@ -45,7 +46,8 @@
   able to re-select his name from the roster; there was simply no way back to
   it. Resolved by FR-092, which lets a player release his own claim up until he
   commits. After the commit the claim is permanent, exactly as this spec's edge
-  cases already say.
+  cases already say. _Superseded by feature 010: he backs out with NOT YOU? at
+  any time outside a run, and nothing shared changes._
 
 - **Q: A score was queued because the connection dropped, and it never
   arrived. Why?**
@@ -71,7 +73,7 @@ A trip attendee taps the link in the group chat, sees the eight names on the ros
 
 **Acceptance Scenarios**:
 
-1. **Given** an unclaimed roster with eight names, **When** a player opens the shared link and selects a name, **Then** that name is bound to him and shown as claimed to every other link holder.
+1. **Given** an unclaimed roster with eight names, **When** a player opens the shared link and selects a name, **Then** that name is bound to him on his device. _(Amended by feature 010: it is not shown as claimed, and stays selectable by every other link holder.)_
 2. **Given** a player who has claimed a name and used zero runs, **When** he plays, **Then** he is given exactly three practice runs whose scores are displayed but never recorded to the leaderboard.
 3. **Given** a player with practice runs remaining, **When** he chooses to start his official run, **Then** the system requires an explicit confirmation stating the run counts once and cannot be retaken.
 4. **Given** an official run in progress, **When** the player crosses the finish line, **Then** the score commits immediately and irreversibly and his rank is displayed.
@@ -94,7 +96,7 @@ A player takes his three practice runs on his phone, has a rough official run, a
 
 1. **Given** a name whose official run has committed, **When** the link is opened on a different device and that name is selected, **Then** the committed score and remaining run counts are shown unchanged and no official run is offered.
 2. **Given** a player who has used two of three practice runs, **When** he switches devices, **Then** he has exactly one practice run remaining.
-3. **Given** a player returning on the same device, **When** he reopens the link, **Then** he resumes his claimed name without re-selecting it.
+3. **Given** a player returning on the same device, **When** he reopens the link, **Then** he resumes his picked name without re-selecting it, including after the browser was closed (feature 010, FR-305).
 4. **Given** two devices both attempting an official commit for the same name, **When** both reach shared storage, **Then** the first to be confirmed is kept and the second is rejected with a message explaining that the name's official run is already committed.
 
 ---
@@ -109,9 +111,9 @@ The organizer enters the eight names going on the trip, sets a deadline of the T
 
 **Acceptance Scenarios**:
 
-1. **Given** the organizer flow, **When** the organizer enters a list of names and a deadline, **Then** a single player link is produced that grants any holder the ability to claim an unclaimed name.
+1. **Given** the organizer flow, **When** the organizer enters a list of names and a deadline, **Then** a single player link is produced that grants any holder the ability to pick any roster name (feature 010).
 2. **Given** a roster being entered, **When** two identical names are submitted, **Then** the system rejects the duplicate and requires a distinguishing name.
-3. **Given** a player holding the player link, **When** he enters a name that is not on the roster, **Then** the entry is created, claimed for him, and shown to everyone as self-created.
+3. **Given** a player holding the player link, **When** he enters a name that is not on the roster, **Then** the entry is created, picked for him on his device, and shown to everyone as self-created.
 4. **Given** a player holding the player link, **When** he looks for deadline, removal, or reset controls, **Then** none are reachable — those actions exist only on the organizer link.
 5. **Given** a roster already at 16 entries, **When** anyone tries to add another, **Then** the system refuses and names the cap.
 6. **Given** an entry with a committed score that belongs to someone not on the trip, **When** the organizer removes it, **Then** he must confirm against the score being discarded and the entry remains visible on the leaderboard as removed.
@@ -174,11 +176,11 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **A player abandons his official run mid-descent** — closes the tab, kills the app, or pulls the plug when the run is going badly. Resolved in favor of the honor system: nothing commits and the official run stays unused (FR-019). The reroll path this opens is deliberately left open and, since FR-065 was withdrawn, uncounted. See **Accepted Consequences** below for what this costs.
 - **A player restarts his official run repeatedly to scout the course.** Permitted by FR-019 and unpreventable under the chosen model. There is no deterrent at all now that FR-065 is withdrawn — the group's answer is that they would notice, and that it is a bed, not a title.
 - **A player abandons a practice run.** Same rule as official: nothing is consumed and the run may be retaken (FR-066).
-- **Two players claim the same name at nearly the same moment.** The first claim to reach shared storage wins; the second player is told the name is taken and returned to the roster.
+- ~~**Two players claim the same name at nearly the same moment.** The first claim to reach shared storage wins; the second player is told the name is taken and returned to the roster.~~ _Withdrawn by feature 010: there are no claims to race. Two devices playing one name at the same moment is out of scope (spec 010, Edge Cases)._
 - **Someone who is not on the trip creates an entry and commits a score.** Self-serve creation makes this reachable by anyone holding the link. The organizer removes the entry under FR-074; the removal is confirmed, recorded, and shown rather than silent.
 - **The roster fills up with entries nobody recognises.** The cap in FR-002 bounds the damage at 16, and FR-073 marks which entries were self-created so the group can tell them apart at a glance.
 - **Two people create near-identical names** ("Dave" and "Dave "). FR-003 rejects only exact matches, so near-duplicates are possible and are left to the organizer to clean up rather than blocked by a similarity rule that would also reject two genuine Daves.
-- **A player claims the wrong name.** Before any official commit, the organizer can release a claim from the organizer link. After an official commit, the claim is permanent and the organizer must reset the draft to undo it.
+- **A player picks the wrong name.** He taps NOT YOU? and picks again, at any time outside a run, even after an official commit; the name keeps its runs and score. No organizer action is involved. _(Amended by feature 010, which removed claim release and the post-commit lock.)_
 - **The organizer deploys a change to physics, course, or scoring mid-draft.** Scores committed under different rules are not comparable, and the leaderboard is the bed order. The rules freeze at the first official commit (FR-023).
 - **Every roster member forfeits.** The leaderboard finalizes with no ranked entries and the entire roster in the coin-flip group.
 - **A player finishes with a score identical to another and an identical commit timestamp.** The tie is displayed as unresolved and flagged for coin flip rather than broken arbitrarily.
@@ -204,21 +206,21 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **FR-072**: When the roster is at the cap, the system MUST refuse new entries with a message naming the cap and directing the player to the organizer.
 - **FR-073**: The leaderboard MUST show, for each entry, whether it was created by the organizer or self-created, so the group can see at a glance who was on the original list.
 - **FR-004**: System MUST allow the organizer to set and later change a deadline, and MUST warn before applying a deadline that has already elapsed.
-- **FR-005**: System MUST produce a single shareable player link that grants any holder the ability to create a roster entry, claim an unclaimed one, and play.
-- **FR-006**: System MUST expose organizer-only actions — roster editing, entry removal, deadline changes, claim release, draft reset — only via a URL distinct from the player link, and MUST NOT expose them from the player link.
+- **FR-005**: System MUST produce a single shareable player link that grants any holder the ability to create a roster entry, pick any roster name, and play (feature 010).
+- **FR-006**: System MUST expose organizer-only actions — roster editing, entry removal, deadline changes, draft reset (claim release removed by feature 010) — only via a URL distinct from the player link, and MUST NOT expose them from the player link.
 - **FR-007**: The organizer MUST be able to remove any roster entry that has no committed official run, without restriction.
 - **FR-074**: The organizer MUST be able to remove a roster entry whose official run has already committed, because self-serve creation means an entry may belong to someone who is not on the trip. Such a removal MUST require an explicit confirmation naming the score being discarded, MUST be recorded, and MUST remain visible on the leaderboard as a removed entry rather than disappearing silently. Removal MUST NOT be available from the player link.
 - **FR-075**: System MUST NOT allow renaming an entry whose official run has already committed. A wrong name on a committed score is corrected by removal, not by editing the name attached to a result.
 
 #### Name claiming and identity
 
-- **FR-008**: Players MUST be able to claim exactly one unclaimed roster name, and claimed names MUST be shown as claimed to all link holders. Creating an entry MUST claim it for its creator in the same action.
+- **FR-008**: Players MUST be able to pick any roster name that has not been removed, whether or not anyone picked it before. No name is shown as claimed or unclaimed. Creating an entry MUST pick it for its creator in the same action. _(Amended by feature 010: claiming was removed; a pick is device-local.)_
 - **FR-009**: System MUST NOT require an account, password, PIN, or any other credential to claim a name or play.
-- **FR-010**: System MUST resume a player's claimed identity automatically when he returns on the same device.
+- **FR-010**: System MUST resume a player's picked name automatically when he returns on the same device, including after the browser was closed (feature 010, FR-305).
 - **FR-011**: System MUST allow a player to resume his identity on any other device by re-selecting his name from the roster, carrying his run counts and committed score with him.
-- **FR-012**: When two claims for the same name race, the first to be confirmed in shared storage MUST win and the second MUST be rejected with a clear message.
-- **FR-091**: A device MUST NOT treat its own record of a claim as authoritative. Claimed identity MUST be re-checked against shared storage, and an identity that is no longer claimed there — released, or removed — MUST return the player to name selection.
-- **FR-092**: A player who has not yet committed his official run MUST be able to release his own claim and return to name selection, and the released name MUST become claimable again. After the official commit the claim is permanent (FR-018).
+- ~~**FR-012**: When two claims for the same name race, the first to be confirmed in shared storage MUST win and the second MUST be rejected with a clear message.~~ _Withdrawn by feature 010: there are no claims to race._
+- **FR-091**: A device MUST NOT treat its own record of a pick as authoritative. The picked entry MUST be re-checked against shared storage, and an entry that has been removed there MUST return the player to name selection. _(Amended by feature 010: release no longer exists, so removal is the only case.)_
+- ~~**FR-092**: A player who has not yet committed his official run MUST be able to release his own claim and return to name selection, and the released name MUST become claimable again. After the official commit the claim is permanent (FR-018).~~ _Superseded by feature 010 FR-303/FR-304: a player can back out at any time outside a run, and backing out changes nothing shared._
 
 #### Run economy
 
@@ -232,7 +234,7 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **FR-065**: ~~System MUST maintain, for each roster member, a count of official runs abandoned under FR-019, and MUST display that count on the leaderboard alongside his name and score. Abandonment is permitted; it MUST NOT be private.~~ **WITHDRAWN by the organizer, 2026-09-08.** It was also never implemented: `src/state/abandonment.ts` and the storage writer were built and unit-tested, nothing ever called either, and the leaderboard's Bails column therefore showed a permanent zero from the first deployment. Asked whether to finish it or drop it, the organizer chose to drop it — deliberate mid-run bailing is not a problem worth policing among eight friends who booked the cabin together. The column, the counter and the detection are removed; `roster_entry.abandoned_official_runs` is left in the schema, unread, rather than dropped from a live draft. SC-013 falls with it.
 - **FR-066**: A practice run abandoned before it ends MUST likewise be discarded and MUST NOT consume one of the three practice runs.
 - **FR-020**: After committing, players MUST be able to take unlimited free-play runs whose scores are recorded nowhere and affect no standing, and which MUST be visibly labeled as not counting.
-- **FR-021**: Run counts, claims, and committed scores MUST be held in shared storage readable by all link holders. Switching devices, clearing browser data, or using a private window MUST NOT grant additional practice or official runs.
+- **FR-021**: Run counts and committed scores MUST be held in shared storage readable by all link holders. Switching devices, clearing browser data, or using a private window MUST NOT grant additional practice or official runs.
 
 #### Course fairness and determinism
 
@@ -282,7 +284,7 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 
 #### Leaderboard and final order
 
-- **FR-040**: The leaderboard MUST be visible to every link holder and MUST show, for each roster member, his rank, name, score, and status — unclaimed, claimed, practicing, committed, or forfeit.
+- **FR-040**: The leaderboard MUST be visible to every link holder and MUST show, for each roster member, his rank, name, score, and status — not started, practicing, committed, or forfeit. _(Amended by feature 010: "unclaimed" and "claimed" became "not started".)_
 - **FR-041**: The leaderboard MUST state explicitly that rank 1 picks a bed first.
 - **FR-042**: A committed score MUST become visible to all other viewers within 10 seconds under normal connectivity.
 - **FR-043**: After the deadline the leaderboard MUST be labeled FINAL and MUST refuse to start or accept any further official run.
@@ -323,7 +325,7 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 ### Key Entities
 
 - **Draft**: One trip's contest. Holds the roster, the deadline, the frozen rules version, the shared course seed, and the finalized state. Exactly one exists in v1.
-- **Roster Entry**: A named attendee. Carries claim status, practice runs used, official run status, committed score, and commit timestamp.
+- **Roster Entry**: A named attendee. Carries practice runs used (claim status removed by feature 010), official run status, committed score, and commit timestamp.
 - **Run**: A single descent. Typed as practice, official, or free play. Only official runs produce a committed score.
 - **Committed Score**: The immutable record of an official run — name, score, commit timestamp assigned by shared storage, and rules version.
 - **Course Definition**: The declared layout, obstacle and pickup placement rules, and seed from which every run is generated.
@@ -363,7 +365,7 @@ Chrome title lettering over a neon gradient. Scanlines rolling over the snow. A 
 - **Low obstacles force every player through the timing mechanic.** Ducking requires crouching, and crouching arms the launch, so a cautious player cannot opt out of FR-088 the way he can opt out of tricks. FR-089 is what keeps that fair: the course must always give him somewhere safe to stand up. This is the requirement most likely to be violated by accident during course design, and the one whose violation would most directly damage FR-035.
 - **A base-speed finisher still beats a fast crasher.** FR-034 makes every finish outrank every wipeout, and FR-087 does not change that — it only caps what a cautious run can earn. A player who never crouches, finishes clean, and collects ground pickups will place above a player who was flying, went for a trick, and ate it at the last gate. That is a deliberate consequence of FR-034, not an oversight, and it is the single clause to revisit first if the game plays timid.
 - **No enemies in v1.** Zombies and any other autonomous hazard are deferred. FR-086 keeps every course element static and seed-derived, which also keeps the simulation smaller and its determinism cheaper to prove — a pursuing entity would be live state that has to stay replay-identical.
-- **The honor system is the security model.** Eight friends with one link. Anyone holding the link can create an entry or claim any unclaimed one, and nothing prevents a player from claiming someone else's. This is accepted; FR-064 captures the separate and more serious question of forged scores.
+- **The honor system is the security model.** Eight friends with one link. Anyone holding the link can create an entry or pick any name, including someone else's (feature 010 removed claiming entirely). This is accepted; FR-064 captures the separate and more serious question of forged scores.
 - **The roster is open, and the organizer is the cleanup.** Self-serve creation means the roster is not a guest list — it is whoever showed up with the link. The controls against that are a hard cap of 16, a visible self-created marker, and an organizer who can remove entries including committed ones. This is the one place where a committed result can be undone, and it exists because an open roster requires it.
 - **The organizer link is secrecy, not authentication.** A distinct URL keeps players from casually stumbling into roster and reset controls. Anyone who obtains that URL has full organizer power.
 - **Players may skip practice.** Nothing forces the use of all three practice runs; going straight to official simply forfeits the unused ones.

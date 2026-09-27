@@ -5,8 +5,8 @@ import { dropIn } from './helpers.js';
  * User Story 1 — the MVP loop. Claim a name, practise, commit the one run that
  * counts, see the standings.
  */
-test.describe('US1: claim, practise, commit', () => {
-  test('a player claims a name and the roster reflects it', async ({ page }) => {
+test.describe('US1: pick, practise, commit', () => {
+  test('a player picks a name and gets his runs', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('console', (m) => {
