@@ -76,7 +76,7 @@ A player who picked a name on this device and did not back out opens the draft a
 - **Two people select the same name at the same time**: both are allowed. The name has one shared set of practice runs, official attempts and one score. Whatever either of them spends is spent for the name. This is an accepted consequence of the honor system, not something the game prevents.
 - **Someone selects another player's name, deliberately or by mistake, and spends an official attempt**: the attempt is spent. The remedy is the organizer's existing removal of an unwanted score, as it is today for any honor-system abuse.
 - **A removed name**: it is not offered on the roster, and no device resumes as it.
-- **Selecting a name while offline or unable to reach the draft**: the player is told plainly that the draft could not be reached, and nothing changes.
+- **Selecting a name while offline or unable to reach the draft**: selecting and backing out never contact the draft, so both still work. The roster itself needs the draft to have loaded once, as today.
 - **A shared device (one laptop passed around)**: the next person sees the previous person's name. They back out and pick their own (Story 2).
 - **Adding a new name**: unchanged. The creator is placed straight into the new entry, and the new name is selectable by anyone from then on.
 - **After the draft is finalized**: names remain selectable so players can see their result. No runs become available that the draft's rules would not otherwise allow.
