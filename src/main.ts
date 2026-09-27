@@ -418,18 +418,14 @@ function renderRoster(): string {
 
 function renderPlayer(me: NonNullable<ReturnType<typeof myEntry>>): string {
   const a = availability(me, !canStartOfficialRun(deadline()), data.tuning.officialAttempts);
+  // NOT YOU? is always offered (FR-303). Backing out only forgets the pick on
+  // this device, so it is safe at any time, even after the name has a score: the
+  // score stays on the board under the name. Mid-run it is out of reach anyway,
+  // because render() does not paint while a run owns the screen.
   return `
     <p>
       You are <strong style="color:var(--magenta)">${escapeHtml(me.name)}</strong>.
-      ${
-        // Only before the official run. After it the claim is permanent - the
-        // score is already on the board under this name, and the spec's answer
-        // to a wrong name at that point is organizer removal, not a swap.
-        // availability() already explains the committed state just below.
-        me.score === null
-          ? `<button id="not-me" style="min-height:36px;padding:6px 10px">NOT YOU?</button>`
-          : ''
-      }
+      <button id="not-me" style="min-height:36px;padding:6px 10px">NOT YOU?</button>
     </p>
     <div class="stack">
       <div class="row">
