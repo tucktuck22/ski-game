@@ -73,7 +73,7 @@ A player who picked a name on this device and did not back out opens the draft a
 
 ### Edge Cases
 
-- **Two people select the same name at the same time**: both are allowed. The name has one shared set of practice runs, official attempts and one score. Whatever either of them spends is spent for the name. This is an accepted consequence of the honor system, not something the game prevents.
+- **Two devices playing the same name at the same moment**: out of scope, and not guarded against (maintainer decision, 2026-09-27: unlikely in a group of friends). Picking the same name on two devices is allowed. If both run at once, the run counts can come out wrong, and one device's official run may end in a refused score. Nothing here makes that worse for players who use one device at a time.
 - **Someone selects another player's name, deliberately or by mistake, and spends an official attempt**: the attempt is spent. The remedy is the organizer's existing removal of an unwanted score, as it is today for any honor-system abuse.
 - **A removed name**: it is not offered on the roster, and no device resumes as it.
 - **Selecting a name while offline or unable to reach the draft**: selecting and backing out never contact the draft, so both still work. The roster itself needs the draft to have loaded once, as today.
@@ -92,7 +92,7 @@ A player who picked a name on this device and did not back out opens the draft a
 - **FR-304**: Backing out MUST return the player to the roster and MUST NOT change the name's run counts, score, standing, or availability to anyone.
 - **FR-305**: A device MUST remember the name its player last selected across browser sessions, and resume it automatically on return (FR-010), until the player backs out or the name is removed.
 - **FR-306**: A device MUST NOT resume as a name that has been removed from the draft; it MUST show the roster instead.
-- **FR-307**: Run limits (practice runs, official attempts) and the committed score MUST continue to belong to the name, not to the device or session. Selecting a name from several devices MUST NOT multiply the runs available to it.
+- **FR-307**: Run limits (practice runs, official attempts) and the committed score MUST continue to belong to the name, not to the device or session. Picking a name on another device, or in a later session, MUST NOT reset or add to the runs it has already used. (Two devices playing the same name at the same moment is out of scope; see Edge Cases.)
 - **FR-308**: The draft MUST NOT hold any notion of a name being claimed, taken, or owned. No roster, leaderboard, or organizer view may show a name as claimed or unclaimed, and nothing may treat a name as unavailable because it has been selected before.
 - **FR-309**: Recovering from a wrong or stranded selection MUST NOT require the organizer. The organizer's RELEASE control MUST be removed, since there is nothing left for it to release.
 

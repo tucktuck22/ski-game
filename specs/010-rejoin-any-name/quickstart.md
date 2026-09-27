@@ -16,11 +16,13 @@ npm run test:build      # tests/e2e-build/pick-name.spec.ts — against /ski-gam
 
 Expected: everything passes. `grep -rnE "claimEntry|releaseClaim|data-claim|data-release|UNCLAIMED" src tests` returns nothing.
 
-`rejoin.spec.ts` MUST fail on `29ab3bc` (before the fix) and pass after it. Run it once before changing `src/` to prove it reproduces the bug:
+`rejoin.spec.ts` MUST fail before the fix and pass after it. Write it after the `data-pick` selector rename (tasks T002) and before any claim code is removed (T006), then run it once to prove it reproduces the bug:
 
 ```bash
-git stash -- src && npm run test:shared -- rejoin && git stash pop
+npm run test:shared -- rejoin   # expected: FAIL, "Tucker" is not on the roster
 ```
+
+Do not prove this by stashing `src/`: that also undoes the selector rename, and the test would then fail only because it cannot find the button.
 
 ## Scenarios the specs cover
 
@@ -28,7 +30,8 @@ git stash -- src && npm run test:shared -- rejoin && git stash pop
 | -- | ------------------------------------------------------------------------ | ---------------------- | ------------------------------ |
 | Q1 | An entry already has `claimed_at` set from a past session; a fresh browser sees it on the roster, picks it, and sees its counts | FR-300/301/302 | `e2e-shared/rejoin.spec.ts` |
 | Q2 | Picking and backing out send no `roster_entry` request                   | FR-301/304, contract   | `e2e-shared/rejoin.spec.ts` |
-| Q3 | Pick, reload the page: resumes without the roster                        | FR-305                 | `e2e-build/pick-name.spec.ts` |
+| Q2b | A second browser picking the name later sees the counts the first one used | FR-307                | `e2e-shared/rejoin.spec.ts` |
+| Q3 | Pick, close the page, open a new one in the same browser: resumes without the roster | FR-305                 | `e2e-build/pick-name.spec.ts` |
 | Q4 | NOT YOU? after a committed official attempt: allowed, and the name stays listed | FR-303/304      | `e2e-build/pick-name.spec.ts` |
 | Q5 | No `CLAIMED`/`UNCLAIMED` text on the board or organizer panel; no RELEASE | FR-308/309            | unit + `pick-name.spec.ts` |
 | Q6 | Organizer removes the picked entry: that device returns to the roster    | FR-306                 | `e2e-build/pick-name.spec.ts` (organizer URL, local mode) |

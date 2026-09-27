@@ -51,11 +51,13 @@ All decisions below were made against the code as of `29ab3bc`. The Technical Co
 
 **Alternatives rejected**: *Keep a confirm dialog.* It guards an action that costs one tap to reverse.
 
-## R6. The run-start guard, now that two devices can share a name
+## R6. Two devices on one name
 
-**Finding**: Official attempts are counted in shared storage and spent when a run starts (`startOfficialAttempt`, FR-234). Practice counts are written per completed run. Two devices on one name therefore share one allowance; neither can multiply it (FR-307). This is not new: it already held for a player on two devices under FR-011.
+**Finding**: Run counts live in shared storage, per name, so a player who moves between devices or sessions carries them along and cannot reset them (FR-307). That is what this feature relies on.
 
-**Known gap, accepted**: `recordPracticeRun(entryId, used)` writes an absolute count from the client's view. If two devices on the same name finish practice runs concurrently, the count can come out one low, which grants one extra practice run. Practice has no bearing on the bed order, and the honor system already accepts larger holes. Not fixed here; recorded in the plan.
+What the counts are *not* is safe against two devices playing the same name at the same moment. `recordPracticeRun` and `startOfficialAttempt` (`src/state/supabase.ts:267`) both write an absolute count computed from the device's own, possibly stale, view, and the last write wins. Two devices can both start "attempt 2", and the counter can even move backwards. Only the unique index on `(draft_id, entry_id, attempt_no)` keeps recorded scores at the allowance; the second device's run then ends in a refused score.
+
+**Decision**: Out of scope (maintainer, 2026-09-27: an unlikely edge case). Stated in the spec's edge cases, not fixed. A real fix would move the counter into an atomic database update, which is a migration and an operator step (see R3). This behaviour predates this feature, since FR-011 always allowed one name on several devices.
 
 ## R7. What replaces "CLAIMED" / "UNCLAIMED" on the boards
 
@@ -76,8 +78,9 @@ All decisions below were made against the code as of `29ab3bc`. The Technical Co
 **Decision**: Two layers, both run in CI.
 1. **`tests/e2e-shared/rejoin.spec.ts`** (runs under `npm run test:shared` in the `smoke` job). This is the reported bug, reproduced faithfully. The mocked PostgREST fixture holds state across page loads, so the test can:
    - seed an entry whose `claimed_at` is already set (a claim from an earlier session), then open a fresh browser context and assert the name is offered and selectable, with its counts intact;
-   - assert that selecting a name sends no `roster_entry` PATCH at all.
-2. **`tests/e2e-build/pick-name.spec.ts`** (runs under `npm run test:build` against the built artifact at `/ski-game/`, local backend). It covers same-device resume across a reload, NOT YOU? after a committed score, back-out leaving the name listed, and no CLAIMED/UNCLAIMED text anywhere.
+   - assert that picking a name and backing out send no `roster_entry` PATCH at all;
+   - pick the name in a second, fresh browser context after the first spent an official attempt, and assert the count carried over (FR-307).
+2. **`tests/e2e-build/pick-name.spec.ts`** (runs under `npm run test:build` against the built artifact at `/ski-game/`, local backend). It covers same-device resume after the page is closed (a new page in the same browser context, which keeps `localStorage` and drops `sessionStorage`), NOT YOU? after a committed score, back-out leaving the name listed, and no CLAIMED/UNCLAIMED text anywhere.
 
 **Stated gap**: `test:shared` runs against the Vite dev server, not the built artifact. The cross-session-with-persisted-counts case is therefore proven on dev and only partly on the build, because the local backend's counts do not survive a reload. This is the same gap `attempts-are-spent` already carries.
 

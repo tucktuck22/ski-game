@@ -40,7 +40,7 @@ _GATE: Must pass before Phase 0 research. Re-checked after Phase 1 design._
 | II. Stability Before Content | No schema change, so no migration or round-trip obligation. Simulation untouched. The "run in progress" rule is preserved: `reconcileIdentity` still defers during a run, and NOT YOU? is not reachable mid-run. | PASS |
 | III. Fun Is Testable | No feel parameters touched. | N/A |
 | IV. 1980s Voice | Existing buttons and panels only; one control is shown more often and one is removed. No new assets. | PASS |
-| V. Fair Competition | Unchanged in substance. Run allowances stay in shared storage per name, so several devices on one name cannot multiply them (FR-307). The honor system was already the stated model, and ADR-0005 still governs. One small hole is recorded: concurrent practice-run writes (R6), which has no bed-order effect. | PASS (known gap stated) |
+| V. Fair Competition | Unchanged in substance. Run allowances stay in shared storage per name, so moving between devices or sessions cannot reset them (FR-307), and the unique index still caps recorded scores at the allowance. The honor system was already the stated model, and ADR-0005 still governs. Simultaneous play on one name is out of scope (R6). | PASS (known gap stated) |
 | VI. Shipped Artifact | New behavior is proven in CI against the built artifact at `/ski-game/` (`pick-name.spec.ts`) and against the wire format (`rejoin.spec.ts`). The gap is stated: the cross-session-with-persisted-counts case runs on the dev server, because the local backend does not persist (R9). | PASS (gap stated) |
 | VII. Operator Instructions | No SQL, env or README step added or changed. The comment-only edits to `setup.sql` are still executed verbatim by the existing `invariants` CI job. | PASS |
 | VIII. Player Judges Fun | Not a feel change. A human completion check is in `quickstart.md`. | N/A |
@@ -99,20 +99,20 @@ docs/adr/0010-organizer-actions-as-secret-gated-functions.md  # status note
 
 ## Sequencing
 
-1. **Red first.** Write `tests/e2e-shared/rejoin.spec.ts` and show it failing on the current code. This is the constitution's "reproduce the original failure" step, and it proves the test is aimed at the real bug.
-2. **Remove `EntryView.claimed`** and let `tsc` enumerate every reader. Fix each one per `contracts/`.
-3. **Device memory**: `safeLocal`, `pick:` key.
-4. **UI**: roster filter, NOT YOU? always and without a dialog, leaderboard and organizer text, RELEASE removed.
-5. **Selector rename** `data-claim` → `data-pick` across the tests.
+1. **Selector rename** `data-claim` → `data-pick`, with no behaviour change, so the new tests are written against the final selector.
+2. **Red first.** Write `tests/e2e-shared/rejoin.spec.ts` and show it failing on the current code. This is the constitution's "reproduce the original failure" step, and it proves the test is aimed at the real bug.
+3. **Remove `EntryView.claimed` and `claimEntry`** and let `tsc` enumerate every reader. Fix each one per `contracts/`.
+4. **Back-out and organizer**: NOT YOU? always and without a dialog, RELEASE and `releaseClaim` removed, leaderboard and organizer text.
+5. **Device memory**: `safeLocal`, `pick:` key.
 6. **`pick-name.spec.ts`**; delete `claim-identity.spec.ts`.
 7. **Spec 001 amendments**, ADR-0010 note, SQL comments.
-8. **Run the full quickstart suite.** Human check per `quickstart.md`.
+8. **Run the full quickstart suite, push, and confirm CI is green on the pushed commit.** Human check per `quickstart.md`.
 
 ## Risks and blind spots
 
 - **Shared device.** A laptop passed around now opens as the last person's name until someone presses NOT YOU?. This is accepted in the spec, but it is the most likely way someone spends another person's official attempt. If it proves a problem in play, the cheap mitigation is a name confirmation on the official-run button only. That is out of scope unless you ask for it.
 - **Stale cached clients mid-draft.** An old client still calls `claimEntry` and still filters on `claimed_at`. Its user will not see names that new clients have picked, because new clients never set `claimed_at`. That is fine: rows claimed before the deploy are the only ones hidden, and a reload fixes it. Nothing breaks in the other direction.
-- **Practice-count race (R6).** Two devices on one name finishing practice together can grant one extra practice run. Accepted.
+- **Two devices on one name at the same moment (R6).** Out of scope by maintainer decision. Counts can come out wrong and one official run may be refused. Not guarded; stated in the spec's edge cases.
 
 ## Complexity Tracking
 
