@@ -37,7 +37,7 @@ import { resolveMotion, setMotion, REDUCED_MOTION } from './render/reducedMotion
 import { deadlineState, canStartOfficialRun, formatRemaining } from './state/deadline.js';
 import { organizerSecretFromUrl } from './state/links.js';
 import { renderOrganizer, removalConfirmationText } from './ui/organizer.js';
-import { safeSession } from './state/safeStorage.js';
+import { safeLocal } from './state/safeStorage.js';
 import { showFatalError, installGlobalErrorHandlers, describeError } from './ui/errorBoundary.js';
 import { titleScene } from './ui/title.js';
 import { explainRejection } from './ui/commitFailure.js';
@@ -350,7 +350,7 @@ function reconcileIdentity(): void {
  */
 function forgetIdentity(): void {
   myEntryId = null;
-  safeSession.remove(`claim:${DRAFT_ID}`);
+  safeLocal.remove(`pick:${DRAFT_ID}`);
   // A commit result belongs to the player it was about. Left standing it would
   // greet whoever picks a name next on this device with somebody else's result.
   commitStatus = 'idle';
@@ -477,7 +477,7 @@ function wire(): void {
     b.onclick = (): void => {
       myEntryId = b.dataset['pick'] as string;
       rosterError = '';
-      safeSession.set(`claim:${DRAFT_ID}`, myEntryId);
+      safeLocal.set(`pick:${DRAFT_ID}`, myEntryId);
       render();
     };
   });
@@ -490,7 +490,7 @@ function wire(): void {
       if (r.ok) {
         myEntryId = r.id;
         rosterError = '';
-        safeSession.set(`claim:${DRAFT_ID}`, r.id);
+        safeLocal.set(`pick:${DRAFT_ID}`, r.id);
       } else {
         rosterError = r.reason;
       }
@@ -889,7 +889,10 @@ async function bootstrap(): Promise<void> {
   }
 
   backend = makeBackend();
-  myEntryId = safeSession.get(`claim:${DRAFT_ID}`);
+  // FR-010/FR-305: local storage on purpose. This was session storage, which
+  // ends with the tab - half of the reported bug: a player who closed the game
+  // and came back was nobody on this device (feature 010).
+  myEntryId = safeLocal.get(`pick:${DRAFT_ID}`);
 
   if (isLocal) {
     for (const n of ['Tucker', 'Dave', 'Sam', 'Al', 'Zach', 'Marty', 'Rob', 'Cheeks']) {

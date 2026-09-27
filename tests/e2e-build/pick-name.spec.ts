@@ -89,3 +89,54 @@ test.describe('backing out of a name (US2)', () => {
     await expect(page.locator('[data-release]')).toHaveCount(0);
   });
 });
+
+/**
+ * FR-305: the device remembers its pick after the browser closes.
+ *
+ * A new page in the same browser context is the faithful stand-in for closing
+ * and reopening the browser: it keeps local storage and starts with empty
+ * session storage. A plain reload would not do - session storage survives a
+ * reload, so it would pass on the code that forgot the player every time the
+ * tab closed, which was half of the reported bug.
+ */
+test.describe('coming back on the same device (US3)', () => {
+  test('a pick survives the page closing (FR-305)', async ({ page, context }) => {
+    await dropIn(page, './');
+    const name = await pickFirst(page);
+    await page.close();
+
+    const again = await context.newPage();
+    await dropIn(again, './');
+
+    await expect(board(again)).toContainText(`You are ${name}`);
+  });
+
+  test('a back-out is remembered too', async ({ page, context }) => {
+    await dropIn(page, './');
+    await pickFirst(page);
+    await page.locator('#not-me').click();
+    await expect(page.locator('#new-name')).toBeVisible();
+    await page.close();
+
+    const again = await context.newPage();
+    await dropIn(again, './');
+
+    await expect(again.locator('#new-name')).toBeVisible();
+    await expect(board(again)).not.toContainText('You are');
+  });
+
+  test('a removed name drops the pick, back to the roster (FR-306)', async ({ page }) => {
+    page.on('dialog', (d) => void d.accept());
+    await dropIn(page, './?organizer=test-secret');
+    const name = await pickFirst(page);
+
+    await page
+      .locator('.panel', { hasText: 'ORGANIZER' })
+      .locator('tbody tr', { hasText: name })
+      .locator('[data-remove]')
+      .click();
+
+    await expect(page.locator('#new-name')).toBeVisible();
+    await expect(picks(page).filter({ hasText: name })).toHaveCount(0);
+  });
+});

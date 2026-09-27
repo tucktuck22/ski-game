@@ -33,10 +33,9 @@ test.describe('the attempt count is legible on the smallest reference phone (SC-
     const f = fixture();
     await mockPostgrest(page, f);
 
-    // Claim through the UI rather than pre-seeding claimed_at: the app reads
-    // `claim:<draft>` from session storage to know which entry is THIS device's
-    // (main.ts:894), so a row claimed by nobody in particular shows no player
-    // panel at all.
+    // Pick through the UI: the app reads `pick:<draft>` from local storage to
+    // know which entry is THIS device's (feature 010), so without a pick there
+    // is no player panel at all.
     await takeOfficialRun(page);
 
     const official = page.locator('#official');

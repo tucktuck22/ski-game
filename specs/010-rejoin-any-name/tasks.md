@@ -134,21 +134,21 @@ None. There is no shared prerequisite beyond T002. The claim model is removed in
 
 ### Tests
 
-- [ ] T021 [US3] Add to `tests/e2e-build/pick-name.spec.ts`: 5. **Resume after the browser closed (FR-305)**: pick the first name, `page.close()`, then `const p2 = await context.newPage()` in the same `BrowserContext` and `dropIn(p2, './')`. Expect `You are <name>` without clicking any `button[data-pick]`. A new page keeps `localStorage` but starts with empty `sessionStorage`, which is the browser-restart case. A plain `page.reload()` would NOT do: `sessionStorage` survives a reload, so the test would pass on the broken code. 6. **Back-out is remembered (US3 scenario 2)**: pick, `#not-me`, close the page, open a new page in the same context, `dropIn`. Expect `#new-name` to be visible and no `You are`. 7. **Removal drops the pick (FR-306)**: on `./?organizer=test-secret`, drop in and pick the first name. With `page.on('dialog', d => d.accept())`, click that row's `[data-remove]` in the organizer panel. Expect `#new-name` to be visible, and the name not to be among `button[data-pick]`.
+- [x] T021 [US3] Add to `tests/e2e-build/pick-name.spec.ts`: 5. **Resume after the browser closed (FR-305)**: pick the first name, `page.close()`, then `const p2 = await context.newPage()` in the same `BrowserContext` and `dropIn(p2, './')`. Expect `You are <name>` without clicking any `button[data-pick]`. A new page keeps `localStorage` but starts with empty `sessionStorage`, which is the browser-restart case. A plain `page.reload()` would NOT do: `sessionStorage` survives a reload, so the test would pass on the broken code. 6. **Back-out is remembered (US3 scenario 2)**: pick, `#not-me`, close the page, open a new page in the same context, `dropIn`. Expect `#new-name` to be visible and no `You are`. 7. **Removal drops the pick (FR-306)**: on `./?organizer=test-secret`, drop in and pick the first name. With `page.on('dialog', d => d.accept())`, click that row's `[data-remove]` in the organizer panel. Expect `#new-name` to be visible, and the name not to be among `button[data-pick]`.
 
   Run it before T023 and confirm test 5 FAILS (the new page shows the roster). Do not proceed if it passes.
 
-- [ ] T022 [P] [US3] In `tests/unit/safe-storage.test.ts` (lines ~59–62), change the example key from `'claim:draft-1'` to `'pick:draft-1'`, and add the same set/get/remove round-trip for `safeLocal`.
+- [x] T022 [P] [US3] In `tests/unit/safe-storage.test.ts` (lines ~59–62), change the example key from `'claim:draft-1'` to `'pick:draft-1'`, and add the same set/get/remove round-trip for `safeLocal`.
 
 ### Implementation
 
-- [ ] T023 [US3] In `src/main.ts`, switch device memory to `safeLocal` under the key `pick:${DRAFT_ID}` (research R2):
+- [x] T023 [US3] In `src/main.ts`, switch device memory to `safeLocal` under the key `pick:${DRAFT_ID}` (research R2):
   - import `safeLocal` alongside `safeSession` from `./state/safeStorage.js`, and drop `safeSession` if it has no other user;
   - replace all three `safeSession.set(\`claim:${DRAFT_ID}\`, …)` calls (the pick handler, `#add-name`), the `safeSession.remove` in `forgetIdentity()`, and `myEntryId = safeSession.get(\`claim:${DRAFT_ID}\`)` at startup (line ~934).
 
   Add one comment at the startup read: FR-010/FR-305. This is local storage on purpose; session storage ended with the tab, which was half of the reported bug.
 
-- [ ] T024 [US3] Run `npm run test:build -- pick-name`: all seven tests pass. Also run `npm run test:shared`: `attempts-ux.spec.ts` still passes. Update that file's comment at lines ~36–38, which describes `claim:<draft>` in session storage, to say `pick:<draft>` in local storage.
+- [x] T024 [US3] Run `npm run test:build -- pick-name`: all seven tests pass. Also run `npm run test:shared`: `attempts-ux.spec.ts` still passes. Update that file's comment at lines ~36–38, which describes `claim:<draft>` in session storage, to say `pick:<draft>` in local storage.
 
 **Checkpoint**: all three stories complete.
 
