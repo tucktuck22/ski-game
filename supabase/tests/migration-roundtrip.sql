@@ -70,4 +70,28 @@ begin
   raise notice 'PASS FR-231: a migrated player can take his remaining attempts';
 end $$;
 
+-- 0006 replaces one function and must not move a single row on the way in. The
+-- draft above now holds two scores and a player with 1 attempt spent; pasting
+-- 0006 into it must leave all of that exactly where it is.
+\echo '--- applying 0006 to the same live draft ---'
+\i supabase/migrations/0006_reset_attempts.sql
+
+do $$
+declare
+  n int;
+  u int;
+begin
+  select count(*) into n from committed_score;
+  if n <> 2 then raise exception 'FR-050 VIOLATED: 0006 changed the committed scores (% rows)', n; end if;
+  select official_attempts_used into u from roster_entry where name = 'Dave';
+  if u <> 1 then raise exception 'FR-050 VIOLATED: 0006 changed an attempt count (%)', u; end if;
+  raise notice 'PASS FR-050: 0006 applied to a live draft without touching its data';
+
+  -- And the reset it installs now returns the attempts (FR-246).
+  perform organizer_reset_draft('aaaaaaaa-0000-0000-0000-000000000001', 's');
+  select coalesce(sum(official_attempts_used), 0) into u from roster_entry;
+  if u <> 0 then raise exception 'FR-246 BROKEN: after 0006, reset left % attempt(s) spent', u; end if;
+  raise notice 'PASS FR-246: after 0006, reset returns every official attempt';
+end $$;
+
 \echo 'MIGRATION ROUND-TRIP HELD'
