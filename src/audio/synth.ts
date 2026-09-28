@@ -26,10 +26,48 @@ import { PALETTE } from '../render/palette.js';
 /** Master level for the synthesised cues. */
 const LEVEL = 0.18;
 
+/**
+ * A tenth of a second of silence as a WAV data URI: 8 kHz, mono, 8-bit, every
+ * sample at the midpoint. Built here rather than shipped as a file, so it
+ * cannot 404 and adds nothing to the payload.
+ */
+function silentWav(): string {
+  const samples = 800;
+  const bytes = new Uint8Array(44 + samples);
+  const view = new DataView(bytes.buffer);
+  const tag = (at: number, text: string): void => {
+    for (let i = 0; i < text.length; i++) bytes[at + i] = text.charCodeAt(i);
+  };
+  tag(0, 'RIFF');
+  view.setUint32(4, 36 + samples, true);
+  tag(8, 'WAVE');
+  tag(12, 'fmt ');
+  view.setUint32(16, 16, true); // fmt chunk size
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // mono
+  view.setUint32(24, 8000, true); // sample rate
+  view.setUint32(28, 8000, true); // byte rate
+  view.setUint16(32, 1, true); // block align
+  view.setUint16(34, 8, true); // bits per sample
+  tag(36, 'data');
+  view.setUint32(40, samples, true);
+  bytes.fill(128, 44);
+  let binary = '';
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return `data:audio/wav;base64,${btoa(binary)}`;
+}
+
+/** The Audio Session API: Safari and every iOS browser from iOS 17. */
+interface AudioSessionNavigator {
+  audioSession?: { type: string };
+}
+
 export class Synth {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private muted = false;
+  /** Whether the page is playing as media, so the silent switch cannot mute it. */
+  private asMedia = false;
 
   /**
    * A-3 and FR-054: no AudioContext exists until a deliberate gesture. This is
@@ -37,6 +75,8 @@ export class Synth {
    * correct behaviour and the compliant behaviour are the same thing.
    */
   start(): void {
+    // Before the context exists, so it is created under the media category.
+    this.playAsMedia();
     if (!this.ctx) {
       this.ctx = new AudioContext();
       this.master = this.ctx.createGain();
@@ -85,16 +125,67 @@ export class Synth {
     }
   }
 
+  /**
+   * FR-159: sound plays with the iPhone's Ring/Silent switch set to silent.
+   *
+   * iOS gives Web Audio the "ambient" audio category by default, the one the
+   * silent switch mutes, while an ordinary <audio> element gets "playback",
+   * which it does not. Every sound here is Web Audio except the course music.
+   * So with the switch on silent the board was mute after DROP IN, and the
+   * first practice run "fixed" it: the course music's <audio> element moved the
+   * whole page to playback, and it stayed there. Reported at the feature 010
+   * play pass on Chrome for iOS, which is WebKit like every iOS browser.
+   *
+   * This does on purpose, in the first gesture, what that run did by accident.
+   * iOS 17 exposes the category directly. Older versions have no API for it,
+   * so a moment of silence is played through an <audio> element instead. Its
+   * play() can be refused on a gesture iOS does not count (a touch's
+   * pointerdown), so `asMedia` is set only once it succeeds and the gate keeps
+   * trying until then.
+   *
+   * A browser with neither has no silent-switch problem to solve. Every failure
+   * is swallowed (FR-143).
+   */
+  private playAsMedia(): void {
+    if (this.asMedia) return;
+    const session = (globalThis.navigator as AudioSessionNavigator | undefined)?.audioSession;
+    if (session) {
+      try {
+        session.type = 'playback';
+        this.asMedia = true;
+        return;
+      } catch {
+        // Fall through to the element.
+      }
+    }
+    if (typeof Audio === 'undefined') {
+      this.asMedia = true;
+      return;
+    }
+    try {
+      const el = new Audio(silentWav());
+      void el.play().then(
+        () => {
+          this.asMedia = true;
+        },
+        () => undefined,
+      );
+    } catch {
+      // No media element. The gate will try again on the next gesture.
+    }
+  }
+
   get started(): boolean {
     return this.ctx !== null;
   }
 
   /**
    * Whether audio can actually be HEARD, not merely whether it was set up.
-   * The gate stays bound until this is true.
+   * The gate stays bound until this is true: a running context is not enough
+   * while the silent switch can still mute it (FR-159).
    */
   get running(): boolean {
-    return this.ctx?.state === 'running';
+    return this.ctx?.state === 'running' && this.asMedia;
   }
 
   /**

@@ -159,3 +159,101 @@ describe('Synth.start on a WebKit-shaped context', () => {
     expect(s.target?.destination).toBe(ctx().destination);
   });
 });
+
+/**
+ * FR-159: the iPhone's Ring/Silent switch must not mute the game.
+ *
+ * iOS gives Web Audio the category the silent switch mutes, and an ordinary
+ * <audio> element the one it does not. Found at the feature 010 play pass on
+ * Chrome for iOS: silent on the board after DROP IN, then audible for the rest
+ * of the session once a practice run's course music - an <audio> element - had
+ * moved the page into playback. These fakes model both ways out.
+ */
+class FakeMediaElement {
+  static made: FakeMediaElement[] = [];
+  static refuse = false;
+  played = 0;
+  constructor(public src: string) {
+    FakeMediaElement.made.push(this);
+  }
+  play(): Promise<void> {
+    this.played++;
+    return FakeMediaElement.refuse
+      ? Promise.reject(new Error('NotAllowedError'))
+      : Promise.resolve();
+  }
+}
+
+const settle = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
+
+describe('Synth.start plays as media, so the silent switch cannot mute it (FR-159)', () => {
+  beforeEach(() => {
+    FakeMediaElement.made = [];
+    FakeMediaElement.refuse = false;
+  });
+
+  it('sets the audio session to playback before the context exists (iOS 17+)', () => {
+    const session = { type: 'auto' };
+    let typeWhenContextMade = '';
+    class RecordingContext extends FakeAudioContext {
+      constructor() {
+        super();
+        typeWhenContextMade = session.type;
+      }
+    }
+    vi.stubGlobal('AudioContext', RecordingContext);
+    vi.stubGlobal('navigator', { audioSession: session });
+
+    const s = new Synth();
+    s.start();
+
+    expect(session.type).toBe('playback');
+    expect(typeWhenContextMade, 'the context was made before the session was set').toBe('playback');
+    expect(s.running).toBe(true);
+  });
+
+  it('plays silence through a media element where there is no session API', async () => {
+    vi.stubGlobal('navigator', {});
+    vi.stubGlobal('Audio', FakeMediaElement);
+
+    const s = new Synth();
+    s.start();
+
+    expect(FakeMediaElement.made, 'no media element was played in the gesture').toHaveLength(1);
+    expect(FakeMediaElement.made[0]?.played).toBe(1);
+    expect(FakeMediaElement.made[0]?.src).toMatch(/^data:audio\/wav;base64,/);
+    // Not done until the element has actually played.
+    expect(s.running, 'claimed done before the media element played').toBe(false);
+    await settle();
+    expect(s.running).toBe(true);
+  });
+
+  it('keeps trying when a gesture iOS does not count refuses the element', async () => {
+    vi.stubGlobal('navigator', {});
+    vi.stubGlobal('Audio', FakeMediaElement);
+    FakeMediaElement.refuse = true;
+
+    const s = new Synth();
+    s.start(); // a touch's pointerdown: refused
+    await settle();
+    expect(s.running, 'the gate would unbind with the switch still muting').toBe(false);
+
+    FakeMediaElement.refuse = false;
+    s.start(); // the touchend that follows
+    await settle();
+    expect(FakeMediaElement.made).toHaveLength(2);
+    expect(s.running).toBe(true);
+  });
+
+  it('plays the media element once, not on every later start', async () => {
+    vi.stubGlobal('navigator', {});
+    vi.stubGlobal('Audio', FakeMediaElement);
+
+    const s = new Synth();
+    s.start();
+    await settle();
+    s.start();
+    s.start();
+    expect(FakeMediaElement.made).toHaveLength(1);
+  });
+});

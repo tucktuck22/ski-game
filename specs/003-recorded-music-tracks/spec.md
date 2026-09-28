@@ -410,6 +410,15 @@ run still starts, plays, ends, and commits its score.
   achieves nothing MUST NOT consume the player's only chance to start the music.
 - **FR-157**: Audio MUST recover when the page returns to the foreground, since
   a backgrounded page may have had its audio suspended by the platform.
+- **FR-159**: The game's audio MUST play as media, so a phone's silent switch does
+  not mute it. On iOS the switch mutes Web Audio but not an `<audio>` element, and
+  every sound except the course music is Web Audio. The first gesture MUST move the
+  page into media playback: through the Audio Session API where it exists (iOS 17+),
+  otherwise by playing silence through an `<audio>` element. The gesture gate MUST
+  stay active until that has succeeded (FR-156). _Added 2026-09-28: found at the
+  feature 010 play pass on Chrome for iOS. With the switch on silent the board was
+  mute after DROP IN, then audible once a practice run's course music had switched
+  the page to playback by accident._
 - **FR-150**: The shipped music assets MUST be re-encoded from the masters to mono at
   approximately 96 kbps, and the two together MUST NOT exceed 4 MiB transferred. The
   masters are archived, not shipped.
