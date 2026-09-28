@@ -419,6 +419,12 @@ run still starts, plays, ends, and commits its score.
   feature 010 play pass on Chrome for iOS. With the switch on silent the board was
   mute after DROP IN, then audible once a practice run's course music had switched
   the page to playback by accident._
+- **FR-160**: All audio MUST pause while the page is out of view: another app, the
+  home screen, a locked phone or another tab. When the page returns it MUST carry
+  on from where it was, not start over (FR-157). _Added 2026-09-28 at the
+  maintainer's request: playing as media (FR-159) is what lets iOS keep a page
+  sounding in the background, so without this the music followed players out of
+  the browser._
 - **FR-150**: The shipped music assets MUST be re-encoded from the masters to mono at
   approximately 96 kbps, and the two together MUST NOT exceed 4 MiB transferred. The
   masters are archived, not shipped.

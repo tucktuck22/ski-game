@@ -175,6 +175,22 @@ export class Synth {
     }
   }
 
+  /**
+   * FR-160: silence everything while the page is out of view.
+   *
+   * Suspending the one shared context stops every cue and the board music
+   * together, and keeps the board music's place: resuming carries on from the
+   * same instant. start() is what resumes it, on the way back (FR-157).
+   *
+   * Needed because of FR-159. Playing as media is what lets iOS keep the page
+   * sounding in the background, so without this the music followed a player
+   * out to the home screen.
+   */
+  suspend(): void {
+    const ctx = this.ctx;
+    if (ctx && ctx.state === 'running') void ctx.suspend().catch(() => undefined);
+  }
+
   get started(): boolean {
     return this.ctx !== null;
   }

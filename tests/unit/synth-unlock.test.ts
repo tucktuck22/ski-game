@@ -54,6 +54,12 @@ class FakeAudioContext {
     if (!this.refuseResume) this.state = 'running';
     return Promise.resolve();
   }
+  suspendCalls = 0;
+  suspend(): Promise<void> {
+    this.suspendCalls++;
+    this.state = 'suspended';
+    return Promise.resolve();
+  }
   createGain(): FakeGain {
     return new FakeGain();
   }
@@ -255,5 +261,36 @@ describe('Synth.start plays as media, so the silent switch cannot mute it (FR-15
     s.start();
     s.start();
     expect(FakeMediaElement.made).toHaveLength(1);
+  });
+});
+
+/**
+ * FR-160: nothing plays while the player is out of the browser. Needed because
+ * of FR-159: playing as media is what lets iOS keep a page sounding in the
+ * background.
+ */
+describe('Synth.suspend silences everything while the page is away (FR-160)', () => {
+  it('suspends a running context, and start() brings it back', () => {
+    const s = new Synth();
+    s.start();
+    expect(ctx().state).toBe('running');
+
+    s.suspend();
+    expect(ctx().suspendCalls).toBe(1);
+    expect(ctx().state).toBe('suspended');
+
+    s.start(); // the page is visible again (FR-157)
+    expect(ctx().state).toBe('running');
+  });
+
+  it('does nothing before the first gesture, or when already suspended', () => {
+    const s = new Synth();
+    s.suspend(); // no context yet: must not create one (FR-054)
+    expect(FakeAudioContext.latest).toBeNull();
+
+    s.start();
+    s.suspend();
+    s.suspend();
+    expect(ctx().suspendCalls).toBe(1);
   });
 });

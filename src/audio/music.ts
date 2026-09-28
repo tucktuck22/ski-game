@@ -143,6 +143,16 @@ export class MusicPlayer {
     return this.muted;
   }
 
+  /**
+   * FR-160: the page has gone out of view. Pauses the streamed piece where it
+   * is, rather than stopping it: resume() carries on from the same point. The
+   * decoded piece needs nothing here, because it plays through the shared
+   * context, which Synth.suspend() has already stopped.
+   */
+  pause(): void {
+    if (this.element && !this.element.paused) this.element.pause();
+  }
+
   /** Called when the page comes back into view; iOS suspends audio meanwhile. */
   resume(): void {
     if (!this.armed) return;

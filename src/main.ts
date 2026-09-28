@@ -251,7 +251,14 @@ armAudioOnFirstGesture(window, {
  * the mountain silent for the rest of it.
  */
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible') return;
+  // FR-160: the music stops when the player leaves the browser - another app,
+  // the home screen, a locked phone, another tab. Playing as media (FR-159) is
+  // what would otherwise let iOS carry it on in the background.
+  if (document.visibilityState !== 'visible') {
+    synth.suspend();
+    music.pause();
+    return;
+  }
   synth.start();
   music.resume();
 });

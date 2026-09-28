@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { MusicPlayer, trackUrl } from '../../src/audio/music.js';
 import { parseAudio } from '../../src/data/load.js';
 import audioJson from '../../data/audio.json';
@@ -44,6 +45,10 @@ class FakeAudioElement {
   pause(): void {
     this.pauseCalls++;
     this.playing = false;
+  }
+  /** As HTMLMediaElement: true until play() succeeds, and again after pause(). */
+  get paused(): boolean {
+    return !this.playing;
   }
 }
 
@@ -521,5 +526,66 @@ describe('a suspended context is resumed, not assumed (iOS)', () => {
     ctx.state = 'suspended';
     p.resume();
     expect(ctx.resumeCalls).toBe(0);
+  });
+});
+
+// ---- FR-160: silent while the page is away -------------------------------------
+
+/**
+ * Playing as media (FR-159) is what lets iOS keep a page sounding in the
+ * background, so leaving the browser must pause the music - and coming back must
+ * pick it up where it was, not start it over.
+ */
+describe('pause() stops the music while the page is away (FR-160)', () => {
+  it('pauses the streamed piece where it is, and resume() carries on from there', () => {
+    const p = new MusicPlayer(manifest, BASE);
+    p.arm(target());
+    p.setContext('course');
+    const el = element()!;
+    el.currentTime = 42;
+
+    p.pause();
+    expect(el.playing, 'the course music kept playing in the background').toBe(false);
+    expect(el.currentTime, 'pausing lost the place in the piece').toBe(42);
+
+    p.resume();
+    expect(el.playing).toBe(true);
+    expect(el.currentTime).toBe(42);
+    expect(FakeAudioElement.instances, 'resuming built a second element').toHaveLength(1);
+  });
+
+  it('leaves the decoded piece to the shared context, rather than stopping it', async () => {
+    const p = new MusicPlayer(manifest, BASE);
+    p.arm(target());
+    p.setContext('frontEnd');
+    await settle();
+    const s = front()!;
+
+    p.pause();
+    expect(s.stopped, 'pausing threw away the board music source').toBe(false);
+    p.resume();
+    expect(ctx.sources, 'resuming started the board music over').toHaveLength(1);
+  });
+
+  it('does nothing before anything has played', () => {
+    const p = new MusicPlayer(manifest, BASE);
+    expect(() => p.pause()).not.toThrow();
+    p.arm(target());
+    expect(() => p.pause()).not.toThrow();
+  });
+});
+
+describe('leaving the browser actually pauses the audio (FR-160)', () => {
+  // Coarse by design, like the outbox wiring check: its job is to fail loudly if
+  // the hidden-page branch is ever dropped, which no unit test of the parts
+  // above would notice.
+  const main = readFileSync(new URL('../../src/main.ts', import.meta.url), 'utf8');
+
+  it('suspends the synth and pauses the music when the page is hidden', () => {
+    const handler = main.slice(main.indexOf("addEventListener('visibilitychange'"));
+    const hidden = handler.slice(0, handler.indexOf('synth.start()'));
+    expect(hidden).toMatch(/visibilityState !== 'visible'/);
+    expect(hidden).toMatch(/synth\.suspend\(\)/);
+    expect(hidden).toMatch(/music\.pause\(\)/);
   });
 });
