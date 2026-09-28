@@ -412,3 +412,40 @@ end $$;
 
 reset role;
 \echo 'ALL STORAGE INVARIANTS HELD'
+
+-- ---------------------------------------------------------------------------
+-- Feature 007 FR-246: the reset returns every name's official attempts.
+--
+-- Found at the feature 010 play pass: the organizer reset a draft and the board
+-- still read "IN PROGRESS - 1 of 3 USED" beside names with no score at all.
+-- organizer_reset_draft was written in 0003, before 0005 added
+-- official_attempts_used, and was never taught about it. The local backend's
+-- resetDraft() did zero it, so no browser test could ever see the gap - only
+-- the real function, here, can.
+-- ---------------------------------------------------------------------------
+
+do $$
+declare
+  d   uuid := gen_random_uuid();
+  ent uuid;
+  sec text := 'reset-attempts-secret';
+  a   int;
+  p   int;
+begin
+  insert into draft (id, deadline, course_seed, rules_version, organizer_secret)
+  values (d, now() + interval '7 days', 19860214, '3.0.0', sec);
+  insert into roster_entry (draft_id, name, origin, practice_runs_used, official_attempts_used)
+  values (d, 'Spent Sam', 'organizer', 3, 2) returning id into ent;
+
+  perform organizer_reset_draft(d, sec);
+
+  select official_attempts_used, practice_runs_used into a, p
+    from roster_entry where id = ent;
+  if a <> 0 then
+    raise exception 'FR-246 BROKEN: reset left % official attempt(s) spent', a;
+  end if;
+  if p <> 0 then
+    raise exception 'FR-246 BROKEN: reset left % practice run(s) spent', p;
+  end if;
+  raise notice 'PASS FR-246: reset returns every official attempt and practice run';
+end $$;

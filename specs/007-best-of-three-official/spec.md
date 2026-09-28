@@ -272,6 +272,12 @@ states attempts used and that a player with attempts remaining is visibly not fi
   schema change (Principle III). Shared storage MUST NOT impose a narrower limit than that
   value, so a re-tuned allowance is honoured end to end rather than half-obeyed. Changing the value is a
   rules change under FR-243.
+- **FR-246**: The organizer's draft reset MUST return every name's official attempts to
+  zero, along with its practice runs and scores, so a reset draft offers every player the
+  full allowance again (feature 006 FR-230: "official runs returned"). _Added 2026-09-28
+  after the feature 010 play pass: the reset function predated the attempt counter and
+  left it untouched, so a reset board read "IN PROGRESS — 1 of 3 USED" beside names with
+  no score. Fixed by `supabase/migrations/0006_reset_attempts.sql`._
 
 ### Key Entities
 

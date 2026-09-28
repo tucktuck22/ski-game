@@ -146,6 +146,14 @@ no committed scores yet, run `supabase/migrations/0004_rules_freeze.sql` against
 the project. It is safe on its own (it replaces one trigger function) and it
 fixes the cause rather than the symptom.
 
+If **RESET THE WHOLE DRAFT leaves official attempts used** (the board still reads
+"IN PROGRESS — 1 of 3 USED" beside names with no score), run
+`supabase/migrations/0006_reset_attempts.sql` against the project, then press
+RESET THE WHOLE DRAFT once more. The migration is safe on its own: it replaces one
+function and changes no data. The second reset matters, because the reset that
+already ran left the counters behind and 0006 does not go back and fix them. A
+project set up from `setup.sql` after 2026-09-28 already has it.
+
 FR-023 says the rules freeze "from the moment the first official run commits".
 The trigger used to freeze them when the draft was **seeded**, comparing every
 submission against the version typed into `seed-draft.sql`. Those are not the
