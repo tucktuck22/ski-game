@@ -583,7 +583,7 @@ describe('leaving the browser actually pauses the audio (FR-160)', () => {
 
   it('suspends the synth and pauses the music when the page is hidden', () => {
     const handler = main.slice(main.indexOf("addEventListener('visibilitychange'"));
-    const hidden = handler.slice(0, handler.indexOf('synth.start()'));
+    const hidden = handler.slice(0, handler.indexOf('resumeAudio()'));
     expect(hidden).toMatch(/visibilityState !== 'visible'/);
     expect(hidden).toMatch(/synth\.suspend\(\)/);
     expect(hidden).toMatch(/music\.pause\(\)/);
@@ -596,8 +596,23 @@ describe('leaving the browser actually pauses the audio (FR-160)', () => {
    */
   it('binds the gesture gate again when the page comes back into view', () => {
     const handler = main.slice(main.indexOf("addEventListener('visibilitychange'"));
-    const visible = handler.slice(handler.indexOf('synth.start()'), handler.indexOf('});'));
+    const visible = handler.slice(handler.indexOf('resumeAudio()'), handler.indexOf('});'));
     expect(visible).toMatch(/detachAudioGate\(\)/);
     expect(visible).toMatch(/detachAudioGate = armAudioOnFirstGesture\(window, audioGate\)/);
+  });
+
+  /**
+   * The first resume on return from outside the browser can land before iOS has
+   * handed the audio back, and fail silently; the same resume a moment later
+   * works. Switching tabs and back used to prove it.
+   */
+  it('retries the resume shortly after the page comes back', () => {
+    const handler = main.slice(main.indexOf("addEventListener('visibilitychange'"));
+    const visible = handler.slice(handler.indexOf('resumeAudio()'), handler.indexOf('});'));
+    expect(visible).toMatch(/setTimeout\(resumeAudio,/);
+    expect(main).toMatch(/RESUME_RETRIES_MS = \[\d+/);
+    // A retry must not resume a page that has gone away again.
+    const fn = main.slice(main.indexOf('function resumeAudio()'));
+    expect(fn.slice(0, fn.indexOf('}'))).toMatch(/visibilityState !== 'visible'\) return/);
   });
 });
