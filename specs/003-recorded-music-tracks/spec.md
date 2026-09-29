@@ -425,6 +425,11 @@ run still starts, plays, ends, and commits its score.
   maintainer's request: playing as media (FR-159) is what lets iOS keep a page
   sounding in the background, so without this the music followed players out of
   the browser._
+  _Amended 2026-09-29 after the iPhone check: the audio MUST fade to silence
+  before it stops, since stopping it mid-sound was heard as a beep on leaving
+  Chrome. And where the platform will not resume audio without a tap - iOS after
+  the player has left the browser app - the next tap MUST bring it back, with no
+  reload needed._
 - **FR-150**: The shipped music assets MUST be re-encoded from the masters to mono at
   approximately 96 kbps, and the two together MUST NOT exceed 4 MiB transferred. The
   masters are archived, not shipped.

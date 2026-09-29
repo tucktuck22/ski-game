@@ -234,16 +234,17 @@ let reducedMotion = resolveMotion() === REDUCED_MOTION;
  * suspended context, and the gate stays bound until audio can actually be
  * heard. See src/audio/gate.ts.
  */
-armAudioOnFirstGesture(window, {
-  arm: () => {
+const audioGate = {
+  arm: (): void => {
     synth.start();
     const target = synth.target;
     if (target) music.arm(target);
   },
-  get running() {
+  get running(): boolean {
     return synth.running;
   },
-});
+};
+let detachAudioGate = armAudioOnFirstGesture(window, audioGate);
 
 /**
  * iOS suspends the AudioContext whenever the page goes into the background, and
@@ -261,6 +262,14 @@ document.addEventListener('visibilitychange', () => {
   }
   synth.start();
   music.resume();
+  // FR-160: after the player has left the browser app entirely, iOS treats the
+  // page's audio as interrupted and refuses to resume it without a tap - the
+  // resume above is not one. The gate unbound itself after DROP IN, so nothing
+  // would ever try again and the page stayed silent until a reload. Binding it
+  // again means the next tap brings the sound back. Where the resume above did
+  // work, that tap finds audio running and the gate simply unbinds.
+  detachAudioGate();
+  detachAudioGate = armAudioOnFirstGesture(window, audioGate);
 });
 
 /**

@@ -588,4 +588,16 @@ describe('leaving the browser actually pauses the audio (FR-160)', () => {
     expect(hidden).toMatch(/synth\.suspend\(\)/);
     expect(hidden).toMatch(/music\.pause\(\)/);
   });
+
+  /**
+   * After leaving the browser app entirely, iOS will not resume the audio
+   * without a tap, and the gate had unbound itself after DROP IN - so the page
+   * stayed silent until a reload. Coming back must bind the gate again.
+   */
+  it('binds the gesture gate again when the page comes back into view', () => {
+    const handler = main.slice(main.indexOf("addEventListener('visibilitychange'"));
+    const visible = handler.slice(handler.indexOf('synth.start()'), handler.indexOf('});'));
+    expect(visible).toMatch(/detachAudioGate\(\)/);
+    expect(visible).toMatch(/detachAudioGate = armAudioOnFirstGesture\(window, audioGate\)/);
+  });
 });
