@@ -234,23 +234,43 @@ let reducedMotion = resolveMotion() === REDUCED_MOTION;
  * suspended context, and the gate stays bound until audio can actually be
  * heard. See src/audio/gate.ts.
  */
-armAudioOnFirstGesture(window, {
-  arm: () => {
+const audioGate = {
+  arm: (): void => {
     synth.start();
     const target = synth.target;
     if (target) music.arm(target);
   },
-  get running() {
+  get running(): boolean {
     return synth.running;
   },
-});
+};
+let detachAudioGate = armAudioOnFirstGesture(window, audioGate);
 
 /**
  * iOS suspends the AudioContext whenever the page goes into the background, and
  * hands it back suspended. Without this, answering a message mid-session leaves
  * the mountain silent for the rest of it.
  */
+/** Resume everything that FR-160 paused, if the page is still in view. */
+function resumeAudio(): void {
+  if (document.visibilityState !== 'visible') return;
+  synth.start();
+  music.resume();
+}
+
+/**
+ * FR-160: retry the resume after coming back. On iOS the first attempt, made the
+ * instant the page is visible again, can land before the system has handed the
+ * audio back to the browser after the player left the app - and fail silently.
+ * The same resume a moment later works, which is why switching tabs and back
+ * used to bring the sound back when returning from the home screen did not.
+ */
+const RESUME_RETRIES_MS = [400, 1500];
+let resumeRetries: ReturnType<typeof setTimeout>[] = [];
+
 document.addEventListener('visibilitychange', () => {
+  for (const t of resumeRetries) clearTimeout(t);
+  resumeRetries = [];
   // FR-160: the music stops when the player leaves the browser - another app,
   // the home screen, a locked phone, another tab. Playing as media (FR-159) is
   // what would otherwise let iOS carry it on in the background.
@@ -259,8 +279,14 @@ document.addEventListener('visibilitychange', () => {
     music.pause();
     return;
   }
-  synth.start();
-  music.resume();
+  resumeAudio();
+  resumeRetries = RESUME_RETRIES_MS.map((ms) => setTimeout(resumeAudio, ms));
+  // And if every retry is refused, the next tap brings the sound back. The gate
+  // unbound itself after DROP IN, so without binding it again nothing would
+  // ever try and the page stayed silent until a reload. Where the resume did
+  // work, that tap finds audio running and the gate simply unbinds.
+  detachAudioGate();
+  detachAudioGate = armAudioOnFirstGesture(window, audioGate);
 });
 
 /**

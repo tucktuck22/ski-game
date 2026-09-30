@@ -28,9 +28,25 @@ class FakeBufferSource {
   disconnect(): void {}
 }
 
+/** A gain whose ramps land at once, recording the last target it was sent to. */
+class FakeParam {
+  value = -1;
+  ramps: number[] = [];
+  cancelScheduledValues(): void {}
+  setValueAtTime(v: number): void {
+    this.value = v;
+  }
+  linearRampToValueAtTime(v: number): void {
+    this.ramps.push(v);
+    this.value = v;
+  }
+}
+
 class FakeGain {
-  gain = { value: -1 };
+  gain = new FakeParam();
+  connectedTo: unknown = null;
   connect(node: unknown): unknown {
+    this.connectedTo = node;
     return node;
   }
 }
@@ -39,6 +55,8 @@ class FakeAudioContext {
   static latest: FakeAudioContext | null = null;
   state: 'suspended' | 'running' = 'suspended';
   sampleRate = 48000;
+  currentTime = 0;
+  gains: FakeGain[] = [];
   destination = { kind: 'destination' };
   resumeCalls = 0;
   sources: FakeBufferSource[] = [];
@@ -61,7 +79,9 @@ class FakeAudioContext {
     return Promise.resolve();
   }
   createGain(): FakeGain {
-    return new FakeGain();
+    const g = new FakeGain();
+    this.gains.push(g);
+    return g;
   }
   createBufferSource(): FakeBufferSource {
     const s = new FakeBufferSource();
@@ -162,7 +182,9 @@ describe('Synth.start on a WebKit-shaped context', () => {
     expect(s.target).toBeNull();
     s.start();
     expect(s.target?.context).toBe(ctx());
-    expect(s.target?.destination).toBe(ctx().destination);
+    // One output node for everything, so leaving the page can fade it all (FR-160).
+    const out = s.target?.destination as unknown as FakeGain;
+    expect(out.connectedTo, 'the shared output never reaches the speaker').toBe(ctx().destination);
   });
 });
 
@@ -270,20 +292,55 @@ describe('Synth.start plays as media, so the silent switch cannot mute it (FR-15
  * background.
  */
 describe('Synth.suspend silences everything while the page is away (FR-160)', () => {
-  it('suspends a running context, and start() brings it back', () => {
+  afterEach(() => vi.useRealTimers());
+
+  const out = (s: Synth): FakeGain => s.target?.destination as unknown as FakeGain;
+
+  /**
+   * Suspending at once cut the output mid-waveform, which the iPhone played back
+   * as a beep on leaving Chrome. The output must reach zero first.
+   */
+  it('fades the output to silence, then suspends', () => {
+    vi.useFakeTimers();
     const s = new Synth();
     s.start();
-    expect(ctx().state).toBe('running');
+    out(s).gain.value = 1;
 
     s.suspend();
+    expect(out(s).gain.ramps, 'the output was not faded').toEqual([0]);
+    expect(ctx().suspendCalls, 'suspended before the fade finished').toBe(0);
+
+    vi.advanceTimersByTime(100);
     expect(ctx().suspendCalls).toBe(1);
     expect(ctx().state).toBe('suspended');
+  });
+
+  it('start() brings it back and fades the output in again', () => {
+    vi.useFakeTimers();
+    const s = new Synth();
+    s.start();
+    s.suspend();
+    vi.advanceTimersByTime(100);
 
     s.start(); // the page is visible again (FR-157)
     expect(ctx().state).toBe('running');
+    expect(out(s).gain.value, 'came back silent').toBe(1);
   });
 
-  it('does nothing before the first gesture, or when already suspended', () => {
+  it('comes back audible even if it returns before the suspend landed', () => {
+    vi.useFakeTimers();
+    const s = new Synth();
+    s.start();
+    s.suspend();
+    s.start(); // back within the fade
+
+    vi.advanceTimersByTime(100);
+    expect(ctx().suspendCalls, 'suspended a page that was already back').toBe(0);
+    expect(out(s).gain.value).toBe(1);
+  });
+
+  it('does nothing before the first gesture, and suspends once when called twice', () => {
+    vi.useFakeTimers();
     const s = new Synth();
     s.suspend(); // no context yet: must not create one (FR-054)
     expect(FakeAudioContext.latest).toBeNull();
@@ -291,6 +348,7 @@ describe('Synth.suspend silences everything while the page is away (FR-160)', ()
     s.start();
     s.suspend();
     s.suspend();
+    vi.advanceTimersByTime(100);
     expect(ctx().suspendCalls).toBe(1);
   });
 });

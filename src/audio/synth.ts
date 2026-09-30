@@ -27,6 +27,13 @@ import { PALETTE } from '../render/palette.js';
 const LEVEL = 0.18;
 
 /**
+ * How long everything fades when the page goes out of view, and back in when it
+ * returns (FR-160). Long enough that the output never stops mid-waveform, short
+ * enough to finish before iOS takes the audio away.
+ */
+const FADE_S = 0.04;
+
+/**
  * A tenth of a second of silence as a WAV data URI: 8 kHz, mono, 8-bit, every
  * sample at the midpoint. Built here rather than shipped as a file, so it
  * cannot 404 and adds nothing to the payload.
@@ -65,6 +72,10 @@ interface AudioSessionNavigator {
 export class Synth {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  /** Everything - cues and music - reaches the speaker through this one node. */
+  private out: GainNode | null = null;
+  /** Set while the page is out of view (FR-160). */
+  private away = false;
   private muted = false;
   /** Whether the page is playing as media, so the silent switch cannot mute it. */
   private asMedia = false;
@@ -79,9 +90,12 @@ export class Synth {
     this.playAsMedia();
     if (!this.ctx) {
       this.ctx = new AudioContext();
+      this.out = this.ctx.createGain();
+      this.out.gain.value = 1;
+      this.out.connect(this.ctx.destination);
       this.master = this.ctx.createGain();
       this.master.gain.value = this.muted ? 0 : LEVEL;
-      this.master.connect(this.ctx.destination);
+      this.master.connect(this.out);
     }
     // WebKit hands back a SUSPENDED context even when it was created inside
     // the gesture handler. Without this the graph exists, nothing throws, and
@@ -96,6 +110,27 @@ export class Synth {
     if (this.ctx.state !== 'running') {
       void this.ctx.resume().catch(() => undefined);
       this.unlock();
+    }
+    // Back from being out of view: fade in rather than snap on (FR-160).
+    if (this.away) {
+      this.away = false;
+      this.fadeTo(1);
+    }
+  }
+
+  /** Ramp the output to `level` over FADE_S. Never throws (FR-143). */
+  private fadeTo(level: number): void {
+    const ctx = this.ctx;
+    const out = this.out;
+    if (!ctx || !out) return;
+    const g = out.gain;
+    const t = ctx.currentTime;
+    try {
+      g.cancelScheduledValues(t);
+      g.setValueAtTime(g.value, t);
+      g.linearRampToValueAtTime(level, t + FADE_S);
+    } catch {
+      g.value = level;
     }
   }
 
@@ -185,10 +220,24 @@ export class Synth {
    * Needed because of FR-159. Playing as media is what lets iOS keep the page
    * sounding in the background, so without this the music followed a player
    * out to the home screen.
+   *
+   * Faded, then suspended. Suspending at once stopped the output mid-waveform,
+   * and on the iPhone that was heard as a beep on leaving Chrome - the audio
+   * hardware repeating its last fragment as it was cut off. If the page is
+   * throttled before the timer fires, the output is already at zero, so the
+   * worst case is silence rather than music in the background.
    */
   suspend(): void {
     const ctx = this.ctx;
-    if (ctx && ctx.state === 'running') void ctx.suspend().catch(() => undefined);
+    if (!ctx || this.away) return;
+    this.away = true;
+    this.fadeTo(0);
+    setTimeout(
+      () => {
+        if (this.away && ctx.state === 'running') void ctx.suspend().catch(() => undefined);
+      },
+      FADE_S * 1000 + 20,
+    );
   }
 
   get started(): boolean {
@@ -210,9 +259,7 @@ export class Synth {
    * hardware buffers for no gain, and the two would gate independently.
    */
   get target(): { context: AudioContext; destination: AudioNode } | null {
-    return this.ctx && this.master
-      ? { context: this.ctx, destination: this.ctx.destination }
-      : null;
+    return this.ctx && this.out ? { context: this.ctx, destination: this.out } : null;
   }
 
   setMuted(muted: boolean): void {
@@ -336,6 +383,7 @@ export class Synth {
     void this.ctx?.close();
     this.ctx = null;
     this.master = null;
+    this.out = null;
   }
 }
 
