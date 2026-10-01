@@ -44,7 +44,7 @@ create table roster_entry (
   -- FR-073: the leaderboard shows who was on the original list and who added themselves.
   origin                   text not null check (origin in ('organizer', 'self_created')),
   claimed_at               timestamptz,  -- retired by feature 010: never read or written by the client
-  practice_runs_used       int  not null default 0 check (practice_runs_used between 0 and 3),
+  practice_runs_used       int  not null default 0 check (practice_runs_used between 0 and 20),
   official_status          text not null default 'unused' check (official_status in ('unused', 'committed')),
   -- FR-065: abandonment is permitted, but it is never private.
   abandoned_official_runs  int  not null default 0 check (abandoned_official_runs >= 0),

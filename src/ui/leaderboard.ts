@@ -11,6 +11,7 @@ import {
   type EntryView,
   type RankedEntry,
 } from '../state/ordering.js';
+import { PRACTICE_RUNS } from '../state/runEconomy.js';
 
 export function renderLeaderboard(
   entries: readonly EntryView[],
@@ -90,10 +91,10 @@ function statusOf(e: RankedEntry, officialAttempts: number): string {
     return e.officialAttemptsUsed >= officialAttempts
       ? `NO SCORE — ${e.officialAttemptsUsed} of ${officialAttempts} USED`
       : `IN PROGRESS — ${e.officialAttemptsUsed} of ${officialAttempts} USED`;
-  // "PRACTISING (3/3)" reads as unfinished to someone scanning the board; a
-  // player who has used all three is waiting to go official, not mid-practice.
-  if (e.practiceRunsUsed >= 3) return 'READY — NOT YET OFFICIAL';
-  if (e.practiceRunsUsed > 0) return `PRACTISING (${e.practiceRunsUsed}/3)`;
+  // "PRACTISING (20/20)" reads as unfinished to someone scanning the board; a
+  // player who has used them all is waiting to go official, not mid-practice.
+  if (e.practiceRunsUsed >= PRACTICE_RUNS) return 'READY — NOT YET OFFICIAL';
+  if (e.practiceRunsUsed > 0) return `PRACTISING (${e.practiceRunsUsed}/${PRACTICE_RUNS})`;
   return 'NOT STARTED';
 }
 
