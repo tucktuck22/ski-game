@@ -154,6 +154,13 @@ function and changes no data. The second reset matters, because the reset that
 already ran left the counters behind and 0006 does not go back and fix them. A
 project set up from `setup.sql` after 2026-09-28 already has it.
 
+If players are offered more than **3 practice runs** but the count never goes
+down past 3, run `supabase/migrations/0007_twenty_practice_runs.sql` against the
+project. The table used to cap practice runs at 3, so it refuses to record a
+fourth. The migration is safe on its own: it widens one check constraint and
+changes no data. A project set up from `setup.sql` after 2026-10-01 already has
+it.
+
 FR-023 says the rules freeze "from the moment the first official run commits".
 The trigger used to freeze them when the draft was **seeded**, comparing every
 submission against the version typed into `seed-draft.sql`. Those are not the

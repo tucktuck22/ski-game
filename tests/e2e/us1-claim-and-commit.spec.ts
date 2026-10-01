@@ -20,7 +20,7 @@ test.describe('US1: pick, practise, commit', () => {
     await expect(page.locator('.subtitle').first()).toContainText('bed order');
 
     await page.locator('button[data-pick]').first().click();
-    await expect(page.locator('#practice')).toContainText('3 left');
+    await expect(page.locator('#practice')).toContainText('20 left');
     expect(errors).toEqual([]);
   });
 
@@ -37,7 +37,7 @@ test.describe('US1: pick, practise, commit', () => {
 
     await expect(page.locator('.sfx')).toBeVisible({ timeout: 90_000 });
     await page.locator('#done').click();
-    await expect(page.locator('#practice')).toContainText('2 left');
+    await expect(page.locator('#practice')).toContainText('19 left');
 
     // Nothing reached the leaderboard.
     await expect(page.locator('table')).not.toContainText('FINISHED');

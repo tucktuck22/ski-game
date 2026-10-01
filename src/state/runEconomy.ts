@@ -1,5 +1,5 @@
 /**
- * The run economy: three practice runs, and a best-of-N official competition.
+ * The run economy: twenty practice runs, and a best-of-N official competition.
  *
  * Every count here comes from shared storage (FR-021). Nothing on this device
  * decides whether a run happened — that is what would hand a player a fresh
@@ -7,7 +7,7 @@
  */
 import type { EntryView } from './ordering.js';
 
-export const PRACTICE_RUNS = 3;
+export const PRACTICE_RUNS = 20;
 
 /**
  * NOTE ON WHERE THE TWO ALLOWANCES LIVE.
