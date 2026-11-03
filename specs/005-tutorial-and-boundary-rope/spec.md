@@ -269,6 +269,15 @@ the start line to the end of the coached section.
 - **FR-187**: The coached section's terrain MUST be materially gentler than the
   warm-up course that follows it, such that a player travels it slowly enough to
   read a badge and act on it before reaching the object it describes.
+  **AMENDED 2026-11-03 (playtest).** "Materially gentler" is now bounded from
+  below as well: the coached section MUST be ridden at no less than about 75% of
+  the official course's average pace ("maybe 25% slower than the base game, but no
+  more than that"). The coached gradient went 0.05 -> 0.19, which is 75% of the
+  official course's time-averaged terminal speed standing and tucked. At 0.05 it
+  was ~35%, which the playtest called excruciatingly slow and not useful practice.
+  Accepted cost: the RELEASE TO JUMP badge now leaves ~1 s to the deadfall, and a
+  badge-following release lands only if it comes 400-700 ms after the badge.
+  _Asserted in `tests/sim/coached-section.test.ts`._
 - **FR-188**: The coached section MUST present exactly four coached objects, in this
   order: a boundary rope, a deadfall box, a small ramp, and a large kicker.
 - **FR-189**: Each coached object MUST carry a badge naming the verb that object

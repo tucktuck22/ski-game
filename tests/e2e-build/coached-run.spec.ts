@@ -102,8 +102,11 @@ test.describe('the coached first run', () => {
           seen.push(text);
           // RELEASE TO JUMP: the cue fires one lookahead out, so let the charge
           // build and let go with the deadfall close. The release IS the jump.
+          // 550 ms is the middle of the window measured 2026-11-03 at coached
+          // gradient 0.19: releasing 400-700 ms after the badge clears the
+          // deadfall, 250 or 850 does not. It was 1800 at gradient 0.05.
           if (text === LESSONS[1]) {
-            released = Date.now() + 1800;
+            released = Date.now() + 550;
           }
           // SWIPE OR arrows TO FLIP: throw the rotation once airborne.
           if (text === LESSONS[3]) {
@@ -134,7 +137,7 @@ test.describe('the coached first run', () => {
     // demonstrated by a robot that has no other source of information.
     //
     // IF THIS FAILS SHORT, READ IT AS A MARGIN REPORT, NOT AS FLAKE. The only
-    // un-synchronised number in the loop is the 1800 ms it waits after RELEASE
+    // un-synchronised number in the loop is the 550 ms it waits after RELEASE
     // TO JUMP before letting go; everything else is driven by the badges. A
     // failure at LESSONS[1] means the release window this section gives a player
     // is tighter than it looks, which is exactly the question the Principle VIII

@@ -700,7 +700,10 @@ async function startRun(kind: RunKind): Promise<void> {
   // FR-068 at attempt granularity: free play reaches the official course only
   // once every attempt is spent, not after the first one commits.
   const which = courseFor(kind, isFinished(me, data.tuning.officialAttempts));
-  const course = which === 'official' ? data.official : data.warmup;
+  // FR-197: free play never rides the coached opening. A player who has reached
+  // free play has already been taught, so he gets the warm-up proper.
+  const course =
+    which === 'official' ? data.official : kind === 'free' ? data.warmupFree : data.warmup;
 
   app.innerHTML = `
     <div class="game-wrap">

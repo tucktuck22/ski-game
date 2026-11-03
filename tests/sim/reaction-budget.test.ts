@@ -111,7 +111,9 @@ const MOVED: Record<string, Record<string, string>> = {
 
 const BASELINE_LIP_SPEED: Record<string, Record<number, number>> = {
   official: { 1400: 4.371, 5200: 5.73, 7852: 5.045, 9188: 5.169, 11000: 5.188 },
-  'warm-up': { 1889: 1.633, 2489: 1.633, 4600: 4.785, 5586: 4.379 },
+  // 1889 and 2489 are the coached kickers. Re-baselined 2026-11-03 when the
+  // coached gradient went 0.05 -> 0.19 at the playtest's request (was 1.633).
+  'warm-up': { 1889: 3.533, 2489: 3.539, 4600: 4.785, 5586: 4.379 },
 };
 
 const describeReading = (r: Reading): string =>

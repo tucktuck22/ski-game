@@ -24,7 +24,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { ride } from './pilots.js';
-import { tuning, warmup } from './fixtures.js';
+import { official, tuning, warmup } from './fixtures.js';
 
 /** Where the coached section ends and the warm-up course proper begins. */
 const COACH_SPAN = 3200;
@@ -60,10 +60,33 @@ describe('the coached section is shaped the way FR-186 to FR-193 require', () =>
       return 0;
     };
     const coached = gradientAt(400);
-    const afterJoin = gradientAt(COACH_SPAN + 400);
-    // "Materially", not "slightly": the whole premise is that he has time to
-    // read, and feature 006 made gradient the thing that decides that.
-    expect(coached).toBeLessThan(afterJoin / 3);
+    // Gentler than any ground the scored course has (B8's 0.25 floor)...
+    expect(coached).toBeLessThan(0.25);
+    // ...but not so gentle it stops being practice. The 2026-11-03 playtest set
+    // the band: "maybe 25% slower than the base game, but no more than that".
+    // Measured against the official course's time-averaged terminal speed, on
+    // the same model the simulation uses.
+    const terminal = (g: number, tucked: boolean): number => {
+      const len = Math.sqrt(1 + g * g);
+      const net = tuning.gravity * (g / len - tuning.slopeFriction / len);
+      return Math.sqrt(net / (tucked ? tuning.dragTucked : tuning.dragStanding));
+    };
+    for (const tucked of [false, true]) {
+      let time = 0;
+      let dist = 0;
+      const t = official.terrain;
+      for (let i = 1; i < t.length; i++) {
+        const dx = t[i]!.x - t[i - 1]!.x;
+        time += dx / terminal((t[i]!.y - t[i - 1]!.y) / dx, tucked);
+        dist += dx;
+      }
+      const ratio = terminal(coached, tucked) / (dist / time);
+      expect(
+        ratio,
+        `coached pace is ${(ratio * 100).toFixed(0)}% of game pace`,
+      ).toBeGreaterThanOrEqual(0.7);
+      expect(ratio).toBeLessThanOrEqual(0.8);
+    }
     // And still legal — CV-23's stall floor, which is the binding rule here.
     expect(coached).toBeGreaterThan(tuning.slopeFriction * 3);
   });
@@ -126,7 +149,8 @@ describe('FR-193: the booter teaches rotation, at the speed this pitch actually 
 
     // Terminal speed a tucked player carries at the coached gradient, from the
     // same model the simulation uses.
-    const g = 0.05;
+    // Must match COACH_GRADE in tools/gen-courses.ts.
+    const g = 0.19;
     const len = Math.sqrt(1 + g * g);
     const net = tuning.gravity * (g / len - tuning.slopeFriction / len);
     const tucked = Math.sqrt(net / tuning.dragTucked);

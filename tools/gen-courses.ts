@@ -654,19 +654,24 @@ function official(): Built {
 const COACH_SPAN = 3200;
 
 /**
- * The coached gradient (R7 option C, re-baselined 2026-09-12).
+ * The coached gradient (re-tuned 2026-11-03 after playtest).
  *
- * It was 0.08 while feature 006 was still unshipped and speed was pinned to
- * baseSpeed, where a gentler slope bought nothing. Now gradient IS the speed
- * control, so 0.05 is genuinely slower - 1.054 standing against the warm-up's
- * ~2.7 - and FR-187's "materially gentler, slow enough to read" is true rather
- * than cosmetic.
+ * It was 0.05 from 2026-09-12: 1.054 standing / 1.622 tucked, about 35% of the
+ * official course's time-averaged 3.02 / 4.64. The playtest called that
+ * "excruciatingly slow" and "not really good practice": a lesson ridden at a
+ * third of game speed teaches timings the scored run never uses. The target it
+ * set was "about 25% slower than the base game, but no more than that".
  *
- * CV-23's stall floor is slopeFriction * 3 = 0.036, so this clears it with room.
- * It would NOT have at 006's pre-shipping friction of 0.02, where the floor was
- * 0.06 - gentler terrain became authorable only when the friction came down.
+ * 0.19 gives 2.26 standing / 3.48 tucked, 75% of the official course's average
+ * on both, and still sits under the course's own 0.25 floor so FR-187's
+ * "materially gentler" holds. Cue windows are now roughly half what they were
+ * at 0.05 (the flip cue's 323-unit window is ~1.5 s tucked, ~2.4 s standing);
+ * that is the trade this tuning accepts, and the first playtest to watch.
+ *
+ * Ramp and booter powers below are derived from this gradient, so they re-solve
+ * themselves. CV-23's stall floor (slopeFriction * 3 = 0.036) is far below it.
  */
-const COACH_GRADE = 0.05;
+const COACH_GRADE = 0.19;
 
 /** Where the coached gradient starts easing up into the warm-up's own pitch. */
 const COACH_JOIN = COACH_SPAN - 420;

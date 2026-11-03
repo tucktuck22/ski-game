@@ -4,11 +4,14 @@
  */
 import type { Course, Scoring, Tuning } from '../sim/types.js';
 import { assertCourseValid } from '../course/validate.js';
+import { withoutCoached } from '../course/withoutCoached.js';
 
 export interface GameData {
   tuning: Tuning;
   scoring: Scoring;
   warmup: Course;
+  /** The warm-up minus its coached opening: what free play rides (FR-197). */
+  warmupFree: Course;
   official: Course;
   insults: string[];
   audio: AudioManifest;
@@ -518,6 +521,8 @@ export function assembleGameData(input: {
     throw new Error('insults.json must be a non-empty array');
 
   assertCourseValid(warmup, tuning, scoring);
+  const warmupFree = withoutCoached(warmup);
+  assertCourseValid(warmupFree, tuning, scoring);
   assertCourseValid(official, tuning, scoring);
 
   if (warmup.id === official.id)
@@ -527,6 +532,7 @@ export function assembleGameData(input: {
     tuning,
     scoring,
     warmup,
+    warmupFree,
     official,
     insults: input.insults as string[],
     audio,
